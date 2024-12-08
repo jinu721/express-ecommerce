@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+  />
+  <link
+    href="https://unpkg.com/cropperjs@1.5.12/dist/cropper.min.css"
+    rel="stylesheet"
+  />
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body style="display: flex;">
+
+  <input type="hidden"  value="<%= product._id  %>" name="" id="productId">
+
+    <header>
+      <%- include('../layouts/headerAdmin.ejs')  %>
+    </header>
+    <main class="mainBodyUpdate">
+        <section class="updateProduct">
+          <p class="VariantText">Update product details</p>
+            <form
+            class="forms-sample"
+            id="productUpdateForm"
+            enctype="multipart/form-data"
+            novalidate
+          >
+            <input
+              style="display: none"
+              type="file"
+              class="product-update-image"
+              multiple
+              required
+            />
+            <div class="form-group">
+              <label for="productUpdateName">Name</label>
+              <input
+                type="text"
+                class="form-control product-update-name"
+                id="productUpdateName"
+                name="name"
+                value="<%= product.name %>"
+                placeholder="Product Name"
+                required
+              />
+              <p class="error-message" id="productUpdateNameError"></p>
+            </div>
+            <div class="form-group">
+            <label for="productImgaesView">Product images</label>
+            <div class="productsImages">
+              <% product.images.forEach((imageSrc, index) => { %>
+                <div class="image-container">
+                  <label for="productUpdateImage<%= index %>">
+                    <img class="image<%= index %>" src="/<%= imageSrc %>" alt="" />
+                    <div class="overlay">
+                      <span class="add-icon">+</span>
+                    </div>
+                  </label>
+                </div>
+              <% }) %>
+            </div>
+            <% for (let i = 0; i < 4; i++) { %>
+              <input
+                type="file"
+                id="productUpdateImage<%= i %>"
+                style="display: none;"
+                accept="image/*"
+                onchange="previewAndCrop(event, <%= i %>)"
+              />
+              <div id="cropPreviewUpdateSection<%= i %>" style="display: none;">
+                <img id="cropPreviewUpdate<%= i %>" style="max-width: 100%;" />
+                <button type="button" onclick="startCroppingUpdate(<%= i %>)">Crop Image</button>
+              </div>
+            <% } %>
+            
+            <div class="form-group">
+              <label for="productUpdateDesc">Description</label>
+              <input
+                type="text"
+                class="form-control product-update-desc"
+                id="productUpdateDescription"
+                name="description"
+                value="<%= product.description  %>"
+                placeholder="Product Description"
+                required
+              />
+              <p class="error-message" id="descUpdateError"></p>
+            </div>
+
+            <div class="form-group">
+              <label for="productUpdateCategory">Category</label>
+              <select class="form-control"id="productUpdateCategory"name="cta">
+                <% category.forEach((data)=>{ %>
+                <option value="<%= data.name  %>">
+                  <%= data.name %>
+                </option>
+                <% }) %>
+              </select>
+              <p class="error-message" id="categoryUpdateError"></p>
+            </div>
+
+            <div class="form-group">
+              <label for="productUpdateTags">Tags</label>
+              <input
+                type="text"
+                class="form-control product-update-tags"
+                id="productUpdateTags"
+                placeholder="Product tags"
+                value="<%= product.tags.map(tag => `#${tag}`).join('') %>"
+                required
+              />
+              <p class="error-message" id="tagsUpdateError"></p>
+            </div>
+            
+            <div class="form-group">
+              <label for="productUpdateBrand">Brand</label>
+              <input
+              type="text"
+              class="form-control product-update-brand"
+              id="productUpdateBrand"
+              placeholder="Product brand"
+              value="<%= product.brand  %>"
+              required
+              />
+              <p class="error-message" id="brandUpdateError"></p>
+            </div>
+            <div class="form-group" style="margin-bottom: 20px;">
+              <label style="font-weight: bold; font-size: 16px; margin-bottom: 8px; display: block;">Sizes & Stocks</label>
+              <div id="stockSection" style="border: solid 1px #ccc; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
+                <% for (let x in product.sizes) { %>
+                  <p style="margin: 5px 0; font-size: 14px; color: #333;">
+                    <span style="font-weight: bold;">Stock in <%= x %>:</span> <%= product.sizes[x].stock %>
+                  </p>
+                <% } %>
+                
+              </div>
+            </div>            
+
+            <div class="form-group">
+              <label>Color Options</label>
+              <div id="colorSection" style="border: solid 1px grey; padding: 10px; border-radius: 7px; display: flex;">
+                <% product.colors.forEach((data, index) => { %>
+                  <div id="color-<%= index %>" style="position: relative; width: 20px; border-radius: 50%; height: 20px; margin: 5px; background-color: <%= data %>;">
+                    <span onclick="removeColor(<%= index %>)" 
+                          style="position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; cursor: pointer; font-size: 12px; width: 15px; height: 15px; display: flex; align-items: center; justify-content: center;">
+                      &times;
+                    </span>
+                  </div>
+                <% }) %>
+              </div>
+              <div class="form-check" style="display: flex; align-items: center; gap: 10px; padding: 10px;">
+                <input
+                  type="color"
+                  value="#008000"
+                  id="colorPickerUpdate"
+                  style="width: 40px; height: 40px; border: none; cursor: pointer; border-radius: 5px; box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);"
+                />
+                <button
+                  class="btn btn-success"
+                  type="button"
+                  onclick="addColorUpdate()"
+                  style="padding: 8px 12px; font-weight: 500;"
+                >
+                  Add Color
+                </button>
+              </div>
+              
+              <div class="showColors" id="showColorsUpdate"></div>
+            </div>
+            <div class="form-group">
+              <label for="productUpdateOgPrice">Price</label>
+              <input
+                type="number"
+                class="form-control product-update-og-price"
+                id="productUpdateOgPrice"
+                value="<%= product.price  %>"
+                placeholder="Original Price"
+                required
+              />
+              <p class="error-message" id="ogPriceUpdateError"></p>
+            </div>
+            <div class="form-group">
+              <div class="form-check">
+                <input
+                  type="checkbox"
+                  <% if (product.cashOnDelivery) { %> checked <% } %>
+                  class="form-check-input"
+                  id="cashOnDeliveryUpdate"
+                />
+                <label class="form-check-label" for="cashOnDeliveryUpdate"
+                  >Cash on Delivery</label
+                >
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="form-check mb-3">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  <% if (product.offerPrice) { %> checked <% } %>
+                  id="toggleOfferPriceUpdate"
+                  onclick="toggleOfferPriceInputUpdate()"
+                />
+                <label
+                  class="form-check-label"
+                  for="toggleOfferPriceUpdate"
+                  >Add Offer Price</label
+                >
+              </div>
+              <div
+                class="offer-price-input mt-2"
+                id="offerPriceUpdateDiv"
+                style="display: <% if (product.offerPrice) { %> flex <% } else { %> none <% } %>"
+              >
+                <input
+                  type="number"
+                  class="form-control product-update-offer-price"
+                  id="productUpdateOfferPrice"
+                  placeholder="Offer Price"
+                  value="<%= product.offerPrice  %>"
+                />
+                <p class="error-message" id="offerPriceUpdateError"></p>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="form-check mb-3">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  id="toggleWarrantyUpdate"
+                  <% if (product.warranty) { %> checked <% } %>
+                  onclick="toggleWarrantyInputUpdate()"
+                />
+                <label class="form-check-label" for="toggleWarrantyUpdate"
+                  >Add Warranty</label
+                >
+              </div>
+              <div
+                class="warranty-input mt-2"
+                id="warrantyUpdateDiv"
+              >
+                <input
+                  type="text"
+                  class="form-control product-update-warranty"
+                  id="productUpdateWarranty"
+                  value="<%= product.warranty  %>"
+                  placeholder="Warranty"
+                />
+                <p class="error-message" id="warrantyUpdateError"></p>
+              </div>
+            </div>
+            <div class="form-group">
+              <div class="form-check mb-3">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  id="toggleReturnpolicyUpdate"
+                  <% if (product.returnPolicy) { %> checked <% } %>
+                  onclick="toggleReturnPolicyInputUpdate()"
+                />
+                <label class="form-check-label" for="toggleWarrantyUpdate"
+                  >Add Return Policy</label
+                >
+              </div>
+              <div
+              class="warranty-input mt-2"
+              id="returnPolicyUpdateDiv"
+            >
+              <input
+                type="text"
+                class="form-control product-update-return-policy"
+                id="productUpdateReturnPolicy"
+                placeholder="Return Policy"
+                value="<%= product.returnPolicy  %>"
+                required
+              />
+              <p class="error-message" id="returnPolicyUpdateError"></p>
+            </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="submit"
+                class="btn btn-primary"
+                id="updateProductBtn"
+              >
+                Update Product
+              </button>
+            </div>
+          </form>
+        </section>
+        <section class="updateVariant">
+          <p class="VariantText">Variant and Stock Management</p>
+          <% const sizes = ['S', 'M', 'L', 'XL', 'XXL', 'XXXL']; %>
+          <% for (const size of sizes) { %>
+            <div class="size-option">
+              <label for="size<%= size %>" class="size-label">
+                <input type="checkbox" id="size<%= size %>" 
+                       <% if (product.sizes && product.sizes[size] && product.sizes[size].stock > 0) { %> checked <% } %>
+                       onchange="toggleStockInput('<%= size %>')" />
+                <%= size %>
+              </label>
+          
+              <div id="stockInput<%= size %>" class="stock-input" style="display: <% if (product.sizes && product.sizes[size] && product.sizes[size].stock > 0) { %> flex <% } else { %> none <% } %>;">
+                <div class="stock-input-group">
+                  <input type="number" class="form-control stock-input-field" id="productStock<%= size %>" 
+                         placeholder="Stock for <%= size %> Size" 
+                          />
+                  <button class="add-stock-button">Add</button>
+                </div>
+                <p class="error-message" id="stock<%= size %>Error"></p>
+              </div>
+            </div>
+          <% } %>
+          
+        </section>
+        
+        
+      
+    </main>
+
+    <footer>
+
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://unpkg.com/cropperjs@1.5.12/dist/cropper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script src="/js/admin/update.js" ></script>
+</body>
+</html>

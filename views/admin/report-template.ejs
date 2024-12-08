@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales Report</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .summary, .details {
+      margin: 20px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f4f4f4;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sales Report</h1>
+  <div class="summary">
+    <div>
+      <p><strong>Start Date:</strong> <%= startDate %></p>
+      <p><strong>End Date:</strong> <%= endDate %></p>
+    </div>
+    <div>
+      <p><strong>Overall Discount</strong> : &#8377;<%= totalDiscounts %></p>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Total Revenue</th>
+          <th>Total Sales</th>
+          <th>Items Sold</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>&#8377;<%= salesData.totalRevenue.toFixed(2) %></td>
+          <td><%= salesData.totalSales %></td>
+          <td><%= salesData.itemsSold %></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="details">
+    <h2>Detailed Orders</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Product Name</th>
+          <th>Quantity</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% detailedOrders.forEach(order => { %>
+          <% order.items.forEach(item => { %>
+            <tr>
+              <td><%= item.product.name %></td>
+              <td><%= item.quantity %></td>
+              <td>&#8377;<%= item.product.price.toFixed(2) %></td>
+            </tr>
+          <% }) %>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!--=============== FLATICON ===============-->
+    <link
+      rel="stylesheet"
+      href="https://cdn-uicons.flaticon.com/2.0.0/uicons-regular-straight/css/uicons-regular-straight.css"
+    />
+
+    <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+  />
+
+    <!--=============== SWIPER CSS ===============-->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+    />
+
+    <!--=============== CSS ===============-->
+    <link rel="stylesheet" href="./css/styles.css" />
+
+    <title>Ecommerce Website</title>
+  </head>
+  <body>
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HEADER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <%- include('../layouts/header.ejs')  %>
+
+    <!--=============== MAIN ===============-->
+    <main class="main">
+      <!--=============== BREADCRUMB ===============-->
+      <!-- <section class="breadcrumb">
+        <ul class="breadcrumb__list flex container">
+          <li><a href="index.html" class="breadcrumb__link">Home</a></li>
+          <li><span class="breadcrumb__link">></span></li>
+          <li><span class="breadcrumb__link login-reg-breadcrumb">Login / Register</span></li>
+        </ul>
+      </section> -->
+
+      <%- include('../layouts/breadcrumbs.ejs')  %>
+      
+      <!--=============== LOGIN-REGISTER ===============-->
+      <section class="section--lg forgot-section">
+        <div class="forgot">
+            <h3 class="section__title">Forgot Password</h3>
+            <form action="/forgot" method="post" class="form grid">
+              <input
+                type="email"
+                placeholder="Your Email"
+                id="passwordInput4"
+                class="form__input emailForgot" name="email"
+              />
+              <p class="err erremailForgot">err msg</p>
+              <div class="form__input-container">
+                <input
+                type="password"
+                placeholder="Your Password "
+                id="passwordInput5"
+                class="form__input newpassForgot" name="pass"
+              />
+                <i class="fas fa-eye eye-icon toggleEye" onclick="toggleEye('passwordInput5', this)" id="togglePassword"></i>
+              </div>
+              <p class="err errpassForgot">err msg</p>
+              <div class="form__input-container">
+                <input
+                  type="password"
+                  placeholder="Conform Password "
+                  id="passwordInput6"
+                  class="form__input newcpassForgot" name="cpass"
+                />
+                <i class="fas fa-eye eye-icon toggleEye" onclick="toggleEye('passwordInput6', this)" id="togglePassword"></i>
+              </div>
+              <p class="err errcpassForgot">err msg</p>
+              <input
+                type="text"
+                placeholder="OTP"
+                class="form__input otpForgot"
+              />
+              <p class="err errotpForgot">Enter OTP</p>
+              <p class="reotpalertForgot">Resend otp in : <span class="timerForgot">0:52</span></p>
+              <p class="reotpbuttonForgot">Resend</p>
+              <div class="form__btn">
+                <div class="btn btnForgot">
+                  <p class="getotptextForgot" >Forget Password</p>
+                  <div class="getotploaderForgot loader-bar" ></div>
+                </div>
+              </div>
+              <div class="form__btn">
+                <div class="btn btnverifyForgot">
+                  <p class="getverifytextForgot" >Verify OTP</p>
+                  <div class="getverifyloaderForgot" class="loader-bar"></div>
+                </div>
+              </div>
+              <div class="form__btn">
+                <div class="btn btnChangePassForgot">
+                  <p class="ChangePassTextForgot" >Change Password</p>
+                  <div class="ChangePassloaderForgot" class="loader-bar"></div>
+                </div>
+              </div>
+            </form>
+          </div>
+      </section>
+      
+
+      <!--=============== NEWSLETTER ===============-->
+      <section class="newsletter section">
+        <div class="newsletter__container container grid">
+          <h3 class="newsletter__title flex">
+            <img
+              src=".//img/icon-email.svg"
+              alt=""
+              class="newsletter__icon"
+            />
+            Sign in to Newsletter
+          </h3>
+          <p class="newsletter__description">
+            ...and receive $25 coupon for first shopping.
+          </p>
+          <form action="" class="newsletter__form">
+            <input
+              type="text"
+              placeholder="Enter Your Email"
+              class="newsletter__input"
+            />
+            <button type="submit" class="newsletter__btn">Subscribe</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+   <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOOTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+   <%- include('../layouts/footer.ejs')  %>
+
+
+    <!--=============== SWIPER JS ===============-->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+    <!--=============== MAIN JS ===============-->
+    <script src="/js/user/main.js"></script>
+    <script src="/js/user/forgot.js"></script>
+  </body>
+</html>

@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!--=============== FLATICON ===============-->
+    <link
+      rel="stylesheet"
+      href="https://cdn-uicons.flaticon.com/2.0.0/uicons-regular-straight/css/uicons-regular-straight.css"
+    />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!--=============== SWIPER CSS ===============-->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+    />
+
+    <!--=============== CSS ===============-->
+    <link rel="stylesheet" href="/css/styles.css" />
+
+    <title>Ecommerce Website</title>
+  </head>
+  <body>
+    <!--=============== HEADER ===============-->
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HEADER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <%- include('../layouts/header.ejs')  %>
+
+    <!--=============== MAIN ===============-->
+    <main class="main">
+      <!--=============== BREADCRUMB ===============-->
+      <!-- <section class="breadcrumb">
+        <ul class="breadcrumb__list flex container">
+          <li><a href="index.html" class="breadcrumb__link">Home</a></li>
+          <li><span class="breadcrumb__link"></span>></li>
+          <li><span class="breadcrumb__link">Fashion</span></li>
+          <li><span class="breadcrumb__link"></span>></li>
+          <li><span class="breadcrumb__link"><%= product.name  %></span></li>
+        </ul>
+      </section> -->
+
+      <%- include('../layouts/breadcrumbs.ejs')  %>
+      
+
+      <!--=============== DETAILS ===============-->
+
+      
+  
+      <input type="hidden" name="" value="<%= product._id  %>" id="productIdStore">
+
+      <section class="details section--lg">
+        <div class="details__container container grid">
+
+          <div class="details__group image-zoom-container">
+            <img
+              src="/<%= product.images[0] %>"
+              alt=""
+              class="details__img mainImage"
+              id="mainImage"
+              onmouseover="enableZoom(event)"
+              onmouseout="disableZoom()"
+            />
+            <div class="zoom-overlay" id="zoomOverlay"></div>
+            <div class="details__small-images grid">
+              <img
+                src="/<%= product.images[1] %>"
+                alt=""
+                class="details__small-img productImage2"
+                onclick="changeMainImage(this)"
+              />
+              <img
+                src="/<%= product.images[2] %>"
+                alt=""
+                class="details__small-img productImage3"
+                onclick="changeMainImage(this)"
+              />
+              <img
+                src="/<%= product.images[3] %>"
+                alt=""
+                class="details__small-img productImage4"
+                onclick="changeMainImage(this)"
+              />
+            </div>
+          </div>
+          
+          
+
+
+          <div class="details__group">
+            <h3 class="details__title"><%= product.name %></h3>
+            <p class="details__brand">Brand: <span><%= product.brand %></span></p>
+            <div class="details__price flex">
+              <% if(product.offerPrice !== 0) { %>
+                <span class="new__price offerPriceProduct">&#8377;<%= product.offerPrice %></span>
+                <span class="old__price">&#8377;<%= product.price %></span>
+                <span class="save__price">
+                  <%= parseInt(((product.price - product.offerPrice) / product.price) * 100) %>% Off
+                </span>
+              <% } else { %>
+                <span class="new__price">&#8377;<%= product.price %></span>
+              <% } %>
+            </div>
+            <p class="short__description">
+              <%= product.description %>
+            </p>
+            <ul class="products__list">
+              <li class="list__item flex">
+                <i class="fi-rs-crown"></i> <%= product.warranty ? product.warranty : 'No Warranty Available' %>
+              </li>
+              <li class="list__item flex">
+                <i class="fi-rs-refresh"></i> <%= product.returnPolicy !== 'null' ? product.returnPolicy : 'No Return Policy' %>
+              </li>
+              <li class="list__item flex">
+                <i class="fi-rs-credit-card"></i> <%= product.cashOnDelivery ? 'Cash on Delivery available' : 'No Cash on Delivery available' %>
+              </li>
+            </ul>
+            <div class="details__color flex">
+              <span class="details__color-title">Color</span>
+              <ul class="color__list">
+                <% product.colors.forEach(color => { %>
+                  <li>
+                    <a class="color__link" style="background-color:<%= color %>;" data-color-name="<%= color %>"></a>
+                  </li>
+                <% }) %>
+              </ul>
+            </div>
+            <div class="details__size flex">
+              <span class="details__size-title">Size</span>
+              <ul class="size__list">
+                <% for(let key in product.sizes){ %>
+                  <li>
+                    <a  class="size__link "><%= key %></a>
+                  </li>
+                <% } %>
+              </ul>
+            </div>
+            <div class="details__action">
+              <input type="number" class="quantity" value="1" min="1" oninput="validateQuantity(this, <%= product.stock %>)"step="1"/>
+              <a data-id="<%= product._id  %>" class="btn btn--sm btAddToCart">Add To Cart</a>
+              <a data-id="<%= product._id  %>" class="btn btn--sm btn-buynow">Buy Now</a>
+              <% if(isAlreadyWishlist){ %>        
+                <a data-id="<%= product._id %>" class="details__action-btn wishlistDiv"  id="wishlistButton">
+                  <i style="color: red;" class="fi fi-rs-heart wishlistIcon"></i>
+                </a>         
+                <% }else{ %>
+                  <a data-id="<%= product._id %>" class="details__action-btn wishlistDiv"  id="wishlistButton">
+                    <i class="fi fi-rs-heart wishlistIcon"></i>
+                  </a>         
+               <% } %>
+            </div>
+            <ul class="details__meta">
+              <li class="meta__list flex">
+                <% let tags = ""; %>
+                <% product.tags.forEach(val => { %>
+                  <% tags += val + ", "; %>
+                <% }) %>
+                <span>Tags:</span><%= tags.slice(0, -2) %> 
+              </li>
+              <li class="meta__list flex">
+                Availability: <span class="stockText"></span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+      
+
+      <!--=============== DETAILS TAB ===============-->
+      <section class="details__tab container">
+        <div class="detail__tabs">
+          <span class="detail__tab" data-target="#reviews">Reviews(<%= product.reviews.length %>)</span>
+        </div>
+        <div class="details__tabs-content review">
+          <div class="details__tab-content" content id="reviews">
+            <div class="reviews__container grid reviewShowSection">
+              <div class="review__single">
+                <div>
+                  <img 
+                    src="/img/icons/image.png"
+                    alt=""
+                    class="review__img"
+                  />
+                  <h4 class="review__title ">Jacky Chan</h4>
+                </div>
+                <div class="review__data">
+                  <div class="review__rating">
+                    <i class="fi fi-rs-star"></i>
+                    <i class="fi fi-rs-star"></i>
+                    <i class="fi fi-rs-star"></i>
+                    <i class="fi fi-rs-star"></i>
+                    <i class="fi fi-rs-star"></i>
+                  </div>
+                  <p class="review__description">
+                    Thank you, very fast shipping from Poland only 3days.
+                  </p>
+                  <span class="review__date">December 4, 2022 at 3:12 pm</span>
+                </div>
+              </div>
+            </div>
+            <% if(isBuyedUser){ %>
+              <div class="review__form">
+                <h4 class="review__form-title">Add a review</h4>
+                <div class="rate__product">
+                  <i class="fi fi-rs-star"></i>
+                  <i class="fi fi-rs-star"></i>
+                  <i class="fi fi-rs-star"></i>
+                  <i class="fi fi-rs-star"></i>
+                  <i class="fi fi-rs-star"></i>
+                </div>
+                <form action="" class="form grid">
+                  <textarea
+                    class="form__input textarea reviewTextarea"
+                    placeholder="Write Comment"
+                  ></textarea>
+                  <div class="form__btn">
+                    <button class="btn btnSubmitReview">Submit Review</button>
+                  </div>
+                </form>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </section>
+
+      <!--=============== PRODUCTS ===============-->
+      <section class="products container section--lg">
+        <h3 class="section__title"><span>Related</span> Products</h3>
+        <div class="products__container grid">
+          <% relatedProducts.forEach(data=>{ %>
+            <div class="product__item">
+              <div class="product__banner">
+                <a href="/details/<%= data._id  %>" class="product__images">
+                  <img
+                    src="/<%= data.images[0]  %>"
+                    alt=""
+                    class="product__img default"
+                  />
+                  <img
+                    src="/<%= data.images[2]  %>"
+                    alt=""
+                    class="product__img hover"
+                  />
+                </a>
+                <div class="product__actions">
+                  <a href="#" class="action__btn" aria-label="Quick View">
+                    <i class="fi fi-rs-eye"></i>
+                  </a>
+                  <a
+                    href="#"
+                    class="action__btn"
+                    aria-label="Add to Wishlist"
+                  >
+                    <i class="fi fi-rs-heart"></i>
+                  </a>
+                </div>
+                <div class="product__badge light-pink">Hot</div>
+              </div>
+              <div class="product__content">
+                <span class="product__category"><%= category ? category.name : "Unknown Category" %></span>
+                <a href="/details/<%= data._id  %>">
+                  <h3 class="product__title"><%= data.name %></h3>
+                </a>
+                <div class="product__rating">
+                  <i class="fi fi-rs-star"></i>
+                  <i class="fi fi-rs-star"></i>
+                  <i class="fi fi-rs-star"></i>
+                  <i class="fi fi-rs-star"></i>
+                  <i class="fi fi-rs-star"></i>
+                </div>
+                <div class="product__price flex">
+                  <% if(data.offerPrice!==0){ %>
+                    <span class="new__price currentPrice">&#8377;<%= data.offerPrice %></span>
+                    <span class="old__price">&#8377;<%= data.price %></span>
+                    <% }else{ %>
+                    <span class="new__price">&#8377;<%= data.price %></span>
+                    <% } %>
+                </div>
+                <a
+                  href="#"
+                  class="action__btn cart__btn"
+                  aria-label="Add To Cart"
+                >
+                  <i class="fi fi-rs-shopping-bag-add"></i>
+                </a>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+
+      <!--=============== NEWSLETTER ===============-->
+      <section class="newsletter section">
+        <div class="newsletter__container container grid">
+          <h3 class="newsletter__title flex">
+            <img
+              src="/img/icon-email.svg"
+              alt=""
+              class="newsletter__icon"
+            />
+            Sign in to Newsletter
+          </h3>
+          <p class="newsletter__description">
+            ...and receive $25 coupon for first shopping.
+          </p>
+          <form action="" class="newsletter__form">
+            <input
+              type="text"
+              placeholder="Enter Your Email"
+              class="newsletter__input"
+            />
+            <button type="submit" class="newsletter__btn">Subscribe</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+   <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOOTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+   <%- include('../layouts/footer.ejs')  %>
+
+
+    <!--=============== SWIPER JS ===============-->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!--=============== MAIN JS ===============-->
+    <script src="/js/user/details.js"></script>
+  </body>
+</html>

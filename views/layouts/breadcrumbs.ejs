@@ -1,0 +1,17 @@
+<section class="breadcrumb">
+    <ul class="breadcrumb__list flex container">
+      <% breadcrumbs.forEach((crumb, index) => { %>
+        <li>
+          <% if (crumb.link) { %>
+            <a href="<%= crumb.link %>" class="breadcrumb__link"><%= crumb.label %></a>
+          <% } else { %>
+            <span class="breadcrumb__link"><%= crumb.label %></span>
+          <% } %>
+        </li>
+        <% if (index < breadcrumbs.length - 1) { %>
+          <li><span class="breadcrumb__link">></span></li>
+        <% } %>
+      <% }); %>
+    </ul>
+  </section>
+  

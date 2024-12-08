@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!--=============== FLATICON ===============-->
+    <link
+      rel="stylesheet"
+      href="https://cdn-uicons.flaticon.com/2.0.0/uicons-regular-straight/css/uicons-regular-straight.css"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+
+    <!--=============== SWIPER CSS ===============-->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+    />
+
+    <!--=============== CSS ===============-->
+    <link rel="stylesheet" href="/css/styles.css" />
+
+    <title>Ecommerce Website</title>
+  </head>
+  <body>
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HEADER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <%- include('../layouts/header.ejs') %>
+
+    <!--=============== MAIN ===============-->
+    <main class="main mainPageSection">
+      <!--=============== BREADCRUMB ===============-->
+      <!-- <section class="breadcrumb">
+        <ul class="breadcrumb__list flex container">
+          <li><a href="/home" class="breadcrumb__link">Home</a></li>
+          <li><span class="breadcrumb__link">></span></li>
+          <li><span class="breadcrumb__link">Account</span></li>
+        </ul>
+      </section> -->
+      <%- include('../layouts/breadcrumbs.ejs')  %>
+
+      <!--=============== ACCOUNTS ===============-->
+      <section class="accounts section--lg">
+        <div class="accounts__container container grid">
+          <div class="account__tabs">
+            <p class="account__tab active-tab" data-target="#dashboard">
+              <i class="fi fi-rs-user"></i> Profile
+            </p>
+            <p class="account__tab" data-target="#orders">
+              <i class="fi fi-rs-shopping-bag"></i> Orders
+            </p>
+            <p class="account__tab" data-target="#wallet">
+              <i class="fi fi-rs-wallet"></i> Wallet
+            </p>
+            <p class="account__tab" data-target="#address">
+              <i class="fi fi-rs-marker"></i> My Address
+            </p>
+            <% if(!user.isGoogleLogin){ %>
+            <p class="account__tab" data-target="#change-password">
+              <i class="fi fi-rs-settings-sliders"></i> Change Password
+            </p>
+            <% } %>
+              <p class="account__tab" data-target="#logout">
+                <i class="fi fi-rs-exit"></i> Logout <i>
+              </p>
+          </div>
+          <div class="tabs__content">
+            <div class="tab__content active-tab" id="dashboard">
+              <h3 class="tab__header"><%= user.username %></h3>
+              <div class="tab__body">
+                <div class="profile-info">
+                  <h4>
+                    username :
+                    <span class="displayUsername"><%= user.username %></span>
+                  </h4>
+                  <h4>
+                    email : <span class="displayEmail"><%= user.email %></span>
+                  </h4>
+                  <h4>
+                    phone :
+                    <span class="displayPhone"
+                      ><%= user.phone?user.phone:'nill' %></span
+                    >
+                  </h4>
+                  <div class="profile-action">
+                    <a href="#" class="edit edit-profile">Edit</a>
+                  </div>
+                </div>
+                <div class="tab__body">
+                  <form class="form grid updateform">
+                    <input
+                      type="text"
+                      placeholder="Username"
+                      class="form__input usernameUpdate"
+                      name="username"
+                      value="<%= user.username  %>"
+                    />
+                    <p class="err error-msg-updateUsername">error msg</p>
+                    <!-- <input
+                      type="text"
+                      placeholder="Email"
+                      class="form__input emailUpdate"
+                      name="email"
+                      value="<%= user.email  %>"
+                    />
+                    <p class="err error-msg-updateEmail">error msg</p> -->
+                    <input
+                      type="text"
+                      placeholder="Phone"
+                      class="form__input phoneUpdate"
+                      name="phone"
+                      value="+<%= user.phone  %>"
+                    />
+                    <p class="err error-msg-updatePhone">error msg</p>
+
+                    <div class="form__btn">
+                      <button type="submit" class="btn btn--md updatebtn">
+                        Update
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <div class="tab__content" content id="orders">
+              <h3 class="tab__header">Your Orders</h3>
+              <div class="tab__body">
+                <table class="placed__order-table ordersInfo">
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>Date</th>
+                      <th>Order Status</th>
+                      <th>Payment Status</th>
+                      <th>Totals</th>
+                      <th>Order Details</th>
+                      <th>Action</th>
+                      <th>More</th>
+                    </tr>
+                  </thead>
+                  <tbody class="ordersParant">
+                    <tr>
+                      <!-- <td>1</td>
+                      <td>March 19, 2022</td>
+                      <td>Processing</td>
+                      <td>Processing</td>
+                      <td>&#8377;1000</td>
+                      <td><a href="#" class="view__order">View</a></td>
+                      <td><a href="#" class="view__order">View</a></td>
+                      <td><a href="#" class="view__order">Cancel Order</a></td> -->
+                    </tr>
+                  </tbody>
+                </table>
+                <div class="pagination"></div>
+                <div style="display: flex">
+                  <table class="placed__order-table detailsOfOrders">
+                    <thead>
+                      <tr>
+                        <th>No</th>
+                        <th>Name</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                        <th>Product Details</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <input type="hidden" name="" value="" id="">
+                    <tbody class="ordersParant orderedProductInfo">
+                      <tr>
+                        <!-- <td>1</td>
+                        <td>March 19, 2022</td>
+                        <td>Processing</td>
+                        <td>Processing</td>
+                        <td>&#8377;1000</td>
+                        <td><a href="#" class="view__order">View</a></td>
+                        <td><a href="#" class="view__order">View</a></td>
+                        <td><a href="#" class="view__order">Cancel Order</a></td> -->
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div class="orderedAddrressInfo">
+                    <address class="address">
+                      <div class="orderedAddress-display"></div>
+                    </address>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab__content" content id="wallet">
+              <h3 class="tab__header">Wallet</h3>
+              <div class="tab__body">
+                <div style="display: flex">
+                  <div class="container balanceSection">
+                    <!-- Balance Card -->
+                    <div class="card">
+                      <div class="balance-header">
+                        <span>Balance</span>
+                        <div class="currency-toggle">R/ &#8377;</div>
+                      </div>
+                      <div class="balance-amount">$ 7,610.00</div>
+                      <div class="transactions">
+                        <span>↗ +$ 2,339.00</span>
+                        <span>↙ -$ 919.00</span>
+                      </div>
+
+                      <div class="info-section">
+                        <div class="info-item">
+                          <span class="label">Wallet ID:</span>
+                          <span>44zce285ee4944c5e7fe80772b2bfee24b</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="transaction-list" style="margin-right: 56px;">
+                    <div class="transactionHistorySection">
+
+                    </div>
+
+                    <!-- <div class="transaction-item">
+                      <div class="transaction-info">
+                        <div class="transaction-icon icon-send">↑</div>
+                        <div class="transaction-details">
+                          <span class="transaction-title">Sent to Market</span>
+                          <span class="transaction-date">Today, 1:15 PM</span>
+                        </div>
+                      </div>
+                      <div
+                        class="transaction-details"
+                        style="text-align: right"
+                      >
+                        <span class="transaction-amount amount-sent"
+                          >-$919.00</span
+                        >
+                        <span class="transaction-status status-completed"
+                          >Completed</span
+                        >
+                      </div>
+                    </div>
+
+                    <div class="transaction-item">
+                      <div class="transaction-info">
+                        <div class="transaction-icon icon-send">↑</div>
+                        <div class="transaction-details">
+                          <span class="transaction-title">Games Purchase</span>
+                          <span class="transaction-date">Today, 12:30 PM</span>
+                        </div>
+                      </div>
+                      <div
+                        class="transaction-details"
+                        style="text-align: right"
+                      >
+                        <span class="transaction-amount amount-sent"
+                          >-$503.00</span
+                        >
+                        <span class="transaction-status status-pending"
+                          >Pending</span
+                        >
+                      </div>
+                    </div> -->
+
+                    <!-- <div class="load-more">Load more transactions</div> -->
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="tab__content" content id="address">
+              <h3 class="tab__header">Shipping Address</h3>
+              <div class="tab__body">
+                <address class="address addressDisplaySection">
+                  <div class="address-display">
+                    <div>
+                      <a href="#" class="editAddressTxt">Edit</a>
+                      <a href="#" class="removeAddress">Remove</a>
+                    </div>
+                  </div>
+                  <a  class="createAddress">Add</a>
+                </address>
+                <div class="address-form-create">
+                  <form
+                    action="/address-add"
+                    method="post"
+                    class="form grid register-form"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Your Country"
+                      class="form__input countryInp"
+                      name="country"
+                    />
+                    <p class="err errCountryAddress">err</p>
+                    <input
+                      type="text"
+                      placeholder="Your State"
+                      class="form__input stateInp"
+                      name="state"
+                    />
+                    <p class="err errStateAddress">err</p>
+                    <input
+                      type="text"
+                      placeholder="Your District"
+                      class="form__input districtInp"
+                      name="district"
+                    />
+                    <p class="err errDistrictAddress">err</p>
+                    <input
+                      type="text"
+                      placeholder="Your City"
+                      class="form__input cityInp"
+                      name="city"
+                    />
+                    <p class="err errCityAddress">err dd</p>
+                    <input
+                      type="text"
+                      placeholder="Your Street"
+                      class="form__input streetInp"
+                      name="street"
+                    />
+                    <p class="err errStreetAddress">err</p>
+                    <input
+                      type="text"
+                      placeholder="Your Landmark"
+                      class="form__input landmarkInp"
+                      name="lardmark"
+                    />
+                    <p class="err errLandmarkAddress">err</p>
+                    <input
+                      type="text"
+                      placeholder="Your House number"
+                      class="form__input housenoInp"
+                      name="houseno"
+                    />
+                    <p class="err errHousenoAddress">err</p>
+                    <input
+                      type="number"
+                      placeholder="Your Pincode"
+                      class="form__input pincodeInp"
+                      name="pincode"
+                    />
+                    <p class="err errPincodeAddress">err</p>
+                    <div class="form__btn">
+                      <div class="btn btnAddAddress">
+                        <p class="btnAddAddressText">Create</p>
+                        <div class="loader-bar btnAddAddressLoader"></div>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+                <div class="address-form-edit">
+                  <form
+                    action="/address-edit"
+                    method="post"
+                    class="form grid edit-form"
+                  >
+                    <input
+                      type="hidden"
+                      name="id"
+                      class="addressIdEdit"
+                      value=""
+                    />
+                    <input
+                      type="text"
+                      placeholder="Edit Country"
+                      class="form__input countryInpEdit"
+                      name="country"
+                    />
+                    <p class="err errCountryAddressEdit">err</p>
+                    <input
+                      type="text"
+                      placeholder="Edit State"
+                      class="form__input stateInpEdit"
+                      name="state"
+                    />
+                    <p class="err errStateAddressEdit">err</p>
+                    <input
+                      type="text"
+                      placeholder="Edit District"
+                      class="form__input districtInpEdit"
+                      name="district"
+                    />
+                    <p class="err errDistrictAddressEdit">err</p>
+                    <input
+                      type="text"
+                      placeholder="Edit City"
+                      class="form__input cityInpEdit"
+                      name="city"
+                    />
+                    <p class="err errCityAddressEdit">err</p>
+                    <input
+                      type="text"
+                      placeholder="Edit Street"
+                      class="form__input streetInpEdit"
+                      name="street"
+                    />
+                    <p class="err errStreetAddressEdit">err</p>
+                    <input
+                      type="text"
+                      placeholder="Edit Landmark"
+                      class="form__input landmarkInpEdit"
+                      name="landmark"
+                    />
+                    <p class="err errLandmarkAddressEdit">err</p>
+                    <input
+                      type="text"
+                      placeholder="Edit House number"
+                      class="form__input housenoInpEdit"
+                      name="houseno"
+                    />
+                    <p class="err errHousenoAddressEdit">err</p>
+                    <input
+                      type="text"
+                      placeholder="Edit Pincode"
+                      class="form__input pincodeInpEdit"
+                      name="pincode"
+                    />
+                    <p class="err errPincodeAddressEdit">err</p>
+                    <div class="form__btn">
+                      <div class="btn btnEditAddress">
+                        <p class="btnEditAddressText">Save Changes</p>
+                        <div class="loader-bar btnEditAddressLoader"></div>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <!-- <% if(!user.isGoogleLogin){ %> -->
+            <div class="tab__content" id="change-password">
+              <h3 class="tab__header">Change Password</h3>
+              <div class="tab__body">
+                <form class="form grid">
+                  <div class="form__input-container">
+                    <input
+                      type="password"
+                      placeholder="Current Password"
+                      id="passwordInput7"
+                      class="form__input current-pass"
+                    />
+                    <i
+                      class="fas fa-eye eye-icon"
+                      onclick="toggleEye('passwordInput7', this)"
+                      id="togglePassword"
+                    ></i>
+                  </div>
+                  <p class="err error-message err-current-pass"></p>
+                  <div class="form__input-container">
+                    <input
+                      type="password"
+                      placeholder="New Password"
+                      id="passwordInput8"
+                      class="form__input new-pass"
+                    />
+                    <i
+                      class="fas fa-eye eye-icon"
+                      onclick="toggleEye('passwordInput8', this)"
+                      id="togglePassword"
+                    ></i>
+                  </div>
+                  <p class="err error-message err-new-pass"></p>
+                  <div class="form__input-container">
+                    <input
+                      type="password"
+                      placeholder="Confirm Password"
+                      id="passwordInput9"
+                      class="form__input confirm-pass"
+                    />
+                    <i
+                      class="fas fa-eye eye-icon"
+                      onclick="toggleEye('passwordInput9', this)"
+                      id="togglePassword"
+                    ></i>
+                  </div>
+                  <p class="err error-message err-confirm-pass"></p>
+                  <a href="/forgot" class="forgotTxt">Forgot Password</a>
+
+                  <div class="form__btn">
+                    <div class="btn btn-saveChangePass">
+                      <p class="btn-saveChangePassText">Save Changes</p>
+                      <div class="loader-bar btn-saveChangePassLoader"></div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            
+            <!-- <% } %> -->
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOOTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <%- include('../layouts/footer.ejs') %>
+
+    <!--=============== SWIPER JS ===============-->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <!--=============== MAIN JS ===============-->
+    <script src="/js/user/main.js"></script>
+    <script src="/js/user/account.js"></script>
+  </body>
+</html>

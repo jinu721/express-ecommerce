@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!--=============== FLATICON ===============-->
+    <link
+      rel="stylesheet"
+      href="https://cdn-uicons.flaticon.com/2.0.0/uicons-regular-straight/css/uicons-regular-straight.css"
+    />
+
+    <!--=============== SWIPER CSS ===============-->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+    />
+
+    <!--=============== CSS ===============-->
+    <link rel="stylesheet" href="/css/styles.css" />
+
+    <title>Ecommerce Website</title>
+  </head>
+  <body>
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HEADER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <%- include('../layouts/header.ejs') %>
+
+    <!--=============== MAIN ===============-->
+    <main class="main mainPageSection">
+      <!--=============== BREADCRUMB ===============-->
+      <!-- <section class="breadcrumb">
+        <ul class="breadcrumb__list flex container">
+          <li><a href="index.html" class="breadcrumb__link">Home</a></li>
+          <li><span class="breadcrumb__link"></span>></li>
+          <li><span class="breadcrumb__link">Shop</span></li>
+          <li><span class="breadcrumb__link"></span>></li>
+          <li><span class="breadcrumb__link">Wishlist</span></li>
+        </ul>
+      </section> -->
+
+      <%- include('../layouts/breadcrumbs.ejs')  %>
+
+      <!--=============== WISHLIST ===============-->
+      <% if(isWishlistEmpty){ %>
+      <section class="cartEmpty">
+        <p>Not items in wishlist</p>
+      </section>
+      <% }else{ %>
+      <section class="wishlist section--lg container">
+        <div class="table__container">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Stock Status</th>
+                <th>Action</th>
+                <th>Rename</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% products.forEach(data=>{ %>
+                 <% const wishlistItem = wishlistItems.find(item => item.productId.toString() === data._id.toString()); %>
+              <tr>
+                <td>
+                  <img src="/<%= data.images[0] %>" alt="" class="table__img" />
+                </td>
+                <td>
+                  <h3 class="table__title"><%= data.name %></h3>
+                  <p class="table__description">
+                    <%= data.description.slice(0,40) %>...
+                  </p>
+                </td>
+                <td>
+                  <% let isInStock = false; %>
+                  <% for (let x in products.sizes) { %>
+                     <% if (products.sizes[x] >0){ %> 
+                        <% isInStock = true; %>
+                        <% break; %>
+                     <% } %>
+                  <% } %>
+                  <span class="table__price">&#8377;<%= data.price %></span>
+                </td>
+                <td><span class="table__stock"><% isInStock?'In Stock':'Out of stock' %>In Stock</span></td>
+                <td>
+                  <a
+                     data-price="<%= data.price %>"
+                      data-productId="<%= data._id  %>" 
+                      data-wishlistItemId="<%= wishlistItem ? wishlistItem._id : '' %>"
+                      class="btn btn--sm btnAddToCart">
+                    Add to Cart
+                  </a>
+                </td>
+                <td><i data-productId="<%= data._id  %>"  data-wishlistItemId="<%= wishlistItem ? wishlistItem._id : '' %>" class="fi fi-rs-trash table__trash btnDeleteWishlist"></i></td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <% } %>
+
+      <!--=============== NEWSLETTER ===============-->
+      <section class="newsletter section">
+        <div class="newsletter__container container grid">
+          <h3 class="newsletter__title flex">
+            <img src="img/icon-email.svg" alt="" class="newsletter__icon" />
+            Sign in to Newsletter
+          </h3>
+          <p class="newsletter__description">
+            ...and receive $25 coupon for first shopping.
+          </p>
+          <form action="" class="newsletter__form">
+            <input
+              type="text"
+              placeholder="Enter Your Email"
+              class="newsletter__input"
+            />
+            <button type="submit" class="newsletter__btn">Subscribe</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOOTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <%- include('../layouts/footer.ejs') %>
+
+    <!--=============== SWIPER JS ===============-->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!--=============== MAIN JS ===============-->
+    <script src="/js/user/main.js"></script>
+    <script src="/js/user/wishlist.js"></script>
+  </body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment Success</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Poppins", sans-serif;
+        background-color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+
+      .container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+      }
+
+      .success-box {
+        width: 480px;
+        padding: 20px;
+        background: #ffffff;
+        border-radius: 20px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      .success-icon {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        margin: 0 auto 20px;
+      }
+
+      .success-icon .circle {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: rgba(35, 162, 109, 0.12);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        animation: scaleIn 0.6s ease-out forwards;
+      }
+
+      .success-icon .tick {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(45deg);
+        width: 25px;
+        height: 45px;
+        border-bottom: 6px solid #23a26d;
+        border-right: 6px solid #23a26d;
+        opacity: 0;
+        animation: fadeInTick 0.8s ease-out forwards 0.6s;
+      }
+
+      .success-box h1 {
+        color: #474747;
+        font-size: 24px;
+        margin-bottom: 10px;
+      }
+      .success-box h2 {
+        color: #121212;
+        font-size: 32px;
+        font-weight: 600;
+        margin-bottom: 20px;
+      }
+      hr {
+        border: 0;
+        height: 1px;
+        background: #ededed;
+        margin: 20px 0;
+      }
+
+      .details div {
+        display: flex;
+        justify-content: space-between;
+        margin: 10px 0;
+        font-size: 18px;
+        color: #707070;
+      }
+
+      .details div span:last-child {
+        font-weight: 500;
+        color: #121212;
+      }
+      .buttons {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+      }
+
+      button {
+        padding: 10px 20px;
+        border-radius: 5px;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background 0.3s ease, transform 0.2s ease;
+      }
+
+      .home-btn {
+        background: #23a26d;
+        color: #fff;
+      }
+
+      .pdf-btn {
+        background: #ededed;
+        color: #707070;
+      }
+      button:hover {
+        transform: scale(1.05);
+      }
+
+      .home-btn:hover {
+        background: #1d8a5d;
+      }
+
+      .pdf-btn:hover {
+        background: #dadada;
+      }
+
+      @keyframes scaleIn {
+        0% {
+          transform: scale(0.8);
+          opacity: 0.5;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      @keyframes fadeInTick {
+        0% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="success-box">
+        <div class="success-icon">
+          <div class="circle"></div>
+          <div class="tick"></div>
+        </div>
+        <h1>Order Success!</h1>
+        <h2>₹<%= order.totalAmount %></h2>
+        <hr />
+        <div class="details">
+          <div>
+            <span>Ref Number</span>
+            <span><%= order._id %></span>
+          </div>
+          <div>
+            <span>Payment Time</span>
+            <span><%= new Date(order.orderedAt).toLocaleString() %></span>
+          </div>
+          <div>
+            <span>Payment Method</span>
+            <span><%= order.paymentMethod %></span>
+          </div>
+          <div>
+            <span>Customer Name</span>
+            <span><%= order.customerName %></span>
+          </div>
+        </div>
+        <hr />
+        <div class="details">
+          <div>
+            <span>Total Amount</span>
+            <span>₹<%= order.totalAmount %></span>
+          </div>
+          <div>
+            <span>Admin Fee</span>
+            <span>₹<%= order.adminFee || 0 %></span>
+          </div>
+        </div>
+        <div class="buttons">
+          <a href="/"><button class="home-btn">Back to Home</button></a>
+          <button
+            class="pdf-btn"
+            onclick="window.location.href='/orders/download/invoice/<%= order._id %>'"
+          >
+            Get PDF Receipt
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

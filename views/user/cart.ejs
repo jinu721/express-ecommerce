@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!--=============== FLATICON ===============-->
+    <link
+      rel="stylesheet"
+      href="https://cdn-uicons.flaticon.com/2.0.0/uicons-regular-straight/css/uicons-regular-straight.css"
+    />
+
+    <!--=============== SWIPER CSS ===============-->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+    />
+
+    <!--=============== CSS ===============-->
+    <link rel="stylesheet" href="/css/styles.css" />
+
+    <title>Ecommerce Website</title>
+  </head>
+  <body>
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HEADER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+        <%- include('../layouts/header.ejs')  %>
+    <!--=============== MAIN ===============-->
+    <main class="main mainPageSection">
+      <!--=============== BREADCRUMB ===============-->
+      <!-- <section class="breadcrumb">
+        <ul class="breadcrumb__list flex container">
+          <li><a href="index.html" class="breadcrumb__link">Home</a></li>
+          <li><span class="breadcrumb__link"></span>></li>
+          <li><span class="breadcrumb__link">Shop</span></li>
+          <li><span class="breadcrumb__link"></span>></li>
+          <li><span class="breadcrumb__link">Cart</span></li>
+        </ul>
+      </section> -->
+
+      <%- include('../layouts/breadcrumbs.ejs')  %>
+
+      <!--=============== CART ===============-->
+      <% if(isCartEmpty){ %>
+      <section class="cartEmpty" >
+        <p>Not items in cart</p>
+      </section>
+        <% }else{ %>
+          <section class="cart section--lg container">
+            <div class="table__container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Image</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Total</th>
+                    <th>Delete</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% cart.items.forEach(item => { %>
+                    <tr>
+                      <td>
+                        <a href="/details/<%= item.productId._id %>">
+                          <img
+                            src="<%= item.productId.images && item.productId.images[0] ? item.productId.images[0] : '/images/default-placeholder.png' %>"
+                            alt="<%= item.productId.name %>"
+                            class="table__img"
+                          />
+                        </a>
+                      </td>
+                      <td>
+                        <h3 class="table__title">
+                          <%= item.productId.name %>
+                        </h3>
+                        <p class="table__description">
+                          <%= item.productId.description.slice(0, 40) %>...
+                        </p>
+                      </td>
+                      <td>
+                        <span class="table__price">&#8377;<%= item.productId.offerPrice %></span>
+                      </td>
+                      <td>
+                        <input 
+                          type="number" 
+                          value="<%= item.quantity %>" 
+                          class="quantity" 
+                          data-id="<%= item._id %>" 
+                          min="1" 
+                        />
+                      </td>
+                      <td>
+                        <span>
+                          &#8377;<span  class="Total" data-id="<%= item._id %>">
+                            <%= item.quantity * item.productId.offerPrice %>
+                          </span>
+                        </span>
+                      </td>
+                      <td class="">
+                        <i data-id="<%= item._id %>" class="fi fi-rs-trash table__trash deleteIconCart"></i>
+                      </td>
+                    </tr>
+                  <% }) %>
+                  
+                </tbody>
+              </table>
+            </div>
+    
+            <!-- <div class="cart__actions">
+              <a href="#" class="btn flex btn__md">
+                <i class="fi-rs-shuffle"></i> Update Cart
+              </a>
+              <a href="#" class="btn flex btn__md">
+                <i class="fi-rs-shopping-bag"></i> Continue Shopping
+              </a>
+            </div> -->
+    
+            <div class="divider">
+              <i class="fi fi-rs-fingerprint"></i>
+            </div>
+    
+            <div class="cart__group grid">
+              <div>
+                <!-- <div class="cart__shippinp">
+                  <h3 class="section__title">Calculate Shipping</h3>
+                  <form action="" class="form grid">
+                    <input
+                      type="text"
+                      class="form__input"
+                      placeholder="State / Country"
+                    />
+                    <div class="form__group grid">
+                      <input type="text" class="form__input" placeholder="City" />
+                      <input
+                        type="text"
+                        class="form__input"
+                        placeholder="PostCode"
+                      />
+                    </div>
+                    <div class="form__btn">
+                      <button class="btn flex btn--sm">
+                        <i class="fi-rs-shuffle"></i> Update
+                      </button>
+                    </div>
+                  </form>
+                </div> -->
+                <!-- <div class="cart__coupon">
+                  <h3 class="section__title">Apply Coupon</h3>
+                  <form action="" class="coupon__form form grid">
+                    <div class="form__group grid">
+                      <input
+                        type="text"
+                        class="form__input"
+                        placeholder="Enter Your Coupon"
+                      />
+                      <div class="form__btn">
+                        <button class="btn flex btn--sm">
+                          <i class="fi-rs-label"></i> Aplly
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div> -->
+              </div>
+    
+              <div class="cart__total">
+                <h3 class="section__title">Cart Totals</h3>
+                <table class="cart__total-table">
+                    <tr>
+                      <td><span class="cart__total-title">Cart Subtotal</span></td>
+                      <td><span class="cart__total-price">&#8377;<span class="cartTotalPrice"><%= cart.cartTotal %></span></span></td>
+                    </tr>
+                    <tr>
+                      <td><span class="cart__total-title">Shipping</span></td>
+                      <% if(deliveryCharge){ %>
+                        <td><span class="cart__total-price">&#8377;<%= deliveryCharge %></span></td>
+                      <% }else{ %>
+                         <td><span class="cart__total-price">Free</span></td>
+                      <% } %>
+                    </tr>
+                    <tr>
+                      <td><span class="cart__total-title">Total</span></td>
+                      <td><span class="cart__total-price">&#8377; <span class="cartTotalPrice"><%= cart.cartTotal+deliveryCharge %></span></span></td>
+                    </tr>
+                </table>
+                <a href="/checkout" class="btn flex btn--md btnProceedToCheckout">
+                  <i class="fi fi-rs-box-alt"></i> Proceed To Checkout
+                </a>
+              </div>
+            </div>
+          </section>
+        <% } %>
+    </main>
+
+       <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOOTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+         <%- include('../layouts/footer.ejs')  %>
+
+
+    <!--=============== SWIPER JS ===============-->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!--=============== MAIN JS ===============-->
+    <script src="/js/user/main.js"></script>
+    <script src="/js/user/cart.js"></script>
+  </body>
+</html>

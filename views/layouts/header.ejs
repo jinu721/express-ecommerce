@@ -1,0 +1,91 @@
+<header class="header">
+  <div class="header__top">
+    <div class="header__container container">
+      <div class="header__contact">
+        <span>(+01) - 2345 - 6789</span>
+        <span>Our location</span>
+      </div>
+      <p class="header__alert-news">Super Values Deals - Save more coupons</p>
+      <% if(!isLoggedIn){ %>
+        <a href="/register" class="header__top-action">
+          Log In / Sign Up
+        </a>
+      <% } %>
+    </div>
+  </div>
+
+  <nav class="nav container">
+    <a href="/" class="nav__logo">
+      <img
+        class="nav__logo-img"
+        src="/img/menslogoblack.png"
+        alt="website logo"
+      />
+    </a>
+    <div class="nav__menu" id="nav-menu">
+      <div class="nav__menu-top">
+        <a href="/" class="nav__menu-logo">
+          <img src=".//img/logo.svg" alt="" />
+        </a>
+        <div class="nav__close" id="nav-close">
+          <i class="fi fi-rs-cross-small"></i>
+        </div>
+      </div>
+      <ul class="nav__list">
+        <li class="nav__item">
+          <a href="/" class="nav__link active-link">Home</a>
+        </li>
+        <li class="nav__item">
+          <a href="/shop" class="nav__link">Shop</a>
+        </li>
+        <li class="nav__item">
+          <a href="/account" class="nav__link">My Account</a>
+        </li>
+        <li class="nav__item">
+          <a href="/about" class="nav__link">About</a>
+        </li>
+        <% if(!isLoggedIn){ %>
+          <li class="nav__item">
+            <a href="/register" class="nav__link">Login</a>
+          </li>
+        <% } %>
+      </ul>
+      <div class="header__search">
+        <input
+          type="text"
+          placeholder="Search For Items..."
+          class="form__input"
+          id="searchBox"
+          oninput="debouncedSearch()"
+        />
+        <button class="search__btn">
+          <img src="/img/search.png" alt="search icon" />
+        </button>
+      </div>
+      <div class="searchView" id="searchResults"></div>
+    </div>
+    <div class="header__user-actions">
+      <a href="/wishlist" class="header__action-btn" title="Wishlist">
+        <img src="/img/icon-heart.svg" alt="" />
+        <% if(wishlistCount){ %>
+          <span class="count"><%= wishlistCount %></span>
+        <% } %>
+      </a>
+      <a href="/cart" class="header__action-btn" title="Cart">
+        <img src="/img/icon-cart.svg" alt="" />
+        <% if(cartCount){ %>
+        <span class="count"><%= cartCount %></span>
+        <% } %>
+      </a>
+      <a href="/notifications" class="header__action-btn" title="Cart">
+        <img src="/img/icons/notify.png" alt="" />
+        <% if(notifyCount){ %>
+        <span class="count"><%= notifyCount %></span>
+        <% } %>
+      </a>
+      <div class="header__action-btn nav__toggle" id="nav-toggle">
+        <img src=".///img/menu-burger.svg" alt="" />
+      </div>
+    </div>
+  </nav>
+</header>

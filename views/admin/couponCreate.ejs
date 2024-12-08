@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>Admin Panel</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+      integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link rel="stylesheet" href="/css/admin.css" />
+    <!-- End layout styles -->
+    <link rel="shortcut icon" href="assets/images/favicon.png" />
+  </head>
+  <body>
+    <div class="container-scroller">
+      <!-- partial:partials/_sidebar.html -->
+      <%- include('../layouts/headerAdmin.ejs') %>
+      <!-- partial -->
+      <div class="container-fluid page-body-wrapper">
+        <!-- partial:partials/_navbar.html -->
+
+        <!-- partial -->
+        <div style="margin-top: 20px" class="col-md-4 grid-margin stretch-card">
+          <div class="card">
+            <div class="card-body">
+              <h4 class="card-title">Default Form</h4>
+              <p class="card-description">Update Coupon</p>
+              <form class="forms-sample" id="couponForm">
+                <div class="form-group d-flex align-items-center">
+                  <div class="input-group">
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="couponCode"
+                      placeholder="Coupon Code"
+                    />
+                    <div class="input-group-append">
+                      <button
+                        type="button"
+                        class="btn btn-secondary"
+                        id="generateCouponBtn"
+                        title="Generate Coupon"
+                      >
+                        <i class="fas fa-sync-alt"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <p class="error-message" id="couponCodeError"></p>
+
+                <div class="form-group">
+                  <label for="discountValue">Discount Value</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="discountValue"
+                    placeholder="Discount Value"
+                  />
+                  <p class="error-message" id="discountValueError"></p>
+                </div>
+                <div class="form-group">
+                  <label for="validFrom">Valid From</label>
+                  <input type="date" class="form-control" id="validFrom" />
+                  <p class="error-message" id="validFromError"></p>
+                </div>
+                <div class="form-group">
+                  <label for="validUntil">Valid Until</label>
+                  <input type="date" class="form-control" id="validUntil" />
+                  <p class="error-message" id="validUntilError"></p>
+                </div>
+                <div class="form-group">
+                  <label for="minPurchase">Minimum Purchase</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="minPurchase"
+                    placeholder="Minimum Purchase Amount"
+                  />
+                  <p class="error-message" id="minPurchaseError"></p>
+                </div>
+                <div class="form-group">
+                  <label for="maxDiscount">Maximum Discount</label>
+                  <input
+                    type="text"
+                    class="form-control"
+                    id="maxDiscount"
+                    placeholder="Maximum Discount Amount"
+                  />
+                  <p class="error-message" id="maxDiscountError"></p>
+                </div>
+                <div class="form-group">
+                  <label for="usageLimit">Usage Limit</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="usageLimit"
+                    placeholder="Usage Limit"
+                  />
+                  <p class="error-message" id="usageLimitError"></p>
+                </div>
+                <button
+                  type="button"
+                  class="btn btn-primary mr-2"
+                  id="submitButton"
+                >
+                  Create
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- main-panel ends -->
+      </div>
+      <!-- page-body-wrapper ends -->
+    </div>
+
+    <!-- endinject -->
+    <!-- Custom js for this page -->
+    <script src="/js/admin/coupenCreate.js"></script>
+    <!-- End custom js for this page -->
+  </body>
+</html>

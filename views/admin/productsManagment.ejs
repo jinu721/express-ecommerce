@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <title>Admin Panel</title>
+    <!-- bootstrap:css -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+    />
+    <!-- Cropper.js CSS -->
+    <link
+      href="https://unpkg.com/cropperjs@1.5.12/dist/cropper.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/admin.css" />
+
+    <!-- End layout styles -->
+    <!-- <link rel="shortcut icon" href="assets/images/favicon.png" /> -->
+  </head>
+  <body>
+    <div class="container-scroller">
+      <!-- partial:partials/_sidebar.html -->
+      <%- include('../layouts/headerAdmin.ejs') %>
+      <!-- partial -->
+      <div class="container-fluid page-body-wrapper">
+        <!-- partial:partials/_navbar.html -->
+        <nav class="navbar p-0 fixed-top d-flex flex-row">
+          <div
+            class="navbar-brand-wrapper d-flex d-lg-none align-items-center justify-content-center"
+          >
+            <a class="navbar-brand brand-logo-mini" href="index.html"
+              ><img src="assets/images/logo-mini.svg" alt="logo"
+            /></a>
+          </div>
+          <div class="navbar-menu-wrapper flex-grow d-flex align-items-stretch">
+            <button
+              class="navbar-toggler navbar-toggler align-self-center"
+              type="button"
+              data-toggle="minimize"
+            >
+              <span class="mdi mdi-menu"></span>
+            </button>
+            <ul class="navbar-nav w-100">
+              <li class="nav-item w-100"></li>
+            </ul>
+            <ul class="navbar-nav navbar-nav-right">
+              <li class="nav-item nav-settings d-none d-lg-block">
+                <a class="nav-link" href="#">
+                  <i class="mdi mdi-view-grid"></i>
+                </a>
+              </li>
+              <li class="nav-item dropdown border-left">
+                <a
+                  class="nav-link count-indicator dropdown-toggle"
+                  id="messageDropdown"
+                  href="#"
+                  data-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <i class="mdi mdi-email"></i>
+                  <span class="count bg-success"></span>
+                </a>
+                <div
+                  class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list"
+                  aria-labelledby="messageDropdown"
+                >
+                  <h6 class="p-3 mb-0">Messages</h6>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <img
+                        src="assets/images/faces/face4.jpg"
+                        alt="image"
+                        class="rounded-circle profile-pic"
+                      />
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject ellipsis mb-1">
+                        Mark send you a message
+                      </p>
+                      <p class="text-muted mb-0">1 Minutes ago</p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <img
+                        src="assets/images/faces/face2.jpg"
+                        alt="image"
+                        class="rounded-circle profile-pic"
+                      />
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject ellipsis mb-1">
+                        Cregh send you a message
+                      </p>
+                      <p class="text-muted mb-0">15 Minutes ago</p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <img
+                        src="assets/images/faces/face3.jpg"
+                        alt="image"
+                        class="rounded-circle profile-pic"
+                      />
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject ellipsis mb-1">
+                        Profile picture updated
+                      </p>
+                      <p class="text-muted mb-0">18 Minutes ago</p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <p class="p-3 mb-0 text-center">4 new messages</p>
+                </div>
+              </li>
+              <li class="nav-item dropdown border-left">
+                <a
+                  class="nav-link count-indicator dropdown-toggle"
+                  id="notificationDropdown"
+                  href="#"
+                  data-toggle="dropdown"
+                >
+                  <i class="mdi mdi-bell"></i>
+                  <span class="count bg-danger"></span>
+                </a>
+                <div
+                  class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list"
+                  aria-labelledby="notificationDropdown"
+                >
+                  <h6 class="p-3 mb-0">Notifications</h6>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <div class="preview-icon bg-dark rounded-circle">
+                        <i class="mdi mdi-calendar text-success"></i>
+                      </div>
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject mb-1">Event today</p>
+                      <p class="text-muted ellipsis mb-0">
+                        Just a reminder that you have an event today
+                      </p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <div class="preview-icon bg-dark rounded-circle">
+                        <i class="mdi mdi-settings text-danger"></i>
+                      </div>
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject mb-1">Settings</p>
+                      <p class="text-muted ellipsis mb-0">Update dashboard</p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <div class="preview-icon bg-dark rounded-circle">
+                        <i class="mdi mdi-link-variant text-warning"></i>
+                      </div>
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject mb-1">Launch Admin</p>
+                      <p class="text-muted ellipsis mb-0">New admin wow!</p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <p class="p-3 mb-0 text-center">See all notifications</p>
+                </div>
+              </li>
+              <li class="nav-item dropdown">
+                <div
+                  class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list"
+                  aria-labelledby="profileDropdown"
+                >
+                  <h6 class="p-3 mb-0">Profile</h6>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <div class="preview-icon bg-dark rounded-circle">
+                        <i class="mdi mdi-settings text-success"></i>
+                      </div>
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject mb-1">Settings</p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <div class="preview-icon bg-dark rounded-circle">
+                        <i class="mdi mdi-logout text-danger"></i>
+                      </div>
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject mb-1">Log out</p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <p class="p-3 mb-0 text-center">Advanced settings</p>
+                </div>
+              </li>
+            </ul>
+            <button
+              class="navbar-toggler navbar-toggler-right d-lg-none align-self-center"
+              type="button"
+              data-toggle="offcanvas"
+            >
+              <span class="mdi mdi-format-line-spacing"></span>
+            </button>
+          </div>
+        </nav>
+        <!-- partial -->
+        <div class="row p-3 view-Products">
+          <div class="col-12 grid-margin">
+            <div class="card">
+              <div class="card-body">
+                <h4 class="card-title">Order Status</h4>
+                <div class="table-responsive">
+                  <form class="nav-link mt-2 mt-md-0 d-lg-flex search">
+                    <input
+                      type="text"
+                      oninput="searchDebouncing()"
+                      class="form-control searchProducts"
+                      placeholder="Search products"
+                    />
+                    <div style="display: flex">
+                      <button
+                        style="height: 33px; margin: 3px 0px 0px 10px"
+                        class="btn btn-primary"
+                      >
+                        Search
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-primary btn-addProductModal"
+                        data-bs-toggle="modal"
+                        data-bs-target="#productUploadModal"
+                      >
+                        Add New Product
+                      </button>
+                    </div>
+                  </form>
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>No</th>
+                        <th>Image1</th>
+                        <th>Image2</th>
+                        <th>Image3</th>
+                        <th>Image4</th>
+                        <th>Name</th>
+                        <th>category</th>
+                        <th>Brand</th>
+                        <th>Price</th>
+                        <th>List</th>
+                        <th>Update</th>
+                      </tr>
+                    </thead>
+                    <tbody class="resultContainer">
+                      <% if(!val){ %>
+                      <p><%= msg %></p>
+                      <% }else{ %> <% products.forEach((data,index)=>{ %>
+                      <tr>
+                        <td><%= index+1 %></td>
+                        <td>
+                          <img src="/<%= data.images[0]  %>" alt="image" />
+                        </td>
+                        <td>
+                          <img src="/<%= data.images[1]  %>" alt="image" />
+                        </td>
+                        <td>
+                          <img src="/<%= data.images[2]  %>" alt="image" />
+                        </td>
+                        <td>
+                          <img src="/<%= data.images[3]  %>" alt="image" />
+                        </td>
+                        <td><%= data.name %></td>
+                        <td>
+                          <% category.forEach((x)=>{ %> <%
+                          if(x._id.toString()===data.category.toString()){ %>
+                          <%= x.name %> <% } %> <% }) %>
+                        </td>
+                        <td><%= data.brand %></td>
+                        <td><%= data.price %></td>
+                        <td>
+                          <div
+                            data-id="<%= data._id  %>"
+                            class="badge btnListAndUnlist <%= data.isDeleted?'badge-outline-success':'badge-outline-primary' %>"
+                          >
+                            <%= data.isDeleted?'List':'Unlist' %>
+                          </div>
+                        </td>
+                        <td>
+                          <a href="/admin/products/update/<%= data._id %>">
+                            <div
+                              class="badge btnUpdateProduct badge-outline-warning"
+                            >
+                              Update
+                            </div>
+                          </a>
+                        </td>
+                      </tr>
+                      <% }) %> <% } %>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          class="modal fade"
+          id="productUploadModal"
+          tabindex="-1"
+          aria-labelledby="productUploadModalLabel"
+          aria-hidden="true"
+        >
+          <div class="modal-dialog w-100 modal-lg product-modal uploadModal">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="productUploadModalLabel">
+                  Add New Product
+                </h5>
+                <button
+                  type="button"
+                  class="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
+              </div>
+              <div class="modal-body">
+                <form
+                  class="forms-sample"
+                  id="productForm"
+                  enctype="multipart/form-data"
+                  novalidate
+                >
+                  <input
+                    style="display: none"
+                    type="file"
+                    class="product-image"
+                    multiple
+                    required
+                  />
+                  <div class="form-group">
+                    <label for="productName">Name</label>
+                    <input
+                      type="text"
+                      class="form-control product-name"
+                      id="productName"
+                      name="name"
+                      placeholder="Product Name"
+                      required
+                    />
+                    <p class="error-message" id="productNameError"></p>
+                  </div>
+                  <div class="form-group">
+  <label for="productImages">Images</label>
+
+  <!-- Image 1 -->
+  <div class="image-section">
+    <input
+      type="file"
+      class="form-control product-image"
+      id="productImage1"
+      accept="image/*"
+      onchange="previewAndCrop(event, 0)"
+    />
+    <div id="cropPreviewSection0" class="cropPreviewSection" style="display: none;">
+      <img id="cropPreview0" style="max-width: 100%;" />
+      <button type="button" onclick="startCropping(0)">Crop Image 1</button>
+    </div>
+    <img
+      id="croppedPreview0"
+      class="rounded-img"
+      style="display: none; width: 50px; height: 50px; border-radius: 50%; margin-top: 10px;"
+    />
+    <p class="error-message imageError0" ></p>
+  </div>
+
+  <!-- Image 2 -->
+  <div class="image-section">
+    <input
+      type="file"
+      class="form-control product-image"
+      id="productImage2"
+      accept="image/*"
+      onchange="previewAndCrop(event, 1)"
+    />
+    <div id="cropPreviewSection1" class="cropPreviewSection" style="display: none;">
+      <img id="cropPreview1" style="max-width: 100%;" />
+      <button type="button" onclick="startCropping(1)">Crop Image 2</button>
+    </div>
+    <img
+      id="croppedPreview1"
+      class="rounded-img"
+      style="display: none; width: 50px; height: 50px; border-radius: 50%; margin-top: 10px;"
+    />
+    <p class="error-message imageError1" ></p>
+  </div>
+
+  <!-- Image 3 -->
+  <div class="image-section">
+    <input
+      type="file"
+      class="form-control product-image"
+      id="productImage3"
+      accept="image/*"
+      onchange="previewAndCrop(event, 2)"
+    />
+    <div id="cropPreviewSection2" class="cropPreviewSection" style="display: none;">
+      <img id="cropPreview2" style="max-width: 100%;" />
+      <button type="button" onclick="startCropping(2)">Crop Image 3</button>
+    </div>
+    <img
+      id="croppedPreview2"
+      class="rounded-img"
+      style="display: none; width: 50px; height: 50px; border-radius: 50%; margin-top: 10px;"
+    />
+    <p class="error-message imageError2" ></p>
+  </div>
+
+  <!-- Image 4 -->
+  <div class="image-section">
+    <input
+      type="file"
+      class="form-control product-image"
+      id="productImage4"
+      accept="image/*"
+      onchange="previewAndCrop(event, 3)"
+    />
+    <div id="cropPreviewSection3" class="cropPreviewSection" style="display: none;">
+      <img id="cropPreview3" style="max-width: 100%;" />
+      <button type="button" onclick="startCropping(3)">Crop Image 4</button>
+    </div>
+    <img
+      id="croppedPreview3"
+      class="rounded-img"
+      style="display: none; width: 50px; height: 50px; border-radius: 50%; margin-top: 10px;"
+    />
+  </div>
+  <p class="error-message imageError3" ></p>
+</div>
+
+                  <div class="form-group">
+                    <label for="productDesc">Description</label>
+                    <input
+                      type="text"
+                      class="form-control product-desc"
+                      id="productDescription"
+                      name="description"
+                      placeholder="Product Description"
+                      required
+                    />
+                    <p class="error-message" id="descError"></p>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="productCategory">Category</label>
+                    <select
+                      class="form-control"
+                      id="productCategory"
+                      name="cta"
+                    >
+                      <option value="">Select Category</option>
+                      <% category.forEach((data)=>{ %>
+                      <option value="<%= data.name  %>">
+                        <%= data.name %>
+                      </option>
+                      <% }) %>
+                    </select>
+                    <p class="error-message" id="categoryError"></p>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="productTags">Tags</label>
+                    <input
+                      type="text"
+                      class="form-control product-tags"
+                      id="productTags"
+                      placeholder="Product tags"
+                      required
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label for="productBrand">Brand</label>
+                    <input
+                      type="text"
+                      class="form-control product-brand"
+                      id="productBrand"
+                      placeholder="Product brand"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="sizeS">
+                      <input
+                        type="checkbox"
+                        id="sizeS"
+                        onchange="toggleStockInput('S')"
+                      />
+                      Small
+                    </label>
+                    <div id="stockInputS" style="display: none">
+                      <label for="productStockS">Stock for S</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="productStockS"
+                        name="stockS"
+                        placeholder="Stock for Small Size"
+                      />
+                      <label for="maxQuantityS">Max Quantity per User</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="maxQuantityS"
+                        name="maxQuantityS"
+                        placeholder="Max quantity for Small Size"
+                      />
+                      <p class="error-message" id="stockSError"></p>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="sizeM">
+                      <input
+                        type="checkbox"
+                        id="sizeM"
+                        onchange="toggleStockInput('M')"
+                      />
+                      Medium
+                    </label>
+                    <div id="stockInputM" style="display: none">
+                      <label for="productStockM">Stock for M</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="productStockM"
+                        name="stockM"
+                        placeholder="Stock for Medium Size"
+                      />
+                      <label for="maxQuantityM">Max Quantity per User</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="maxQuantityM"
+                        name="maxQuantityM"
+                        placeholder="Max quantity for Medium Size"
+                      />
+                      <p class="error-message" id="stockMError"></p>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="sizeL">
+                      <input
+                        type="checkbox"
+                        id="sizeL"
+                        onchange="toggleStockInput('L')"
+                      />
+                      Large
+                    </label>
+                    <div id="stockInputL" style="display: none">
+                      <label for="productStockL">Stock for L</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="productStockL"
+                        name="stockL"
+                        placeholder="Stock for Large Size"
+                      />
+                      <label for="maxQuantityL">Max Quantity per User</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="maxQuantityL"
+                        name="maxQuantityL"
+                        placeholder="Max quantity for Large Size"
+                      />
+                      <p class="error-message" id="stockLError"></p>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="sizeXL">
+                      <input
+                        type="checkbox"
+                        id="sizeXL"
+                        onchange="toggleStockInput('XL')"
+                      />
+                      XL
+                    </label>
+                    <div id="stockInputXL" style="display: none">
+                      <label for="productStockXL">Stock for XL</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="productStockXL"
+                        name="stockXL"
+                        placeholder="Stock for XL Size"
+                      />
+                      <label for="maxQuantityXL">Max Quantity per User</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="maxQuantityXL"
+                        name="maxQuantityXL"
+                        placeholder="Max quantity for XL Size"
+                      />
+                      <p class="error-message" id="stockXLError"></p>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="sizeXXL">
+                      <input
+                        type="checkbox"
+                        id="sizeXXL"
+                        onchange="toggleStockInput('XXL')"
+                      />
+                      XXL
+                    </label>
+                    <div id="stockInputXXL" style="display: none">
+                      <label for="productStockXXL">Stock for XXL</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="productStockXXL"
+                        name="stockXXL"
+                        placeholder="Stock for XXL Size"
+                      />
+                      <label for="maxQuantityXXL">Max Quantity per User</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="maxQuantityXXL"
+                        name="maxQuantityXXL"
+                        placeholder="Max quantity for XXL Size"
+                      />
+                      <p class="error-message" id="stockXXLError"></p>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="sizeXXXL">
+                      <input
+                        type="checkbox"
+                        id="sizeXXXL"
+                        onchange="toggleStockInput('XXXL')"
+                      />
+                      XXXL
+                    </label>
+                    <div id="stockInputXXXL" style="display: none">
+                      <label for="productStockXXXL">Stock for XXXL</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="productStockXXXL"
+                        name="stockXXXL"
+                        placeholder="Stock for XXXL Size"
+                      />
+                      <label for="maxQuantityXXXL">Max Quantity per User</label>
+                      <input
+                        type="number"
+                        class="form-control"
+                        id="maxQuantityXXXL"
+                        name="maxQuantityXXXL"
+                        placeholder="Max quantity for XXXL Size"
+                      />
+                      <p class="error-message" id="stockXXXLError"></p>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label>Color Options</label>
+                    <div class="form-check">
+                      <input type="color" value="#008000" id="colorPicker" />
+                      <button
+                        class="btn btn-success mb-3"
+                        type="button"
+                        onclick="addColor()"
+                      >
+                        Add Color
+                      </button>
+                    </div>
+                    <div class="showColors" id="showColors"></div>
+                  </div>
+                  <div class="form-group">
+                    <label for="productOgPrice">Price</label>
+                    <input
+                      type="number"
+                      class="form-control product-og-price"
+                      id="productOgPrice"
+                      placeholder="Original Price"
+                      required
+                    />
+                    <p class="error-message" id="ogPriceError"></p>
+                  </div>
+                  <div class="form-group">
+                    <div class="form-check">
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        id="cashOnDelivery"
+                      />
+                      <label class="form-check-label" for="cashOnDelivery"
+                        >Cash on Delivery</label
+                      >
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <div class="form-check mb-3">
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        id="toggleOfferPrice"
+                        onclick="toggleOfferPriceInput()"
+                      />
+                      <label class="form-check-label" for="toggleOfferPrice"
+                        >Add Offer Price</label
+                      >
+                    </div>
+                    <div
+                      class="offer-price-input mt-2"
+                      id="offerPriceDiv"
+                      style="display: none"
+                    >
+                      <label for="productOfferPrice">Offer Price</label>
+                      <input
+                        type="number"
+                        class="form-control product-offer-price"
+                        id="productOfferPrice"
+                        placeholder="Offer Price"
+                      />
+                      <p class="error-message" id="offerPriceError"></p>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <div class="form-check mb-3">
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        id="toggleWarranty"
+                        onclick="toggleWarrantyInput()"
+                      />
+                      <label class="form-check-label" for="toggleWarranty"
+                        >Add Warranty</label
+                      >
+                    </div>
+                    <div
+                      class="warranty-input mt-2"
+                      id="warrantyDiv"
+                      style="display: none"
+                    >
+                      <label for="productWarranty">Warranty</label>
+                      <input
+                        type="text"
+                        class="form-control product-warranty"
+                        id="productWarranty"
+                        placeholder="Warranty"
+                      />
+                      <p class="error-message" id="warrantyError"></p>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <div class="form-check mb-3">
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        id="toggleReturnPolicy"
+                        onclick="toggleReturnPolicyInput()"
+                      />
+                      <label class="form-check-label" for="toggleReturnPolicy"
+                        >Add Return Policy</label
+                      >
+                    </div>
+                    <div
+                      class="return-policy-input mt-2"
+                      id="returnPolicyDiv"
+                      style="display: none"
+                    >
+                      <label for="productReturnPolicy">Return Policy</label>
+                      <input
+                        type="text"
+                        class="form-control product-return-policy"
+                        id="productReturnPolicy"
+                        placeholder="Return Policy"
+                      />
+                      <p class="error-message" id="returnPolicyError"></p>
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    class="btn btn-primary mt-3 btn-CreateProduct"
+                  >
+                    Create
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ul class="pagination">
+      <% let startPage = Math.max(1, currentPage - Math.floor(pagesToShow / 2));
+      %> <% let endPage = Math.min(totalPages, startPage + pagesToShow - 1); %>
+      <% if (endPage - startPage + 1 < pagesToShow) { %> <% startPage =
+      Math.max(1, endPage - pagesToShow + 1); %> <% } %> <% if (currentPage >
+      pagesToShow) { %>
+      <li><a href="?page=1" class="pagination__link">01</a></li>
+      <% } %> <% for (let i = startPage; i <= endPage; i++) { %>
+      <li>
+        <a
+          href="?page=<%= i %>"
+          class="pagination__link <%= currentPage === i ? 'active' : '' %>"
+        >
+          <%= i < 10 ? '0' + i : i %>
+        </a>
+      </li>
+      <% } %> <% if (endPage < totalPages) { %>
+      <li>
+        <a
+          href="?page=<%= currentPage + pagesToShow %>"
+          class="pagination__link"
+        >
+          <i class="fa-solid fa-arrow-right" style="color: #3224f9"></i>
+        </a>
+      </li>
+      <% } %> <% if (endPage < totalPages) { %>
+      <li>
+        <a href="?page=<%= totalPages %>" class="pagination__link"
+          ><%= totalPages < 10 ? '0' + totalPages : totalPages %></a
+        >
+      </li>
+      <% } %>
+    </ul>
+
+    <script src="https://unpkg.com/cropperjs@1.5.12/dist/cropper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/admin/products.js" defer></script>
+  </body>
+</html>

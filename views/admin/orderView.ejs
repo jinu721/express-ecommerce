@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="/css/admin.css" />
+  </head>
+  <body style="display: flex">
+    <input type="hidden" value="<%= order._id  %>" name="" id="orderId" />
+    <input type="hidden" value="<%= order.user  %>" name="" id="userId" />
+    <input
+      type="hidden"
+      value="<%= order.orderStatus  %>"
+      name=""
+      id="currentOrderStatus"
+    />
+
+    <header><%- include('../layouts/headerAdmin.ejs') %></header>
+    <main
+      class="mainBodyView"
+      style="display: flex; flex-direction: column; justify-content: center"
+    >
+      <div style="display: flex; justify-content: center">
+        <div style="display: flex; flex-direction: column">
+          <section class="order-status-section">
+            <div class="status-container">
+              <select id="order-status" class="status-dropdown">
+                <option class="processingSt" value="processing">
+                  Processing
+                </option>
+                <option class="shippedSt" value="shipped">Shipped</option>
+                <option class="deliveredSt" value="delivered">Delivered</option>
+                <option class="cancelledSt" value="cancelled">Cancelled</option>
+              </select>
+              <button class="update-status-btn">Update Status</button>
+            </div>
+
+            <div class="status-log">
+              <h4>Status History</h4>
+              <ul>
+                <% order.statusHistory.forEach(x=>{ %>
+                <li>
+                  <strong><%= x.status %></strong> - <%= new
+                  Date(x.updatedAt).toLocaleDateString('en-GB', { day:
+                  '2-digit', month: 'short', year: 'numeric' }) %>
+                </li>
+                <% }) %>
+              </ul>
+            </div>
+          </section>
+          <% if (order.returnRequest.requestStatus && order.returnRequest.adminStatus ==='pending') { %>
+            <section class="request-return">
+              <div class="container">
+                <div class="read-request-section">
+                  <div class="section-header">Read Request</div>
+                  <div class="request-details">
+                    <h5>Reason for Return:</h5>
+                    <p><%= order.returnRequest.requestMessage %></p>
+                  </div>
+                  <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-cancel btn-requestCancel">Cancel</button>
+                    <button type="button" class="btn btn-approve btn-requestApproved">Approve</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          <% } %>
+          
+        </div>
+        <section class="product-details-section">
+          <table class="product-details-table">
+            <thead>
+              <tr>
+                <th>Product Name</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Size</th>
+                <th>Color</th>
+                <th>Notify</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% order.items.forEach((x) => { %>
+                <tr>
+                  <td><%= x.product.name %></td>
+                  <td>&#8377;<%= x.product.price %></td>
+                  <td><%= x.quantity %></td>
+                  <td><%= x.itemStatus %></td>
+                  <td>&#8377;<%= x.product.price * x.quantity %></td>
+                  <td><%= x.size %></td>
+                  <td>
+                    <div class="color-box" style="background-color: <%= x.color %>"></div>
+                  </td>
+                  <td>
+                    <% if (x.returnRequest.requestStatus && x.returnRequest.adminStatus ==='pending') { %>
+                      <button 
+                      class="btn btn-primary btn-notify" 
+                      onclick="viewModal(event)" 
+                      data-item-id="<%= x._id %>" 
+                      data-return-reason="<%= x.returnRequest.requestMessage %>">
+                      Notify
+                    </button>                    
+                    <% } else { %>
+                      <span>No Return</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </section>
+        
+        <section class="address-section">
+          <div class="address-header">
+            <h3>Shipping Address</h3>
+          </div>
+          <address class="address-details">
+            <p>
+              <strong>House Number:</strong> <%=
+              order.shippingAddress.houseNumber %>
+            </p>
+            <p><strong>Street:</strong> <%= order.shippingAddress.street %></p>
+            <p>
+              <strong>Landmark:</strong><%= order.shippingAddress.landMark %>
+            </p>
+            <p><strong>City:</strong> <%= order.shippingAddress.city %></p>
+            <p><strong>State:</strong><%= order.shippingAddress.state %></p>
+            <p>
+              <strong>Country:</strong> <%= order.shippingAddress.country %>
+            </p>
+            <p>
+              <strong>Pin Code:</strong> <%= order.shippingAddress.pinCode %>
+            </p>
+          </address>
+        </section>
+      </div>
+    </main>
+
+    <div class="modal fade" id="returnModal" tabindex="-1" aria-labelledby="returnModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="returnModalLabel">Return Request</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <p id="return-reason"></p>
+            <div class="d-flex justify-content-between">
+              <button onclick="btnIndividualCancel()" type="button" class="btn btn-danger btn-cancel-return">Cancel</button>
+              <button onclick="btnIndividualApprove()" type="button" class="btn btn-success btn-approve-return ">Approve</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    
+    <footer></footer>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/js/admin/orderView.js" ></script>
+  </body>
+</html>

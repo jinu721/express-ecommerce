@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Admin Panel</title>
+    <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+  <link href="https://unpkg.com/cropperjs@1.5.12/dist/cropper.min.css" rel="stylesheet">
+    <!-- Layout styles -->
+    <link rel="stylesheet" href="/css/admin.css">
+  </head>
+  <body>
+    <div class="container-scroller">
+      <!-- partial:partials/_sidebar.html -->
+      <%- include('../layouts/headerAdmin.ejs')  %>
+      <!-- partial -->
+      <div class="container-fluid page-body-wrapper">
+        <!-- partial:partials/_navbar.html -->
+        <nav class="navbar p-0 fixed-top d-flex flex-row">
+          <div class="navbar-brand-wrapper d-flex d-lg-none align-items-center justify-content-center">
+            <a class="navbar-brand brand-logo-mini" href="index.html"><img src="/images/logo-mini.svg" alt="logo" /></a>
+          </div>
+          <div class="navbar-menu-wrapper flex-grow d-flex align-items-stretch">
+            <button class="navbar-toggler navbar-toggler align-self-center" type="button" data-toggle="minimize">
+              <span class="mdi mdi-menu"></span>
+            </button>
+            <ul class="navbar-nav w-100">
+              <li class="nav-item w-100">
+                
+              </li>
+            </ul>
+            <ul class="navbar-nav navbar-nav-right">
+              <li class="nav-item nav-settings d-none d-lg-block">
+                <a class="nav-link" href="#">
+                  <i class="mdi mdi-view-grid"></i>
+                </a>
+              </li>
+              <li class="nav-item dropdown border-left">
+                <a class="nav-link count-indicator dropdown-toggle" id="messageDropdown" href="#" data-toggle="dropdown" aria-expanded="false">
+                  <i class="mdi mdi-email"></i>
+                  <span class="count bg-success"></span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="messageDropdown">
+                  <h6 class="p-3 mb-0">Messages</h6>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <img src="/images/faces/face4.jpg" alt="image" class="rounded-circle profile-pic">
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject ellipsis mb-1">Mark send you a message</p>
+                      <p class="text-muted mb-0"> 1 Minutes ago </p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <img src="/images/faces/face2.jpg" alt="image" class="rounded-circle profile-pic">
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject ellipsis mb-1">Cregh send you a message</p>
+                      <p class="text-muted mb-0"> 15 Minutes ago </p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <img src="/images/faces/face3.jpg" alt="image" class="rounded-circle profile-pic">
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject ellipsis mb-1">Profile picture updated</p>
+                      <p class="text-muted mb-0"> 18 Minutes ago </p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <p class="p-3 mb-0 text-center">4 new messages</p>
+                </div>
+              </li>
+              <li class="nav-item dropdown border-left">
+                <a class="nav-link count-indicator dropdown-toggle" id="notificationDropdown" href="#" data-toggle="dropdown">
+                  <i class="mdi mdi-bell"></i>
+                  <span class="count bg-danger"></span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="notificationDropdown">
+                  <h6 class="p-3 mb-0">Notifications</h6>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <div class="preview-icon bg-dark rounded-circle">
+                        <i class="mdi mdi-calendar text-success"></i>
+                      </div>
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject mb-1">Event today</p>
+                      <p class="text-muted ellipsis mb-0"> Just a reminder that you have an event today </p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <div class="preview-icon bg-dark rounded-circle">
+                        <i class="mdi mdi-settings text-danger"></i>
+                      </div>
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject mb-1">Settings</p>
+                      <p class="text-muted ellipsis mb-0"> Update dashboard </p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <div class="preview-icon bg-dark rounded-circle">
+                        <i class="mdi mdi-link-variant text-warning"></i>
+                      </div>
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject mb-1">Launch Admin</p>
+                      <p class="text-muted ellipsis mb-0"> New admin wow! </p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <p class="p-3 mb-0 text-center">See all notifications</p>
+                </div>
+              </li>
+              <li class="nav-item dropdown">
+                <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="profileDropdown">
+                  <h6 class="p-3 mb-0">Profile</h6>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <div class="preview-icon bg-dark rounded-circle">
+                        <i class="mdi mdi-settings text-success"></i>
+                      </div>
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject mb-1">Settings</p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a class="dropdown-item preview-item">
+                    <div class="preview-thumbnail">
+                      <div class="preview-icon bg-dark rounded-circle">
+                        <i class="mdi mdi-logout text-danger"></i>
+                      </div>
+                    </div>
+                    <div class="preview-item-content">
+                      <p class="preview-subject mb-1">Log out</p>
+                    </div>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <p class="p-3 mb-0 text-center">Advanced settings</p>
+                </div>
+              </li>
+            </ul>
+            <button class="navbar-toggler navbar-toggler-right d-lg-none align-self-center" type="button" data-toggle="offcanvas">
+              <span class="mdi mdi-format-line-spacing"></span>
+            </button>
+          </div>
+        </nav>
+        <!-- partial -->
+        <div class="row p-3">
+          <div class="col-12 grid-margin">
+            <div class="card">
+              <div class="card-body">
+                <h4 class="card-title">Order Status</h4>
+                <div class="table-responsive">
+                  <form class="nav-link mt-2 mt-md-0  d-lg-flex search">
+                    <div style="display: flex;">
+                      <button
+                        style="height: 33px; margin: 3px 0px 0px 10px"
+                        class="btn btn-primary"
+                      >
+                        Search
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-primary btn-addProductModal"
+                        data-bs-toggle="modal"
+                        data-bs-target="#productUploadModal"
+                      >
+                        Add Category
+                      </button>
+                    </div>
+                  </form>
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th> No </th>
+                        <th> Image</th>
+                        <th> Name</th>
+                        <th> Products Count</th>
+                        <th> Unlist </th>
+                        <th> Update </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% category.forEach((data,index)=>{ %>
+                        <tr>
+                          <td> <%= index+1 %> </td>
+                          <td>
+                            <img src="/<%= data.image %>" alt="image" />
+                          </td>
+                          <td> <%= data.name  %> </td>
+                          <td> <%= data.productCount  %> </td>
+                          <td>
+                            <div data-id="<%= data._id  %>" class="badge btnListAndUnlist <%= data.isDeleted?'badge-outline-success':'badge-outline-primary' %>"><%= data.isDeleted?'List':'Unlist' %></div>
+                          </td>
+                          <td>
+                            <a href="/admin/category/update/<%= data._id %>"><div class="badge badge-outline-warning">Update</div></a>
+                          </td>
+                          <td>
+                            <button class="btn btn-info btn-addOffer" data-bs-toggle="modal" data-bs-target="#offerModal" data-category-id="<%= data._id %>">
+                              Add Offer
+                            </button>                            
+                          </td>
+                        </tr>
+                      <% }) %>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+        class="modal fade"
+        id="productUploadModal"
+        tabindex="-1"
+        aria-labelledby="productUploadModalLabel"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog w-100 modal-lg product-modal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="productUploadModalLabel">
+                Add New Category
+              </h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <form class="forms-sample" id="categoryForm" enctype="multipart/form-data" novalidate>
+                <input style="display: none;" type="file" class="category-image" required />
+                <div class="form-group">
+                  <label for="category">Name</label>
+                  <input
+                    type="text"
+                    class="form-control category-name"
+                    id="categoryName" 
+                    name="name"
+                    placeholder="Category Name"
+                    required
+                  />
+                  <p class="error-message" id="categoryNameError"></p>
+                </div> 
+                <div class="form-group">
+                  <label for="categoryImage">Images</label>
+                  <input type="file" class="form-control category-image" id="categoryImage" accept="image/*" onchange="previewAndCrop(event)">
+                  <p class="error-message" id="categoryImageError"></p>
+                </div>
+                <div class="form-group previewSection">
+                  <img id="cropPreview" style="max-width: 100%; display: none;" />
+                  <button type="button" id="cropButton" style="display: none;" onclick="startCropping()">Crop Image</button>
+                </div>
+                <div class="form-group">
+        
+                <button type="submit" class="btn btn-primary mt-3">
+                  Create
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+  </div>
+  
+
+  <div class="modal fade" id="offerModal" tabindex="-1" aria-labelledby="offerModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="offerModalLabel">Add Offer to Category</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="offerForm">
+            <input type="hidden" id="categoryIdInput" name="categoryId">
+            <div class="mb-3">
+              <label for="offerValue" class="form-label">Offer (Amount or Percentage)</label>
+              <input type="text" class="form-control" id="offerValue" placeholder="Enter amount or percentage (e.g. 10 or 39%)" required>
+              <p class="error-message errCategoryOffer"></p>
+            </div>
+            <button type="submit" class="btn btn-primary">Submit Offer</button>
+          </form>
+          
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<ul class="pagination" style="position: absolute; bottom: 0; width: 100%; padding: 10px 0; display: flex; justify-content: center;">
+  <% let startPage = Math.max(1, currentPage - Math.floor(pagesToShow / 2)); %>
+  <% let endPage = Math.min(totalPages, startPage + pagesToShow - 1); %>
+
+  <% if (endPage - startPage + 1 < pagesToShow) { %> 
+    <% startPage = Math.max(1, endPage - pagesToShow + 1); %> 
+  <% } %>
+
+  <% if (currentPage > pagesToShow) { %>
+    <li><a href="?page=1" class="pagination__link">01</a></li>
+  <% } %> 
+  <% for (let i = startPage; i <= endPage; i++) { %>
+    <li>
+      <a
+        href="?page=<%= i %>"
+        class="pagination__link <%= currentPage === i ? 'active' : '' %>"
+      >
+        <%= i < 10 ? '0' + i : i %>
+      </a>
+    </li>
+  <% } %> 
+  <% if (endPage < totalPages) { %>
+    <li>
+      <a
+        href="?page=<%= currentPage + pagesToShow %>"
+        class="pagination__link"
+      >
+        <i class="fa-solid fa-arrow-right" style="color: #3224f9"></i>
+      </a>
+    </li>
+  <% } %> 
+  <% if (endPage < totalPages) { %>
+    <li>
+      <a href="?page=<%= totalPages %>" class="pagination__link">
+        <%= totalPages < 10 ? '0' + totalPages : totalPages %>
+      </a>
+    </li>
+  <% } %>
+</ul>
+
+    <script src="https://unpkg.com/cropperjs@1.5.12/dist/cropper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom js for this page -->
+    <script src="/js/admin/category.js"></script>
+    <!-- End custom js for this page -->
+  </body>
+</html>

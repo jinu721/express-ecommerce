@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!--=============== FLATICON ===============-->
+    <link
+      rel="stylesheet"
+      href="https://cdn-uicons.flaticon.com/2.0.0/uicons-regular-straight/css/uicons-regular-straight.css"
+    />
+
+    <!--=============== SWIPER CSS ===============-->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
+    />
+
+    <link
+    href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css"
+    rel="stylesheet"
+    id="bootstrap-css"
+  />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  </head>
+  <link rel="stylesheet" href="">
+    <!--=============== CSS ===============-->
+    <link rel="stylesheet" href="/css/styles.css" />
+
+    <title>Ecommerce Website</title>
+  </head>
+  <body>
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HEADER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <%- include('../layouts/header.ejs')  %>
+
+    <!--=============== MAIN ===============-->
+    <main class="main mainPageSection">
+      <!--=============== BREADCRUMB ===============-->
+      <!-- <section class="breadcrumb">
+        <ul class="breadcrumb__list flex container">
+          <li><a href="index.html" class="breadcrumb__link">Home</a></li>
+          <li><span class="breadcrumb__link"></span>></li>
+          <li><span class="breadcrumb__link">Shop</span></li>
+        </ul>
+      </section> -->
+
+      <%- include('../layouts/breadcrumbs.ejs')  %>
+      
+
+      <!--=============== PRODUCTS ===============-->
+      <section class="products container section--lg">
+        <div class="shop-top">
+          <p class="total__products">We&nbsp;found&nbsp;<span><%= products.length %></span>&nbsp;items&nbsp;for&nbsp;you!</p>
+
+          <div class="filter-section">
+            <i class="fi fi-rs-filter filter-icon"  data-bs-toggle="collapse" href="#collapseItem"></i>
+            <select class="form-control selection">
+              <option>Latest items</option>
+              <option>Trending</option>
+              <option>Most Popular</option>
+              <option>Cheapest</option>
+            </select>
+          </div>
+        </div>
+              <!--=============== PRODUCTS FILTER ===============-->
+        <aside class="collapse filterSection" id="collapseItem">
+          <div class="card">
+            <article class="filter-group">
+              <header class="card-header">
+                <a
+                  data-toggle="collapse"
+                  data-target="#collapse_2"
+                  aria-expanded="true"
+                  class=""
+                >
+                  <i class="icon-control fa fa-chevron-down"></i>
+                  <h6 class="title">Advanced filter</h6>
+                </a>
+              </header>
+              <div
+                class="filter-content collapse show"
+                id="collapse_2"
+              >
+                <div style="display: flex;" class="card-body">
+            
+                  <div class="filter-col2 p-r-15 p-b-27">
+                    <div class="mtext-102 cl2 p-b-15">
+                      Sort by
+                    </div>
+
+                    <ul>
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04 filter-link-active">
+                          Default
+                        </a>
+                      </li>
+
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04">
+                          Popularity
+                        </a>
+                      </li>
+
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04">
+                          Average rating
+                        </a>
+                      </li>
+
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04">
+                          Newness
+                        </a>
+                      </li>
+
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04">
+                          Price: Low to High
+                        </a>
+                      </li>
+
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04">
+                          Price: High to Low
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+            
+                  <div class="filter-col2 p-r-15 p-b-27">
+                    <div class="mtext-102 cl2 p-b-15">
+                      Price
+                    </div>
+
+                    <ul>
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04 filter-link-active">
+                          All
+                        </a>
+                      </li>
+
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04">
+                          &#8377;0 - &#8377;1000
+                        </a>
+                      </li>
+
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04">
+                          &#8377;1000 - 3000
+                        </a>
+                      </li>
+
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04">
+                          &#8377;3000 - &#8377;8000
+                        </a>
+                      </li>
+
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04">
+                          &#8377;8000 - &#8377;15000
+                        </a>
+                      </li>
+
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04">
+                          &#8377;15000 - &#8377;25000
+                        </a>
+                      </li>
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04">
+                          &#8377;25000+
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
+                  <div class="filter-col2 p-r-15 p-b-27">
+                    <div class="mtext-102 cl2 p-b-15">
+                      Category
+                    </div>
+
+                    <ul>
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04 filter-link-active">
+                          All
+                        </a>
+                      </li>
+                      <% category.forEach((cat=>{ %>
+                        <li class="p-b-6">
+                          <a href="#" class="filter-link stext-106 trans-04">
+                            <%= cat.name %>
+                          </a>
+                        </li>
+                        <% })) %>
+                    </ul>
+                  </div>
+                  <div class="filter-col2 p-r-15 p-b-27">
+                    <div class="mtext-102 cl2 p-b-15">
+                      By name
+                    </div>
+
+                    <ul>
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04 filter-link-active">
+                          All
+                        </a>
+                      </li>
+
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04">
+                          A-Z
+                        </a>
+                      </li>
+
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04">
+                          Z-A
+                        </a>
+                      </li>
+
+                    </ul>
+                  </div>
+						</div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </aside>
+        <div class="products__container grid">
+          <% products.forEach(data => { %>
+            <% if(!data.isDeleted){  %>
+              <div class="product__item">
+                <div class="product__banner">
+                  <a href="/details/<%= data._id  %>" class="product__images">
+                    <img
+                      src="<%= data.images[0]  %>"
+                      alt=""
+                      class="product__img default"
+                    />
+                    <img
+                      src="<%= data.images[2]  %>"
+                      alt=""
+                      class="product__img hover"
+                    />
+                  </a>
+                  <div class="product__actions">
+                    <a href="#" class="action__btn" aria-label="Quick View">
+                      <i class="fi fi-rs-eye"></i>
+                    </a>
+                    <a
+                      href="#"
+                      class="action__btn"
+                      aria-label="Add to Wishlist"
+                    >
+                      <i class="fi fi-rs-heart"></i>
+                    </a>
+                  </div>
+                  <div class="product__badge light-pink">Hot</div>
+                </div>
+                <div class="product__content">
+                  <%  category.forEach((x)=>{ %>
+                      <% if(x._id.toString()===data.category.toString()){ %>
+                          <span class="product__category">          <%= x.name %></span>
+                      <% } %>
+                  <% }) %>
+                  <a href="details.html">
+                    <h3 class="product__title"><%= data.name  %></h3>
+                  </a>
+                  <div class="product__rating">
+                    <i class="fi fi-rs-star"></i>
+                    <i class="fi fi-rs-star"></i>
+                    <i class="fi fi-rs-star"></i>
+                    <i class="fi fi-rs-star"></i>
+                    <i class="fi fi-rs-star"></i>
+                  </div>
+                  <div class="product__price flex">
+                    <% if(data.offerPrice!==0){ %>
+                      <span class="new__price">&#8377;<%= data.offerPrice %></span>
+                      <span class="old__price">&#8377;<%= data.price %></span>
+                      <% }else{ %>
+                      <span class="new__price">&#8377;<%= data.price %></span>
+                      <% } %>
+                  </div>
+                  <a
+                    href="#"
+                    class="action__btn cart__btn"
+                    aria-label="Add To Cart"
+                  >
+                    <i class="fi fi-rs-shopping-bag-add"></i>
+                  </a>
+                </div>
+              </div>
+            <% }  %>
+          <% }); %>
+        </div>
+      </section>
+
+      <div class="loaderDiv">
+        <div class="lds-ellipsis loaderPlain"><div></div><div></div><div></div><div></div></div>
+      </div>
+      <!--=============== NEWSLETTER ===============-->
+      <section class="newsletter section">
+        <div class="newsletter__container container grid">
+          <h3 class="newsletter__title flex">
+            <img
+              src="/img/icon-email.svg"
+              alt=""
+              class="newsletter__icon"
+            />
+            Sign in to Newsletter
+          </h3>
+          <p class="newsletter__description">
+            ...and receive $25 coupon for first shopping.
+          </p>
+          <form action="" class="newsletter__form">
+            <input
+              type="text"
+              placeholder="Enter Your Email"
+              class="newsletter__input"
+            />
+            <button type="submit" class="newsletter__btn">Subscribe</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+   <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOOTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+   <%- include('../layouts/footer.ejs')  %>
+
+    <!--=============== SWIPER JS ===============-->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!--=============== MAIN JS ===============-->
+    <script src="/js/user/main.js"></script>
+    <script src="/js/user/shop.js"></script>
+  </body>
+</html>
