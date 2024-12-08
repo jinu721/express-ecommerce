@@ -1,6 +1,7 @@
 const categoryModel = require("../models/categoryModel");
 const productModel = require("../models/productModel");
 const path = require("path");
+const cloudinary = require("../services/cloudServiece");
 
 module.exports = {
   // ~~~ Category Load Admin ~~~
@@ -58,25 +59,44 @@ module.exports = {
   // ~~~ Category Add ~~~
   // Purpose: Adds a new category to the database with an image.
   // Response: Responds with success or failure based on whether the category already exists.
-  async categoryAdd(req, res) {
+  async  categoryAdd(req, res) {
     const { categoryName } = req.body;
+  
     try {
-      const imagePath = path.relative(
-        path.join(__dirname, "..", "public"),
-        req.file.path
-      );
-      console.log(imagePath);
+      if (!req.file) {
+        return res.status(400).json({ val: false, msg: "No image file was uploaded" });
+      }
+      const uploadToCloudinary = (fileBuffer) => {
+        return new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            { resource_type: 'auto' },
+            (error, result) => {
+              if (error) {
+                reject(error);
+              }
+              resolve(result.secure_url);
+            }
+          ).end(fileBuffer); 
+        });
+      };
+  
+      const uploadedImageUrl = await uploadToCloudinary(req.file.buffer);
+
       const category = await categoryModel.findOne({ name: categoryName });
       if (category) {
-        return res
-          .status(200)
-          .json({ val: false, msg: "Category already exists" });
+        return res.status(200).json({ val: false, msg: "Category already exists" });
       }
-      await categoryModel.create({ name: categoryName, image: imagePath });
+  
+      await categoryModel.create({
+        name: categoryName,
+        image: uploadedImageUrl
+      });
+  
       res.status(200).json({ val: true, msg: "Category added successfully" });
+  
     } catch (err) {
       console.log(err);
-      res.status(200).json({ val: false, msg: "Category add failed" });
+      res.status(500).json({ val: false, msg: "Category add failed" });
     }
   },
   // ~~~ Category Load ~~~
@@ -132,29 +152,41 @@ module.exports = {
   // ~~~ Category Image Update ~~~
   // Purpose: Updates the image of a category.
   // Response: Responds with success or failure based on whether the update was successful.
-  async categoryImageUpdate(req, res) {
+  async  categoryImageUpdate(req, res) {
     try {
       const { categoryId } = req.params;
+  
       if (!req.file) {
-        return res
-          .status(400)
-          .json({ val: false, msg: "No file was uploaded" });
+        return res.status(400).json({ val: false, msg: "No file was uploaded" });
       }
-      const filePath = path.relative(
-        path.join(__dirname, "..", "public"),
-        req.file.path
-      );
-      console.log("Category ID:", categoryId);
-      console.log("File Path:", filePath);
+  
+      const uploadToCloudinary = (fileBuffer) => {
+        return new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            { resource_type: 'auto' },
+            (error, result) => {
+              if (error) {
+                reject(error); 
+              }
+              resolve(result.secure_url); 
+            }
+          ).end(fileBuffer); 
+        });
+      };
+  
+      const uploadedImageUrl = await uploadToCloudinary(req.file.buffer);
+
       const category = await categoryModel.findOne({ _id: categoryId });
       if (!category) {
         return res.status(404).json({ val: false, msg: "Category not found" });
       }
-      category.image = filePath;
+  
+      category.image = uploadedImageUrl;
+  
       await category.save();
-      return res
-        .status(200)
-        .json({ val: true, msg: "Category image updated successfully" });
+  
+      return res.status(200).json({ val: true, msg: "Category image updated successfully" });
+  
     } catch (err) {
       console.error(err);
       return res.status(500).json({ val: false, msg: "Server error" });

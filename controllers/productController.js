@@ -3,7 +3,7 @@ const CategoryModel = require("../models/categoryModel");
 const categoryModel = require("../models/categoryModel");
 const orderModel = require("../models/orderModel");
 const wishlistModel = require("../models/wishlistModel");
-const path = require("path");
+const cloudinary = require("../services/cloudServiece");
 
 module.exports = {
   // ~~~ Home Page Load ~~~
@@ -212,7 +212,7 @@ module.exports = {
   // ~~~ Add Product ~~~
   // Purpose: Allows adding a new product to the database with various details like name, price, images, etc.
   // Response: Returns a success message if the product is successfully added, or an error message if failed.
-  async productsAdd(req, res) {
+  async  productsAdd(req, res) {
     try {
       let {
         name,
@@ -228,18 +228,18 @@ module.exports = {
         warranty,
         returnPolicy,
       } = req.body;
-
+  
       price = Number(price);
       offerPrice = Number(offerPrice) || 0;
       cashOnDelivery = cashOnDelivery === "true";
-
+  
       sizes = JSON.parse(sizes);
       const parsedSizes = {};
       for (let size in sizes) {
         const { stock, maxQuantity } = sizes[size];
         const parsedStock = Number(stock);
         const parsedMaxQuantity = Number(maxQuantity);
-
+  
         if (isNaN(parsedStock) || parsedStock <= 0) {
           return res
             .status(400)
@@ -257,13 +257,13 @@ module.exports = {
             msg: `Max quantity (${parsedMaxQuantity}) cannot exceed stock (${parsedStock}) for size ${size}`,
           });
         }
-
+  
         parsedSizes[size] = {
           stock: parsedStock,
           maxQuantity: parsedMaxQuantity,
         };
       }
-      console.log(parsedSizes)
+  
       colors = colors
         ? colors
             .split(",")
@@ -276,34 +276,47 @@ module.exports = {
             .map((tag) => tag.trim())
             .filter(Boolean)
         : [];
+  
       const categoryObject = await CategoryModel.findOne({ name: category });
       if (!categoryObject) {
         return res.status(400).json({ val: false, msg: "Category not found" });
       }
-      if (!req.files || req.files.length === 0) {
-        return res
-          .status(400)
-          .json({ val: false, msg: "No files were uploaded" });
+  
+      if (!req.files || Object.keys(req.files).length === 0) {
+        return res.status(400).json({ val: false, msg: "No files were uploaded" });
       }
-
+  
       const imagePaths = [];
-      for (const key in req.files) {
-        req.files[key].forEach((file) => {
-          imagePaths.push(
-            path.relative(path.join(__dirname, "..", "public"), file.path)
-          );
+  
+
+      const uploadToCloudinary = (fileBuffer) => {
+        return new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            { resource_type: 'auto' }, 
+            (error, result) => {
+              if (error) {
+                reject(error);
+              }
+              resolve(result.secure_url); 
+            }
+          ).end(fileBuffer);  
         });
+      };
+  
+      for (const field in req.files) {
+        const files = req.files[field];
+        for (const file of files) {
+          const uploadedImageUrl = await uploadToCloudinary(file.buffer);
+          imagePaths.push(uploadedImageUrl);
+        }
       }
-
-      console.log('HHHHHHH')
-
       await productModel.create({
         name,
         description,
         price,
         offerPrice,
         category: categoryObject._id,
-        images: imagePaths,
+        images: imagePaths,  
         colors,
         sizes: parsedSizes,
         brand,
@@ -312,16 +325,13 @@ module.exports = {
         warranty,
         returnPolicy,
       });
-
+  
       res.status(200).json({ val: true, msg: "Product added successfully" });
     } catch (err) {
       console.error(err);
       res.status(500).json({ val: false, msg: "Internal server error" });
     }
   },
-  // ~~~ Load Product Update Page ~~~
-  // Purpose: Loads the product update page with the product details and categories to allow the admin to edit the product.
-  // Response: Renders the product update page with the product and category data.
   async productUpdateLoad(req, res) {
     const { productId } = req.params;
     console.log(productId);
@@ -377,31 +387,44 @@ module.exports = {
   // ~~~ Update Product Image ~~~
   // Purpose: Updates the image of a product based on the given index and product ID.
   // Response: Returns a success message after updating the image, or an error if something goes wrong.
-  async productImageUpdate(req, res) {
+  async  productImageUpdate(req, res) {
     try {
       const { productIndex } = req.body;
       const { productId } = req.params;
+  
       if (!req.file) {
-        return res
-          .status(400)
-          .json({ val: false, msg: "No file was uploaded" });
+        return res.status(400).json({ val: false, msg: "No file was uploaded" });
       }
-      const filePath = path.relative(
-        path.join(__dirname, "..", "public"),
-        req.file.path
-      );
+  
       console.log("Product Index:", productIndex);
       console.log("Product ID:", productId);
-      console.log("File Path:", filePath);
+      console.log("File Details:", req.file);
+  
+      const uploadToCloudinary = (fileBuffer) => {
+        return new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream(
+            { resource_type: 'auto' },
+            (error, result) => {
+              if (error) {
+                reject(error); 
+              }
+              resolve(result.secure_url); 
+            }
+          ).end(fileBuffer); 
+        });
+      };
+  
+      const uploadedImageUrl = await uploadToCloudinary(req.file.buffer);
+  
       const product = await productModel.findOne({ _id: productId });
       if (!product) {
         return res.status(404).json({ val: false, msg: "Product not found" });
       }
-      product.images[productIndex] = filePath;
+
+      product.images[productIndex] = uploadedImageUrl;
       await product.save();
-      return res
-        .status(200)
-        .json({ val: true, msg: "Product image updated successfully" });
+  
+      return res.status(200).json({ val: true, msg: "Product image updated successfully" });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ val: false, msg: "Server error" });

@@ -1,5 +1,6 @@
 // const filterLinks = document.querySelectorAll(".filter-link");
 
+
 // let selectedFilters = {
 //   sortBy: "Default",
 //   price: "All",

@@ -276,11 +276,13 @@ function validateAndSubmit() {
       returnPolicy.value !== "" ? returnPolicy.value : null
     );
 
+
     croppedImages.forEach((croppedImage, index) => {
       if (croppedImage) {
         formData.append(`productImage${index + 1}`, croppedImage);
       }
     });
+
 
     (async function addData() {
       try {

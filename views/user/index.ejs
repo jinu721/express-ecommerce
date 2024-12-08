@@ -4,30 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-   <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FLATICON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FLATICON ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
     <link
       rel="stylesheet"
       href="https://cdn-uicons.flaticon.com/2.0.0/uicons-regular-straight/css/uicons-regular-straight.css"
     />
 
-    
-
-   <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SWIPER CSS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SWIPER CSS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"
     />
-   <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN CSS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN CSS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
     <link rel="stylesheet" href="/css/styles.css" />
 
     <title>Ecommerce Website</title>
   </head>
   <body>
     <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ HEADER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-    <%- include('../layouts/header.ejs')  %>
+    <%- include('../layouts/header.ejs') %>
 
-   <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-    <main class="main mainPageSection ">
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <main class="main mainPageSection">
       <!--=============== HOME ===============-->
       <section class="home section--lg">
         <div class="home__container container grid">
@@ -44,32 +42,38 @@
         </div>
       </section>
 
-          <!--=============== CATEGORIES ===============-->
-          <section class="categories container section">
-            <h3 class="section__title"><span>Popular</span> Categories</h3>
-            <div class="categories__container swiper">
-              <div class="swiper-wrapper">
-                <% category.forEach(data => { %>  
-                    <a href="/category/<%= data._id %>" data-categoryName="<%= data.name %>" class="category__item swiper-slide categoryItem">
-                      <img 
-                        data-categoryName="<%= data.name %>"
-                        src="<%= data.image  %>"
-                        alt=""
-                        class="category__img"
-                      />
-                      <h3 data-categoryName="<%= data.name %>" class="category__title"><%= data.name  %></h3>
-                    </a>
-                <% }); %>
-              </div>
-    
-              <div class="swiper-button-prev">
-                <i class="fi fi-rs-angle-left"></i>
-              </div>
-              <div class="swiper-button-next">
-                <i class="fi fi-rs-angle-right"></i>
-              </div>
-            </div>
-          </section>
+      <!--=============== CATEGORIES ===============-->
+      <section class="categories container section">
+        <h3 class="section__title"><span>Popular</span> Categories</h3>
+        <div class="categories__container swiper">
+          <div class="swiper-wrapper">
+            <% category.forEach(data => { %>
+            <a
+              href="/category/<%= data._id %>"
+              data-categoryName="<%= data.name %>"
+              class="category__item swiper-slide categoryItem"
+            >
+              <img
+                data-categoryName="<%= data.name %>"
+                src="<%= data.image  %>"
+                alt=""
+                class="category__img"
+              />
+              <h3 data-categoryName="<%= data.name %>" class="category__title">
+                <%= data.name %>
+              </h3>
+            </a>
+            <% }); %>
+          </div>
+
+          <div class="swiper-button-prev">
+            <i class="fi fi-rs-angle-left"></i>
+          </div>
+          <div class="swiper-button-next">
+            <i class="fi fi-rs-angle-right"></i>
+          </div>
+        </div>
+      </section>
 
       <!--=============== PRODUCTS ===============-->
 
@@ -94,23 +98,32 @@
                   />
                 </a>
                 <div class="product__actions">
-                  <a href="#" class="action__btn" aria-label="Quick View">
+                  <a
+                    href="/details/<%= data._id %>"
+                    class="action__btn"
+                    aria-label="Quick View"
+                  >
                     <i class="fi fi-rs-eye"></i>
                   </a>
-                  <a href="#" class="action__btn" aria-label="Add to Wishlist">
+                  <a
+                    data-id="<%= data._id %>"
+                    data-size="<%= Object.keys(data.sizes)[0] %>"
+                    data-color="<%= data.colors[0] %>"
+                    class="action__btn addToWishlistBtn"
+                    aria-label="Add to Wishlist"
+                  >
                     <i class="fi fi-rs-heart"></i>
                   </a>
                 </div>
                 <div class="product__badge light-green">-22%</div>
               </div>
               <div class="product__content">
-                <%  category.forEach((x)=>{ %>
-                  <% if(x._id.toString()===data.category.toString()){ %>
-                      <span class="product__category"><%= x.name %></span>
-                  <% } %>
-              <% }) %>
+                <% category.forEach((x)=>{ %> <%
+                if(x._id.toString()===data.category.toString()){ %>
+                <span class="product__category"><%= x.name %></span>
+                <% } %> <% }) %>
                 <a href="details.html">
-                  <h3 class="product__title"><%= data.name  %></h3>
+                  <h3 class="product__title"><%= data.name %></h3>
                 </a>
                 <div class="product__rating">
                   <i class="fi fi-rs-star"></i>
@@ -121,15 +134,17 @@
                 </div>
                 <div class="product__price flex">
                   <% if(data.offerPrice!==0){ %>
-                    <span class="new__price">&#8377;<%= data.offerPrice %></span>
-                    <span class="old__price">&#8377;<%= data.price %></span>
-                    <% }else{ %>
-                    <span class="new__price">&#8377;<%= data.price %></span>
-                    <% } %>
+                  <span class="new__price offerPriceProduct">&#8377;<%= data.offerPrice %></span>
+                  <span class="old__price">&#8377;<%= data.price %></span>
+                  <% }else{ %>
+                  <span class="new__price offerPriceProduct">&#8377;<%= data.price %></span>
+                  <% } %>
                 </div>
                 <a
-                  href="#"
-                  class="action__btn cart__btn"
+                  data-id="<%= data._id %>"
+                  data-size="<%= Object.keys(data.sizes)[0] %>"
+                  data-color="<%= data.colors[0] %>"
+                  class="action__btn cart__btn addTocartBtn"
                   aria-label="Add To Cart"
                 >
                   <i class="fi fi-rs-shopping-bag-add"></i>
@@ -154,114 +169,127 @@
           <div class="showcase__wrapper">
             <h3 class="section__title">Hot Releases</h3>
             <% hotReleases.forEach(product => { %>
-              <div class="showcase__item">
-                <a href="/details/<%= product._id %>" class="showcase__img-box">
-                  <img src="<%= product.images[0] %>" alt="<%= product.name %>" class="showcase__img" />
+            <div class="showcase__item">
+              <a href="/details/<%= product._id %>" class="showcase__img-box">
+                <img
+                  src="<%= product.images[0] %>"
+                  alt="<%= product.name %>"
+                  class="showcase__img"
+                />
+              </a>
+              <div class="showcase__content">
+                <a href="/details/<%= product._id %>">
+                  <h4 class="showcase__title"><%= product.name %></h4>
                 </a>
-                <div class="showcase__content">
-                  <a href="/details/<%= product._id %>">
-                    <h4 class="showcase__title"><%= product.name %></h4>
-                  </a>
-                  <div class="showcase__price flex">
-                    <span class="new__price">&#8377;<%= product.price %></span>
-                    <% if (product.oldPrice) { %>
-                      <span class="old__price">&#8377;<%= product.oldPrice %></span>
-                    <% } %>
-                  </div>
+                <div class="showcase__price flex">
+                  <span class="new__price">&#8377;<%= product.price %></span>
+                  <% if (product.oldPrice) { %>
+                  <span class="old__price">&#8377;<%= product.oldPrice %></span>
+                  <% } %>
                 </div>
               </div>
+            </div>
             <% }); %>
           </div>
-      
+
           <div class="showcase__wrapper">
             <h3 class="section__title">Deals & Outlet</h3>
             <% dealsAndOutfits.forEach(product => { %>
-              <div class="showcase__item">
-                <a href="/details/<%= product._id %>" class="showcase__img-box">
-                  <img src="<%= product.images[0] %>" alt="<%= product.name %>" class="showcase__img" />
+            <div class="showcase__item">
+              <a href="/details/<%= product._id %>" class="showcase__img-box">
+                <img
+                  src="<%= product.images[0] %>"
+                  alt="<%= product.name %>"
+                  class="showcase__img"
+                />
+              </a>
+              <div class="showcase__content">
+                <a href="/details/<%= product._id %>">
+                  <h4 class="showcase__title"><%= product.name %></h4>
                 </a>
-                <div class="showcase__content">
-                  <a href="/details/<%= product._id %>">
-                    <h4 class="showcase__title"><%= product.name %></h4>
-                  </a>
-                  <div class="showcase__price flex">
-                    <span class="new__price">&#8377;<%= product.price %></span>
-                    <% if (product.oldPrice) { %>
-                      <span class="old__price">&#8377;<%= product.oldPrice %></span>
-                    <% } %>
-                  </div>
+                <div class="showcase__price flex">
+                  <span class="new__price">&#8377;<%= product.price %></span>
+                  <% if (product.oldPrice) { %>
+                  <span class="old__price">&#8377;<%= product.oldPrice %></span>
+                  <% } %>
                 </div>
               </div>
+            </div>
             <% }); %>
           </div>
 
           <div class="showcase__wrapper">
             <h3 class="section__title">Top Selling</h3>
             <% topSellingProducts.forEach(item => { %>
-              <div class="showcase__item">
-                <a href="/details/<%= item.product._id %>" class="showcase__img-box">
-                  <img src="<%= item.product.images[0] %>" alt="<%= item.product.name %>" class="showcase__img" />
+            <div class="showcase__item">
+              <a
+                href="/details/<%= item.product._id %>"
+                class="showcase__img-box"
+              >
+                <img
+                  src="<%= item.product.images[0] %>"
+                  alt="<%= item.product.name %>"
+                  class="showcase__img"
+                />
+              </a>
+              <div class="showcase__content">
+                <a href="/details/<%= item.product._id %>">
+                  <h4 class="showcase__title"><%= item.product.name %></h4>
                 </a>
-                <div class="showcase__content">
-                  <a href="/details/<%= item.product._id %>">
-                    <h4 class="showcase__title"><%= item.product.name %></h4>
-                  </a>
-                  <div class="showcase__price flex">
-                    <span class="new__price">&#8377;<%= item.product.price %></span>
-                    <% if (item.product.oldPrice) { %>
-                      <span class="old__price">&#8377;<%= item.product.oldPrice %></span>
-                    <% } %>
-                  </div>
+                <div class="showcase__price flex">
+                  <span class="new__price"
+                    >&#8377;<%= item.product.price %></span
+                  >
+                  <% if (item.product.oldPrice) { %>
+                  <span class="old__price"
+                    >&#8377;<%= item.product.oldPrice %></span
+                  >
+                  <% } %>
                 </div>
               </div>
+            </div>
             <% }); %>
           </div>
-      
+
           <div class="showcase__wrapper">
             <h3 class="section__title">Trendy</h3>
             <% products.slice(0, 3).forEach(product => { %>
-              <div class="showcase__item">
-                <a href="/details/<%= product._id %>" class="showcase__img-box">
-                  <img src="<%= product.images[0] %>" alt="<%= product.name %>" class="showcase__img" />
+            <div class="showcase__item">
+              <a href="/details/<%= product._id %>" class="showcase__img-box">
+                <img
+                  src="<%= product.images[0] %>"
+                  alt="<%= product.name %>"
+                  class="showcase__img"
+                />
+              </a>
+              <div class="showcase__content">
+                <a href="/details/<%= product._id %>">
+                  <h4 class="showcase__title"><%= product.name %></h4>
                 </a>
-                <div class="showcase__content">
-                  <a href="/details/<%= product._id %>">
-                    <h4 class="showcase__title"><%= product.name %></h4>
-                  </a>
-                  <div class="showcase__price flex">
-                    <span class="new__price">&#8377;<%= product.price %></span>
-                    <% if (product.oldPrice) { %>
-                      <span class="old__price">&#8377;<%= product.oldPrice %></span>
-                    <% } %>
-                  </div>
+                <div class="showcase__price flex">
+                  <span class="new__price">&#8377;<%= product.price %></span>
+                  <% if (product.oldPrice) { %>
+                  <span class="old__price">&#8377;<%= product.oldPrice %></span>
+                  <% } %>
                 </div>
               </div>
+            </div>
             <% }); %>
           </div>
-          
         </div>
       </section>
-      
-
     </main>
 
-   <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOOTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-  <%- include('../layouts/footer.ejs')  %>
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOOTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <%- include('../layouts/footer.ejs') %>
 
-   <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SWIPER JS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ SWIPER JS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-   <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN JS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN JS ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
 
     <script src="/js/user/main.js"></script>
-    <script src="/js/user/chat.js"></script>
-    <script>
-      // const categoryItems = document.querySelectorAll('.categoryItem');
-      // categoryItems.forEach(elem=>{
-      //   elem.addEventListener('click',(e)=>{
-      //     const categoryName = e.target.getAttribute('data-categoryName');
-      //     window.location.href = `/shop?sortBy=Default&price=&category=${categoryName}&name=All&api=true`;
-      //   })
-      // });
-    </script>
+    <script src="/js/user/extraBtn.js"></script>
   </body>
 </html>

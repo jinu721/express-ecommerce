@@ -26,13 +26,20 @@ router.get('/admin/products', productController.productsPageLoad);
 // ~~~ Add New Product ~~~
 // Purpose: Handle the addition of a new product.
 // Response: Adds the new product and its images, then returns the updated list of products.
+// router.post('/admin/products/add', upload.fields([
+//   { name: 'productImage1', maxCount: 1 },
+//   { name: 'productImage2', maxCount: 1 },
+//   { name: 'productImage3', maxCount: 1 },
+//   { name: 'productImage4', maxCount: 1 },
+// ]), productController.productsAdd);
+
 router.post('/admin/products/add', upload.fields([
   { name: 'productImage1', maxCount: 1 },
   { name: 'productImage2', maxCount: 1 },
   { name: 'productImage3', maxCount: 1 },
-  { name: 'productImage4', maxCount: 1 },
-  { name: 'productImage5', maxCount: 1 }
+  { name: 'productImage4', maxCount: 1 }
 ]), productController.productsAdd);
+
 
 // ~~~ Unlist Product ~~~
 // Purpose: Unlist a product, removing it from the available listings.

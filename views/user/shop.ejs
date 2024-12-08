@@ -245,12 +245,14 @@
                     />
                   </a>
                   <div class="product__actions">
-                    <a href="#" class="action__btn" aria-label="Quick View">
+                    <a href="/details/<%= data._id %>" class="action__btn" aria-label="Quick View">
                       <i class="fi fi-rs-eye"></i>
                     </a>
                     <a
-                      href="#"
-                      class="action__btn"
+                      data-id="<%= data._id %>"
+                      data-size="<%= Object.keys(data.sizes)[0] %>"
+                      data-color="<%= data.colors[0] %>"
+                      class="action__btn addToWishlistBtn"
                       aria-label="Add to Wishlist"
                     >
                       <i class="fi fi-rs-heart"></i>
@@ -276,15 +278,17 @@
                   </div>
                   <div class="product__price flex">
                     <% if(data.offerPrice!==0){ %>
-                      <span class="new__price">&#8377;<%= data.offerPrice %></span>
+                      <span class="new__price offerPriceProduct">&#8377;<%= data.offerPrice %></span>
                       <span class="old__price">&#8377;<%= data.price %></span>
                       <% }else{ %>
-                      <span class="new__price">&#8377;<%= data.price %></span>
+                      <span class="new__price offerPriceProduct">&#8377;<%= data.price %></span>
                       <% } %>
                   </div>
                   <a
-                    href="#"
-                    class="action__btn cart__btn"
+                    data-id="<%= data._id %>"
+                    data-size="<%= Object.keys(data.sizes)[0] %>"
+                    data-color="<%= data.colors[0] %>"
+                    class="action__btn cart__btn addTocartBtn"
                     aria-label="Add To Cart"
                   >
                     <i class="fi fi-rs-shopping-bag-add"></i>
@@ -330,9 +334,11 @@
 
     <!--=============== SWIPER JS ===============-->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <!--=============== MAIN JS ===============-->
     <script src="/js/user/main.js"></script>
     <script src="/js/user/shop.js"></script>
+    <script src="/js/user/extraBtn.js"></script>
   </body>
 </html>
