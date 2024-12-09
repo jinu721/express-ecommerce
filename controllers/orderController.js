@@ -604,6 +604,7 @@ module.exports = {
     if (!orderId) {
       return res.status(400).json("orderId not found");
     }
+  
     try {
       const order = await orderModel
         .findOne({ _id: orderId })
@@ -611,57 +612,48 @@ module.exports = {
         .populate("items.product")
         .lean();
       console.log(order);
-
-      const templatePath = path.join(
-        __dirname,
-        "..",
-        "views",
-        "user",
-        "invoice.ejs"
-      );
+  
+      
+      const templatePath = path.join(__dirname, "..", "views", "user", "invoice.ejs");
+  
       ejs.renderFile(templatePath, { order }, (err, renderedHTML) => {
         if (err) {
           console.log(err);
           return res.status(500).json({
             val: false,
-            msg: "Something went wrong while genrating invoice",
+            msg: "Something went wrong while generating invoice",
           });
         }
+  
         const pdfOptions = {
-          heigth: "11.25in",
+          height: "11.25in",
           width: "8.5in",
           header: { height: "20mm" },
           footer: { height: "20mm" },
         };
-        pdf
-          .create(renderedHTML, pdfOptions)
-          .toFile("pdfrecipt.pdf", (err, result) => {
-            if (err) {
-              return res.status(500).json({
-                val: false,
-                msg: "Something went wrong while creating invoice pdf",
-              });
-            }
-            return res.download(
-              result.filename,
-              "invoice.pdf",
-              (downloadErr) => {
-                if (downloadErr) {
-                  console.log(downloadErr);
-                  return res.status(500).json({
-                    val: false,
-                    msg: "Something went wrong while downloading invoice",
-                  });
-                }
-              }
-            );
-          });
+  
+        pdf.create(renderedHTML, pdfOptions).toStream((err, stream) => {
+          if (err) {
+            console.log(err);
+            return res.status(500).json({
+              val: false,
+              msg: "Something went wrong while creating invoice pdf",
+            });
+          }
+  
+
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader("Content-Disposition", "attachment; filename=invoice.pdf");
+
+          stream.pipe(res);
+        });
       });
     } catch (err) {
       console.log(err);
       res.status(500).json({ val: false, msg: err.message });
     }
-  },
+  }
+  ,
   // ~~~ Admin Return Request ~~~
   // Purpose: Handles the approval or cancellation of return requests for orders.
   // Response: Returns the status of the return request after processing.
