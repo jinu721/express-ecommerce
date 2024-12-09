@@ -600,7 +600,7 @@ module.exports = {
   // ~~~ Download Receipt ~~~
   // Purpose: Generates and serves a downloadable invoice for an order.
   // Response: Returns the generated invoice as a PDF for download.
-  async function downloadRecipt(req, res) {
+  async  downloadRecipt(req, res) {
     const { orderId } = req.params;
     if (!orderId) {
       return res.status(400).json("orderId not found");
@@ -729,8 +729,7 @@ module.exports = {
       console.log(err);
       res.status(500).json({ val: false, msg: err.message });
     }
-  }
-  ,
+  },
   // ~~~ Admin Return Request ~~~
   // Purpose: Handles the approval or cancellation of return requests for orders.
   // Response: Returns the status of the return request after processing.
