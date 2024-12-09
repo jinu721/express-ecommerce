@@ -242,49 +242,45 @@ module.exports = {
   // Response: Returns PDF file for download.
   async downloadReport(req, res) {
     console.log("Processing downloadReport...");
-
+  
     try {
       const { startDate, endDate, range } = req.body;
-
+  
       let start, end;
       const today = new Date();
-
-      if (range === "daily") {
-        start = new Date(today.setHours(0, 0, 0, 0));
-        end = new Date(today.setHours(23, 59, 59, 999));
-      } else if (range === "weekly") {
-        const startOfWeek = new Date(
-          today.setDate(today.getDate() - today.getDay())
-        );
-        start = new Date(startOfWeek.setHours(0, 0, 0, 0));
-        end = new Date(today.setHours(23, 59, 59, 999));
-      } else if (range === "monthly") {
-        start = new Date(today.getFullYear(), today.getMonth(), 1);
-        end = new Date(
-          today.getFullYear(),
-          today.getMonth() + 1,
-          0,
-          23,
-          59,
-          59,
-          999
-        );
-      } else if (range === "custom") {
-        if (!startDate || !endDate) {
-          return res
-            .status(400)
-            .json({
-              msg: "Start and end dates are required for custom range.",
-            });
-        }
-        start = new Date(startDate);
-        end = new Date(endDate);
+      switch (range) {
+        case "daily":
+          start = new Date(today.setHours(0, 0, 0, 0));
+          end = new Date(today.setHours(23, 59, 59, 999));
+          break;
+      
+        case "weekly":
+          const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+          start = new Date(startOfWeek.setHours(0, 0, 0, 0));
+          end = new Date(today.setHours(23, 59, 59, 999));
+          break;
+      
+        case "monthly":
+          start = new Date(today.getFullYear(), today.getMonth(), 1);
+          end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+          break;
+      
+        case "custom":
+          if (!startDate || !endDate) {
+            return res.status(400).json({ msg: "Start and end dates are required for custom range." });
+          }
+          start = new Date(startDate);
+          end = new Date(endDate);
+          break;
+      
+        default:
+          return res.status(400).json({ msg: "Invalid range provided." });
       }
-
+      
+  
       console.log(range);
       console.log(startDate, endDate);
       console.log(start, end);
-
       const salesDataResult = await orderModel.aggregate([
         {
           $match: {
@@ -297,28 +293,23 @@ module.exports = {
             _id: null,
             totalRevenue: { $sum: "$totalAmount" },
             totalSales: { $sum: 1 },
-            itemsSold: {
-              $sum: {
-                $sum: "$items.quantity",
-              },
-            },
+            itemsSold: { $sum: { $sum: "$items.quantity" } },
           },
         },
       ]);
-
+  
       const salesData = salesDataResult[0] || {
         totalRevenue: 0,
         totalSales: 0,
         itemsSold: 0,
       };
-
       const detailedOrders = await orderModel
         .find({
           orderStatus: "delivered",
           createdAt: { $gte: start, $lte: end },
         })
         .populate("items.product", "name price");
-
+  
       const totalDiscounts = await orderModel.aggregate([
         {
           $match: {
@@ -333,73 +324,49 @@ module.exports = {
           },
         },
       ]);
-
+  
       console.log("Sales Data:", salesData);
       console.log("Number of Detailed Orders:", detailedOrders.length);
+  
 
-      const templatePath = path.join(
-        __dirname,
-        "..",
-        "views",
-        "admin",
-        "report-template.ejs"
-      );
+      const templatePath = path.join(__dirname, "..", "views", "admin", "report-template.ejs");
+  
+      ejs.renderFile(templatePath, {
+        salesData,
+        detailedOrders,
+        totalDiscounts: totalDiscounts[0]?.totalDiscount || 0,
+        startDate: start.toISOString().split("T")[0],
+        endDate: end.toISOString().split("T")[0],
+      }, (err, renderedHTML) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ msg: "Error rendering report template." });
+        }
+  
+        const pdfOptions = {
+          height: "11.25in",
+          width: "8.5in",
+          header: { height: "20mm" },
+          footer: { height: "20mm" },
+        };
 
-      ejs.renderFile(
-        templatePath,
-        {
-          salesData,
-          detailedOrders,
-          totalDiscounts: totalDiscounts[0]?.totalDiscount || 0,
-          startDate: start.toISOString().split("T")[0],
-          endDate: end.toISOString().split("T")[0],
-        },
-        (err, renderedHTML) => {
+        pdf.create(renderedHTML, pdfOptions).toStream((err, stream) => {
           if (err) {
             console.error(err);
-            return res
-              .status(500)
-              .json({ msg: "Error rendering report template." });
+            return res.status(500).json({ msg: "Error generating PDF file." });
           }
-
-          const pdfOptions = {
-            height: "11.25in",
-            width: "8.5in",
-            header: { height: "20mm" },
-            footer: { height: "20mm" },
-          };
-
-          pdf
-            .create(renderedHTML, pdfOptions)
-            .toFile("report.pdf", (err, result) => {
-              if (err) {
-                console.error(err);
-                return res
-                  .status(500)
-                  .json({ msg: "Error generating PDF file." });
-              }
-              return res.download(
-                result.filename,
-                "SalesReport.pdf",
-                (downloadErr) => {
-                  if (downloadErr) {
-                    console.error(downloadErr);
-                    return res
-                      .status(500)
-                      .json({ msg: "Error downloading PDF file." });
-                  }
-                }
-              );
-            });
-        }
-      );
+  
+          res.setHeader("Content-Type", "application/pdf");
+          res.setHeader("Content-Disposition", "attachment; filename=SalesReport.pdf");
+          stream.pipe(res);
+        });
+      });
     } catch (error) {
       console.error("Error in downloadReport:", error);
-      res
-        .status(500)
-        .json({ msg: "An error occurred while generating the report." });
+      res.status(500).json({ msg: "An error occurred while generating the report." });
     }
-  },
+  }
+  ,
   // ~~~ Admin Login Page Load ~~~
   // Purpose: Renders the login page when the admin login route is accessed.
   // Response: Renders the "login" view.
