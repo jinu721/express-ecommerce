@@ -12,6 +12,7 @@ const notificationModel = require("../models/notificationModel");
 const pdf = require("html-pdf");
 const ejs = require("ejs");
 const path = require("path");
+const PDFDocument = require('pdfkit');
 const puppeteer = require('puppeteer');
 
 let orderId = 100;
