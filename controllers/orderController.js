@@ -600,131 +600,66 @@ module.exports = {
   // ~~~ Download Receipt ~~~
   // Purpose: Generates and serves a downloadable invoice for an order.
   // Response: Returns the generated invoice as a PDF for download.
-  async  downloadRecipt(req, res) {
+  async downloadRecipt(req, res) {
     const { orderId } = req.params;
     if (!orderId) {
       return res.status(400).json("orderId not found");
     }
-  
     try {
-      // Fetch the order details from the database
       const order = await orderModel
         .findOne({ _id: orderId })
         .sort({ orderedAt: -1 })
         .populate("items.product")
         .lean();
       console.log(order);
+
+      res.setHeader('Content-Disposition', `attachment; filename=invoice-${orderId}.pdf`);
+      res.setHeader('Content-Type', 'application/pdf');
   
-      // Create the HTML content using template literals
-      let itemsHTML = '';
-      order.items.forEach(data => {
-        itemsHTML += `
-          <tr>
-            <td>${data.product.name}</td>
-            <td>${data.quantity}</td>
-            <td>&#8377;${data.product.price}</td>
-            <td>&#8377;${data.product.offerPrice}</td>
-            <td>&#8377;${data.quantity * data.product.offerPrice}</td>
-          </tr>
-        `;
+      const pdfDoc = new PDFDocument({ margin: 30 });
+      pdfDoc.pipe(res);
+  
+      pdfDoc.fontSize(20).text('Invoice', { align: 'center' }).moveDown();
+      pdfDoc.fontSize(14).text('Pay To: Male Fashion').moveDown();
+  
+      pdfDoc.fontSize(12).text('Items:', { underline: true }).moveDown(0.5);
+      pdfDoc.fontSize(10);
+      pdfDoc.text(`Item Name`.padEnd(20) + `Qty`.padEnd(10) + `Unit Price`.padEnd(15) + `Offer Price`.padEnd(15) + `Total`, {
+        align: 'left',
       });
   
-      let htmlContent = `
-        <!DOCTYPE html>
-        <html lang="en">
-          <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>Invoice</title>
-            <style>
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; color: #333; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-              .invoice-container { background-color: #fff; border-radius: 10px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1); padding: 30px; max-width: 800px; width: 100%; }
-              .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007bff; padding-bottom: 15px; margin-bottom: 20px; }
-              .logo { max-width: 100px; }
-              .invoice-title { font-size: 24px; font-weight: bold; color: #007bff; }
-              .billed-to, .payment-info { margin-bottom: 20px; }
-              .section-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-              .items { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-              .items th, .items td { padding: 10px; text-align: left; border: 1px solid #ddd; }
-              .items th { background-color: #f1f1f1; color: #333; }
-              .totals { text-align: right; margin-bottom: 20px; }
-              .totals p { font-size: 16px; margin: 5px 0; }
-              .totals .total-amount { font-size: 18px; font-weight: bold; color: #007bff; }
-              .thank-you { text-align: center; font-size: 18px; color: #007bff; margin-bottom: 20px; }
-              .discount { font-size: 10px; color: grey; }
-            </style>
-          </head>
-          <body>
-            <div class="invoice-container">
-              <div class="header">
-                <a class="logo" href="https://imgbb.com/"><img src="https://i.ibb.co/hgn3dqf/image.png" alt="image" border="0" /></a>
-                <h1 style="margin-top: 20px" class="invoice-title">Invoice</h1>
-              </div>
-              <div class="billed-to">
-                <p class="section-title">Pay To:</p>
-                <p>Male Fashion</p>
-              </div>
-              <table class="items">
-                <thead>
-                  <tr>
-                    <th>Item</th>
-                    <th>Quantity</th>
-                    <th>Unit Price</th>
-                    <th>Offer Price</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${itemsHTML} <!-- Dynamically added items -->
-                </tbody>
-              </table>
-              <div class="totals">
-                ${order.coupon ? `<p class="discount">Discount: -&#8377;${order.coupon.discountApplied}</p>` : ''}
-                <p class="total-amount">Total: &#8377;${order.totalAmount}</p>
-              </div>
-              <div class="thank-you">Thank you for your Purchase!</div>
-              <div class="payment-info">
-                <p class="section-title">Payment Information:</p>
-                ${order.paymentMethod === 'cash_on_delivery' ? `<p>Cash on delivery</p><p>Payment status: ${order.paymentStatus}</p>` : ''}
-                ${order.paymentMethod === 'wallet' ? `<p>wallet</p><p>Male fashion wallet</p><p>Payment status: ${order.paymentStatus}</p>` : ''}
-                ${order.paymentMethod === 'razorpay' ? `<p>Razorpay</p><p>Payment status: ${order.paymentStatus}</p>` : ''}
-                <p>Order date: ${new Date(order.orderedAt).toLocaleString()}</p>
-              </div>
-            </div>
-          </body>
-        </html>
-      `;
+      pdfDoc.moveDown(0.5);
+      order.items.forEach((item) => {
+        const productName = item.product.name.padEnd(20);
+        const quantity = String(item.quantity).padEnd(10);
+        const unitPrice = `₹${item.product.price}`.padEnd(15);
+        const offerPrice = `₹${item.offerPrice}`.padEnd(15);
+        const total = `₹${item.quantity * item.offerPrice}`;
   
-      // Use Puppeteer to generate the PDF
-      try {
-        const browser = await puppeteer.launch();
-        const page = await browser.newPage();
+        pdfDoc.text(`${productName}${quantity}${unitPrice}${offerPrice}${total}`);
+      });
   
-        // Set the content of the page with the generated HTML
-        await page.setContent(htmlContent);
+      pdfDoc.moveDown();
   
-        // Generate the PDF from the rendered HTML
-        const pdfBuffer = await page.pdf({
-          format: 'A4',
-          printBackground: true,
-          landscape: false,
+      pdfDoc.fontSize(12);
+      if (order.coupon && order.coupon.discountApplied) {
+        pdfDoc.text(`Coupon Applied: ${order.coupon.code || 'N/A'} - Discount: ₹${order.coupon.discountApplied}`, {
+          align: 'right',
         });
-  
-        await browser.close();
-  
-        // Send the PDF to the user
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", "attachment; filename=invoice.pdf");
-        res.end(pdfBuffer); // Send the PDF as the response
-  
-      } catch (err) {
-        console.log(err);
-        return res.status(500).json({
-          val: false,
-          msg: "Something went wrong while creating invoice pdf",
-        });
+      } else {
+        pdfDoc.text('No coupon applied', { align: 'right' });
       }
+      pdfDoc.text(`Total Amount: ₹${order.totalAmount}`, { align: 'right', underline: true });
+  
+      pdfDoc.moveDown();
+      pdfDoc.text('Payment Information:', { underline: true }).moveDown(0.5);
+      pdfDoc.text(`Method: ${order.paymentMethod}`);
+      pdfDoc.text(`Status: ${order.paymentStatus}`);
+      pdfDoc.text(`Order Date: ${new Date(order.orderedAt).toLocaleString()}`).moveDown();
+      pdfDoc.moveDown();
+      pdfDoc.fontSize(14).text('Thank you for your purchase!', { align: 'center' });
+  
+      pdfDoc.end();
     } catch (err) {
       console.log(err);
       res.status(500).json({ val: false, msg: err.message });
