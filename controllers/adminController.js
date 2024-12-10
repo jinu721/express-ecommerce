@@ -241,49 +241,37 @@ module.exports = {
   // Response: Returns PDF file for download.
   async downloadReport(req, res) {
     console.log("Processing downloadReport...");
-
+  
     try {
       const { startDate, endDate, range } = req.body;
-
+  
       let start, end;
       const today = new Date();
-
+  
       if (range === "daily") {
         start = new Date(today.setHours(0, 0, 0, 0));
         end = new Date(today.setHours(23, 59, 59, 999));
       } else if (range === "weekly") {
-        const startOfWeek = new Date(
-          today.setDate(today.getDate() - today.getDay())
-        );
+        const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
         start = new Date(startOfWeek.setHours(0, 0, 0, 0));
         end = new Date(today.setHours(23, 59, 59, 999));
       } else if (range === "monthly") {
         start = new Date(today.getFullYear(), today.getMonth(), 1);
-        end = new Date(
-          today.getFullYear(),
-          today.getMonth() + 1,
-          0,
-          23,
-          59,
-          59,
-          999
-        );
+        end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
       } else if (range === "custom") {
         if (!startDate || !endDate) {
-          return res
-            .status(400)
-            .json({
-              msg: "Start and end dates are required for custom range.",
-            });
+          return res.status(400).json({
+            msg: "Start and end dates are required for custom range.",
+          });
         }
         start = new Date(startDate);
         end = new Date(endDate);
       }
-
+  
       console.log(range);
       console.log(startDate, endDate);
       console.log(start, end);
-
+  
       const salesDataResult = await orderModel.aggregate([
         {
           $match: {
@@ -304,20 +292,20 @@ module.exports = {
           },
         },
       ]);
-
+  
       const salesData = salesDataResult[0] || {
         totalRevenue: 0,
         totalSales: 0,
         itemsSold: 0,
       };
-
+  
       const detailedOrders = await orderModel
         .find({
           orderStatus: "delivered",
           createdAt: { $gte: start, $lte: end },
         })
         .populate("items.product", "name price");
-
+  
       const totalDiscounts = await orderModel.aggregate([
         {
           $match: {
@@ -332,36 +320,38 @@ module.exports = {
           },
         },
       ]);
-
+  
+      const discountAmount = totalDiscounts[0]?.totalDiscount || 0;
+  
       const pdfDoc = new PDFDocument({ margin: 30 });
-      res.setHeader('Content-Disposition', `attachment; filename=SalesReport.pdf`);
-      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader("Content-Disposition", `attachment; filename=SalesReport.pdf`);
+      res.setHeader("Content-Type", "application/pdf");
       pdfDoc.pipe(res);
   
-      pdfDoc.fontSize(20).text('Sales Report', { align: 'center' }).moveDown();
-      pdfDoc.fontSize(12).text(`Start Date: ${start.toISOString().split("T")[0]}`, { align: 'left' });
-      pdfDoc.text(`End Date: ${end.toISOString().split("T")[0]}`, { align: 'left' });
-      pdfDoc.text(`Overall Discount: ₹${totalDiscounts.toFixed(2)}`, { align: 'left' });
+      pdfDoc.fontSize(20).text("Sales Report", { align: "center" }).moveDown();
+      pdfDoc.fontSize(12).text(`Start Date: ${start.toISOString().split("T")[0]}`, { align: "left" });
+      pdfDoc.text(`End Date: ${end.toISOString().split("T")[0]}`, { align: "left" });
+      pdfDoc.text(`Overall Discount: ₹${discountAmount.toFixed(2)}`, { align: "left" });
       pdfDoc.moveDown();
-      pdfDoc.text('Summary:', { underline: true }).moveDown();
-      pdfDoc.text(`Total Revenue: ₹${salesData.totalRevenue.toFixed(2)}`, { align: 'left' });
-      pdfDoc.text(`Total Sales: ${salesData.totalSales}`, { align: 'left' });
-      pdfDoc.text(`Items Sold: ${salesData.itemsSold}`, { align: 'left' });
+      pdfDoc.text("Summary:", { underline: true }).moveDown();
+      pdfDoc.text(`Total Revenue: ₹${salesData.totalRevenue.toFixed(2)}`, { align: "left" });
+      pdfDoc.text(`Total Sales: ${salesData.totalSales}`, { align: "left" });
+      pdfDoc.text(`Items Sold: ${salesData.itemsSold}`, { align: "left" });
       pdfDoc.moveDown();
-      pdfDoc.text('Detailed Orders:', { underline: true }).moveDown();
+      pdfDoc.text("Detailed Orders:", { underline: true }).moveDown();
       pdfDoc.text(
         `Product Name`.padEnd(30) +
-        `Quantity`.padEnd(10) +
-        `Price`.padEnd(15),
-        { align: 'left' }
+          `Quantity`.padEnd(10) +
+          `Price`.padEnd(15),
+        { align: "left" }
       );
-      
+  
       detailedOrders.forEach(order => {
         order.items.forEach(item => {
           const productName = item.product.name.padEnd(30);
           const quantity = String(item.quantity).padEnd(10);
           const price = `₹${item.product.price.toFixed(2)}`;
-          
+  
           pdfDoc.text(`${productName}${quantity}${price}`);
         });
       });
@@ -369,9 +359,7 @@ module.exports = {
       pdfDoc.end();
     } catch (error) {
       console.error("Error in downloadReport:", error);
-      res
-        .status(500)
-        .json({ msg: "An error occurred while generating the report." });
+      res.status(500).json({ msg: "An error occurred while generating the report." });
     }
   },
   // ~~~ Admin Login Page Load ~~~
