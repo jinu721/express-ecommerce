@@ -203,12 +203,38 @@
           <a href="/"><button class="home-btn">Back to Home</button></a>
           <button
             class="pdf-btn"
-            onclick="window.location.href='/orders/download/invoice/<%= order._id %>'"
+            onclick="downloadPDF('<%= order._id %>')"
           >
             Get PDF Receipt
           </button>
         </div>
       </div>
     </div>
+  <script>
+    async function downloadPDF(orderId) {
+      try {
+        const response = await fetch(`/orders/download/invoice/${orderId}`, {
+          method: 'GET',
+        });
+  
+        if (!response.ok) {
+          throw new Error('Failed to fetch PDF');
+        }
+        const blob = await response.blob();
+
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `invoice-${orderId}.pdf`; // File name for the downloaded PDF
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error downloading PDF:', error);
+        alert('Failed to download the PDF. Please try again.');
+      }
+    }
+  </script>
   </body>
 </html>
