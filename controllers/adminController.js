@@ -334,65 +334,40 @@ module.exports = {
         },
       ]);
 
-      console.log("Sales Data:", salesData);
-      console.log("Number of Detailed Orders:", detailedOrders.length);
-
-      const templatePath = path.join(
-        __dirname,
-        "..",
-        "views",
-        "admin",
-        "report-template.ejs"
+      const pdfDoc = new PDFDocument({ margin: 30 });
+      res.setHeader('Content-Disposition', `attachment; filename=SalesReport.pdf`);
+      res.setHeader('Content-Type', 'application/pdf');
+      pdfDoc.pipe(res);
+  
+      pdfDoc.fontSize(20).text('Sales Report', { align: 'center' }).moveDown();
+      pdfDoc.fontSize(12).text(`Start Date: ${start.toISOString().split("T")[0]}`, { align: 'left' });
+      pdfDoc.text(`End Date: ${end.toISOString().split("T")[0]}`, { align: 'left' });
+      pdfDoc.text(`Overall Discount: ₹${totalDiscounts.toFixed(2)}`, { align: 'left' });
+      pdfDoc.moveDown();
+      pdfDoc.text('Summary:', { underline: true }).moveDown();
+      pdfDoc.text(`Total Revenue: ₹${salesData.totalRevenue.toFixed(2)}`, { align: 'left' });
+      pdfDoc.text(`Total Sales: ${salesData.totalSales}`, { align: 'left' });
+      pdfDoc.text(`Items Sold: ${salesData.itemsSold}`, { align: 'left' });
+      pdfDoc.moveDown();
+      pdfDoc.text('Detailed Orders:', { underline: true }).moveDown();
+      pdfDoc.text(
+        `Product Name`.padEnd(30) +
+        `Quantity`.padEnd(10) +
+        `Price`.padEnd(15),
+        { align: 'left' }
       );
-
-      ejs.renderFile(
-        templatePath,
-        {
-          salesData,
-          detailedOrders,
-          totalDiscounts: totalDiscounts[0]?.totalDiscount || 0,
-          startDate: start.toISOString().split("T")[0],
-          endDate: end.toISOString().split("T")[0],
-        },
-        (err, renderedHTML) => {
-          if (err) {
-            console.error(err);
-            return res
-              .status(500)
-              .json({ msg: "Error rendering report template." });
-          }
-
-          const pdfOptions = {
-            height: "11.25in",
-            width: "8.5in",
-            header: { height: "20mm" },
-            footer: { height: "20mm" },
-          };
-
-          pdf
-            .create(renderedHTML, pdfOptions)
-            .toFile("report.pdf", (err, result) => {
-              if (err) {
-                console.error(err);
-                return res
-                  .status(500)
-                  .json({ msg: "Error generating PDF file." });
-              }
-              return res.download(
-                result.filename,
-                "SalesReport.pdf",
-                (downloadErr) => {
-                  if (downloadErr) {
-                    console.error(downloadErr);
-                    return res
-                      .status(500)
-                      .json({ msg: "Error downloading PDF file." });
-                  }
-                }
-              );
-            });
-        }
-      );
+      
+      detailedOrders.forEach(order => {
+        order.items.forEach(item => {
+          const productName = item.product.name.padEnd(30);
+          const quantity = String(item.quantity).padEnd(10);
+          const price = `₹${item.product.price.toFixed(2)}`;
+          
+          pdfDoc.text(`${productName}${quantity}${price}`);
+        });
+      });
+  
+      pdfDoc.end();
     } catch (error) {
       console.error("Error in downloadReport:", error);
       res

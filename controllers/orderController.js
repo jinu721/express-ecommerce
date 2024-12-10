@@ -8,10 +8,7 @@ const razorpay = require("../services/paymentServiece");
 const walletModel = require("../models/walletModel");
 const crypto = require("crypto");
 const couponModel = require("../models/couponModel");
-const notificationModel = require("../models/notificationModel");
-const pdf = require("html-pdf");
-const ejs = require("ejs");
-const path = require("path");
+const PDFDocument = require('pdfkit');
 
 let orderId = 100;
 
@@ -612,51 +609,53 @@ module.exports = {
         .lean();
       console.log(order);
 
-      const templatePath = path.join(
-        __dirname,
-        "..",
-        "views",
-        "user",
-        "invoice.ejs"
-      );
-      ejs.renderFile(templatePath, { order }, (err, renderedHTML) => {
-        if (err) {
-          console.log(err);
-          return res.status(500).json({
-            val: false,
-            msg: "Something went wrong while genrating invoice",
-          });
-        }
-        const pdfOptions = {
-          heigth: "11.25in",
-          width: "8.5in",
-          header: { height: "20mm" },
-          footer: { height: "20mm" },
-        };
-        pdf
-          .create(renderedHTML, pdfOptions)
-          .toFile("pdfrecipt.pdf", (err, result) => {
-            if (err) {
-              return res.status(500).json({
-                val: false,
-                msg: "Something went wrong while creating invoice pdf",
-              });
-            }
-            return res.download(
-              result.filename,
-              "invoice.pdf",
-              (downloadErr) => {
-                if (downloadErr) {
-                  console.log(downloadErr);
-                  return res.status(500).json({
-                    val: false,
-                    msg: "Something went wrong while downloading invoice",
-                  });
-                }
-              }
-            );
-          });
+      res.setHeader('Content-Disposition', `attachment; filename=invoice-${orderId}.pdf`);
+      res.setHeader('Content-Type', 'application/pdf');
+  
+      const pdfDoc = new PDFDocument({ margin: 30 });
+      pdfDoc.pipe(res);
+  
+      pdfDoc.fontSize(20).text('Invoice', { align: 'center' }).moveDown();
+      pdfDoc.fontSize(14).text('Pay To: Male Fashion').moveDown();
+  
+      pdfDoc.fontSize(12).text('Items:', { underline: true }).moveDown(0.5);
+      pdfDoc.fontSize(10);
+      pdfDoc.text(`Item Name`.padEnd(20) + `Qty`.padEnd(10) + `Unit Price`.padEnd(15) + `Offer Price`.padEnd(15) + `Total`, {
+        align: 'left',
       });
+  
+      pdfDoc.moveDown(0.5);
+      order.items.forEach((item) => {
+        const productName = item.product.name.padEnd(20);
+        const quantity = String(item.quantity).padEnd(10);
+        const unitPrice = `₹${item.product.price}`.padEnd(15);
+        const offerPrice = `₹${item.offerPrice}`.padEnd(15);
+        const total = `₹${item.quantity * item.offerPrice}`;
+  
+        pdfDoc.text(`${productName}${quantity}${unitPrice}${offerPrice}${total}`);
+      });
+  
+      pdfDoc.moveDown();
+  
+      pdfDoc.fontSize(12);
+      if (order.coupon && order.coupon.discountApplied) {
+        pdfDoc.text(`Coupon Applied: ${order.coupon.code || 'N/A'} - Discount: ₹${order.coupon.discountApplied}`, {
+          align: 'right',
+        });
+      } else {
+        pdfDoc.text('No coupon applied', { align: 'right' });
+      }
+      pdfDoc.text(`Total Amount: ₹${order.totalAmount}`, { align: 'right', underline: true });
+  
+      pdfDoc.moveDown();
+      pdfDoc.text('Payment Information:', { underline: true }).moveDown(0.5);
+      pdfDoc.text(`Method: ${order.paymentMethod}`);
+      pdfDoc.text(`Status: ${order.paymentStatus}`);
+      pdfDoc.text(`Order Date: ${new Date(order.orderedAt).toLocaleString()}`).moveDown();
+      pdfDoc.moveDown();
+      pdfDoc.fontSize(14).text('Thank you for your purchase!', { align: 'center' });
+  
+      pdfDoc.end();
     } catch (err) {
       console.log(err);
       res.status(500).json({ val: false, msg: err.message });

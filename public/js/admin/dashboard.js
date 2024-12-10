@@ -390,12 +390,13 @@ downloadBtn.addEventListener("click", async () => {
     if (response.ok) {
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "SalesReport.pdf";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SalesReport.pdf`;  
+      document.body.appendChild(a);
+      a.click(); 
+      document.body.removeChild(a);  
+      window.URL.revokeObjectURL(url);
     } else {
       const { msg } = await response.json();
       errorMsg.textContent = msg || "Failed to download report.";
