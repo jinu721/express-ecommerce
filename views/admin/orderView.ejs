@@ -12,7 +12,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
     />
-    <link rel="stylesheet" href="/css/admin.css" />
+    <link rel="stylesheet" href="/css/modern-admin.css" />
   </head>
   <body style="display: flex">
     <input type="hidden" value="<%= order._id  %>" name="" id="orderId" />
@@ -94,10 +94,10 @@
               <% order.items.forEach((x) => { %>
                 <tr>
                   <td><%= x.product.name %></td>
-                  <td>&#8377;<%= x.product.price %></td>
+                  <td>&#8377;<%= x.offerPrice %></td>
                   <td><%= x.quantity %></td>
                   <td><%= x.itemStatus %></td>
-                  <td>&#8377;<%= x.product.price * x.quantity %></td>
+                  <td>&#8377;<%= x.offerPrice * x.quantity %></td>
                   <td><%= x.size %></td>
                   <td>
                     <div class="color-box" style="background-color: <%= x.color %>"></div>

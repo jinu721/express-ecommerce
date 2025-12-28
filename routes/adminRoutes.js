@@ -30,14 +30,14 @@ router.get('/admin/users/view/:userId', adminController.whenUsersView);
 router.get('/admin/users/ban', adminController.whenUsersBan);
 
 // ~~~ Admin Login Page ~~~
-// Purpose: Load the admin login page.
-// Response: Renders the login page for admin access.
-router.get('/admin', adminController.whenAdminLoginLoad);
-
-// ~~~ Admin Login ~~~
-// Purpose: Authenticate admin credentials.
-// Response: Returns success or error messages based on authentication status.
-router.post('/admin/login', adminController.whenAdminLogin);
+// Purpose: Redirect to main login page for unified authentication.
+// Response: Redirects to the main login page.
+router.get('/admin', (req, res) => {
+  if (req.session.AdminloggedIn) {
+    return res.redirect('/admin/dashboard');
+  }
+  return res.redirect('/register');
+});
 
 // ~~~ Download Report ~~~
 // Purpose: Allow the admin to download a report in various formats.

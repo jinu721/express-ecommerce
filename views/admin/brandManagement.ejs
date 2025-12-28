@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Brand Management - Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/modern-admin.css">
+    <style>
+      .brand-image-thumb {
+        width: 60px;
+        height: 60px;
+        object-fit: contain;
+        background: #f8f9fa;
+        border-radius: var(--border-radius);
+        padding: 5px;
+      }
+      .pagination {
+        display: flex;
+        gap: 0.5rem;
+        list-style: none;
+        padding: 0;
+        justify-content: center;
+        margin-top: 2rem;
+      }
+      .pagination__link {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        color: var(--text-main);
+        text-decoration: none;
+        transition: all 0.2s;
+      }
+      .pagination__link:hover, .pagination__link.active {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+      }
+      .action-btn {
+          margin-right: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="admin-layout">
+      <%- include('../layouts/headerAdmin.ejs') %>
+      
+      <div class="admin-main">
+        <header class="admin-header">
+          <h1 style="font-size: 1.5rem; font-weight: 600; margin: 0;">Brand Management</h1>
+        </header>
+        
+        <main class="admin-content">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h4 class="card-title mb-0">All Brands</h4>
+              <div class="d-flex gap-2">
+                 <form action="/admin/brands" method="GET" class="d-flex">
+                    <input type="text" name="search" class="form-control me-2" placeholder="Search brands..." value="<%= searchKey %>">
+                    <button type="submit" class="btn btn-outline-primary"><i class="fas fa-search"></i></button>
+                 </form>
+                 <button class="btn btn-primary" onclick="openAddBrandModal()">
+                    <i class="fas fa-plus"></i> Add Brand
+                 </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table align-middle">
+                  <thead>
+                    <tr>
+                      <th>No</th>
+                      <th>Logo</th>
+                      <th>Name</th>
+                      <th>Products</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% if (brands && brands.length > 0) { %>
+                        <% brands.forEach((brand, index) => { %>
+                          <tr>
+                            <td><%= (currentPage - 1) * 10 + index + 1 %></td>
+                            <td>
+                              <% if(brand.logo) { %>
+                                <img src="/<%= brand.logo %>" alt="<%= brand.name %>" class="brand-image-thumb" />
+                              <% } else { %>
+                                <div class="brand-image-thumb d-flex align-items-center justify-content-center text-muted">No Logo</div>
+                              <% } %>
+                            </td>
+                            <td class="fw-bold"><%= brand.name %></td>
+                            <td><%= brand.productCount || 0 %></td>
+                            <td>
+                              <button 
+                                onclick="toggleBrandStatus('<%= brand._id %>')" 
+                                class="btn btn-sm badge <%= brand.isActive ? 'btn-outline-success' : 'btn-outline-danger' %> rounded-pill text-uppercase"
+                                style="width: 80px;"
+                              >
+                                <%= brand.isActive ? 'Active' : 'Inactive' %>
+                              </button>
+                            </td>
+                            <td>
+                              <button 
+                                class="btn btn-sm btn-outline-warning action-btn" 
+                                onclick="openEditBrandModal('<%= brand._id %>', '<%= brand.name %>', '/<%= brand.logo %>', '<%= brand.isActive %>')"
+                              >
+                                <i class="fas fa-edit"></i>
+                              </button>
+                              <button 
+                                class="btn btn-sm btn-outline-danger action-btn" 
+                                onclick="deleteBrand('<%= brand._id %>', '<%= brand.name %>')"
+                              >
+                                <i class="fas fa-trash"></i>
+                              </button>
+                            </td>
+                          </tr>
+                        <% }) %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="fas fa-box-open fa-2x mb-3"></i>
+                                <p>No brands found.</p>
+                            </td>
+                        </tr>
+                    <% } %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <% if (totalPages > 1) { %>
+          <ul class="pagination">
+            <% let startPage = Math.max(1, currentPage - Math.floor(pagesToShow / 2)); %>
+            <% let endPage = Math.min(totalPages, startPage + pagesToShow - 1); %>
+            
+            <% if (endPage - startPage + 1 < pagesToShow) { %>
+              <% startPage = Math.max(1, endPage - pagesToShow + 1); %>
+            <% } %>
+            
+            <% if (currentPage > 1) { %>
+              <li><a href="?page=<%= currentPage - 1 %>&search=<%= searchKey %>" class="pagination__link"><i class="fas fa-chevron-left"></i></a></li>
+            <% } %>
+            
+            <% for (let i = startPage; i <= endPage; i++) { %>
+              <li>
+                <a href="?page=<%= i %>&search=<%= searchKey %>" class="pagination__link <%= currentPage === i ? 'active' : '' %>">
+                  <%= i < 10 ? '0' + i : i %>
+                </a>
+              </li>
+            <% } %>
+            
+            <% if (currentPage < totalPages) { %>
+              <li>
+                <a href="?page=<%= currentPage + 1 %>&search=<%= searchKey %>" class="pagination__link">
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+              </li>
+            <% } %>
+          </ul>
+          <% } %>
+          
+        </main>
+      </div>
+    </div>
+
+    <!-- Include Modal -->
+    <%- include('brandModal') %>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/js/admin/brand.js"></script>
+  </body>
+</html>

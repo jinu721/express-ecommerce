@@ -398,8 +398,6 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
   const parsedItem = JSON.parse(item);
   console.log(parsedItem);
   console.log(isOfferApplied, code);
-
-  // parsedItem.delivaryCharge = delivaryChargePrice ;
   
 
   if (!selectedAddressId) {
@@ -541,6 +539,7 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
           });
 
           const rzp = new Razorpay(options);
+          
           rzp.on("payment.failed", function (response) {
             if (isPaymentHandled) return;
             isPaymentHandled = true;
@@ -629,6 +628,7 @@ document.querySelector(".btncouponAplly").addEventListener("click", (e) => {
 
         const data = await response.json();
 
+        console.log(data)
         if (!data.val) {
           Swal.fire({
             icon: "error",

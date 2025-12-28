@@ -30,6 +30,10 @@ const orderSchema = new mongoose.Schema({
         ref: 'Products', 
         required: true,
       },
+      variant: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Variant',
+      },
       quantity: {
         type: Number,
         required: true,
@@ -84,6 +88,9 @@ const orderSchema = new mongoose.Schema({
   orderId:{
     type:Number,
     required:true,
+  },
+  razorpayOrderId: {
+    type: String, // Store Razorpay Order ID for verification
   },
   coupon: {
     code: { type: String },

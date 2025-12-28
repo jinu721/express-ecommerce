@@ -1,408 +1,421 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <!-- Required meta tags -->
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
-    />
-    <title>Admin Panel</title>
-    <link rel="stylesheet" href="/css/admin.css" />
-    <!-- End layout styles -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Dashboard - Admin Panel</title>
+    <link rel="stylesheet" href="/css/modern-admin.css" />
+    <link rel="stylesheet" href="/css/ios-toast.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <style>
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      
+      .stat-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: #1d1d1f;
+        padding: 20px 16px;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06),
+                    0 2px 8px rgba(0, 0, 0, 0.04);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+      
+      .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1),
+                    0 4px 12px rgba(0, 0, 0, 0.06);
+      }
+      
+      .stat-card.users::before { 
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #4f46e5, #7c3aed);
+      }
+      
+      .stat-card.products::before { 
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #059669, #047857);
+      }
+      
+      .stat-card.orders::before { 
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #dc2626, #b91c1c);
+      }
+      
+      .stat-card.revenue::before { 
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #ea580c, #c2410c);
+      }
+      
+      .stat-content {
+        position: relative;
+        z-index: 2;
+      }
+      
+      .stat-icon {
+        font-size: 32px;
+        opacity: 0.8;
+        margin-bottom: 12px;
+      }
+      
+      .stat-card.users .stat-icon { color: #4f46e5; }
+      .stat-card.products .stat-icon { color: #059669; }
+      .stat-card.orders .stat-icon { color: #dc2626; }
+      .stat-card.revenue .stat-icon { color: #ea580c; }
+      
+      .stat-value {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        line-height: 1;
+        color: #1d1d1f;
+      }
+      
+      .stat-label {
+        font-size: 14px;
+        opacity: 0.7;
+        font-weight: 500;
+        color: #48484a;
+      }
+      
+      .chart-container {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06),
+                    0 2px 8px rgba(0, 0, 0, 0.04);
+        margin-bottom: 24px;
+      }
+      
+      .chart-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1d1d1f;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      
+      .chart-title i {
+        color: #4f46e5;
+        font-size: 16px;
+      }
+      
+      .report-section {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06),
+                    0 2px 8px rgba(0, 0, 0, 0.04);
+        margin-bottom: 24px;
+      }
+      
+      .report-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      
+      .report-btn {
+        padding: 12px 24px;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 12px;
+        font-weight: 600;
+        color: #48484a;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+      }
+      
+      .report-btn:hover, .report-btn.active {
+        border-color: #4f46e5;
+        background: #4f46e5;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+      }
+      
+      .download-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+        margin-top: 24px;
+      }
+      
+      .download-btn {
+        padding: 16px 24px;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: white;
+      }
+      
+      .download-btn.pdf {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+        box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+      }
+      
+      .download-btn.excel {
+        background: linear-gradient(135deg, #51cf66, #40c057);
+        box-shadow: 0 4px 12px rgba(81, 207, 102, 0.3);
+      }
+      
+      .download-btn.csv {
+        background: linear-gradient(135deg, #74c0fc, #339af0);
+        box-shadow: 0 4px 12px rgba(116, 192, 252, 0.3);
+      }
+      
+      .download-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+      }
+      
+      .date-inputs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin: 24px 0;
+        padding: 24px;
+        background: rgba(248, 250, 252, 0.8);
+        border-radius: 12px;
+        display: none;
+      }
+      
+      .date-inputs.show {
+        display: grid;
+      }
+      
+      .form-group label {
+        font-weight: 600;
+        color: #1d1d1f;
+        margin-bottom: 8px;
+        display: block;
+      }
+      
+      .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+        background: rgba(255, 255, 255, 0.8);
+      }
+      
+      .form-control:focus {
+        outline: none;
+        border-color: #4f46e5;
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      }
+      
+      @media (max-width: 768px) {
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+        
+        .date-inputs {
+          grid-template-columns: 1fr;
+        }
+        
+        .download-section {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div class="container-scroller">
-      <!-- partial:partials/_sidebar.html -->
+    <div class="admin-layout">
       <%- include('../layouts/headerAdmin.ejs') %>
-      <!-- partial -->
-      <div class="container-fluid page-body-wrapper">
-        <!-- partial:partials/_navbar.html -->
-        <nav class="navbar p-0 fixed-top d-flex flex-row">
-          <div
-            class="navbar-brand-wrapper d-flex d-lg-none align-items-center justify-content-center"
-          >
-            <a class="navbar-brand brand-logo-mini" href="index.html"
-              ><img src="assets/images/logo-mini.svg" alt="logo"
-            /></a>
+      
+      <div class="admin-main">
+        <header class="admin-header">
+          <h1 style="font-size: 2rem; font-weight: 700; margin: 0; color: #2d3748;">
+            <i class="fas fa-chart-line" style="color: #667eea; margin-right: 12px;"></i>
+            Dashboard
+          </h1>
+          <div class="header-profile">
+            <span style="color: #718096; font-size: 1rem;">Welcome back, Admin</span>
           </div>
-          <div class="navbar-menu-wrapper flex-grow d-flex align-items-stretch">
-            <button
-              class="navbar-toggler navbar-toggler align-self-center"
-              type="button"
-              data-toggle="minimize"
-            >
-              <span class="mdi mdi-menu"></span>
-            </button>
-            <ul class="navbar-nav w-100">
-              <li class="nav-item w-100"></li>
-            </ul>
-            <ul class="navbar-nav navbar-nav-right">
-              <li class="nav-item nav-settings d-none d-lg-block">
-                <a class="nav-link" href="#">
-                  <i class="mdi mdi-view-grid"></i>
-                </a>
-              </li>
-              <li class="nav-item dropdown border-left">
-                <a
-                  class="nav-link count-indicator dropdown-toggle"
-                  id="messageDropdown"
-                  href="#"
-                  data-toggle="dropdown"
-                  aria-expanded="false"
-                >
-                  <i class="mdi mdi-email"></i>
-                  <span class="count bg-success"></span>
-                </a>
-                <div
-                  class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list"
-                  aria-labelledby="messageDropdown"
-                >
-                  <h6 class="p-3 mb-0">Messages</h6>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <img
-                        src="assets/images/faces/face4.jpg"
-                        alt="image"
-                        class="rounded-circle profile-pic"
-                      />
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject ellipsis mb-1">
-                        Mark send you a message
-                      </p>
-                      <p class="text-muted mb-0">1 Minutes ago</p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <img
-                        src="assets/images/faces/face2.jpg"
-                        alt="image"
-                        class="rounded-circle profile-pic"
-                      />
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject ellipsis mb-1">
-                        Cregh send you a message
-                      </p>
-                      <p class="text-muted mb-0">15 Minutes ago</p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <img
-                        src="assets/images/faces/face3.jpg"
-                        alt="image"
-                        class="rounded-circle profile-pic"
-                      />
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject ellipsis mb-1">
-                        Profile picture updated
-                      </p>
-                      <p class="text-muted mb-0">18 Minutes ago</p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <p class="p-3 mb-0 text-center">4 new messages</p>
+        </header>
+        
+        <main class="admin-content">
+          <!-- Stats Cards -->
+          <div class="dashboard-grid">
+            <div class="stat-card users">
+              <div class="stat-content">
+                <div class="stat-icon">
+                  <i class="fas fa-users"></i>
                 </div>
-              </li>
-              <li class="nav-item dropdown border-left">
-                <a
-                  class="nav-link count-indicator dropdown-toggle"
-                  id="notificationDropdown"
-                  href="#"
-                  data-toggle="dropdown"
-                >
-                  <i class="mdi mdi-bell"></i>
-                  <span class="count bg-danger"></span>
-                </a>
-                <div
-                  class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list"
-                  aria-labelledby="notificationDropdown"
-                >
-                  <h6 class="p-3 mb-0">Notifications</h6>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <div class="preview-icon bg-dark rounded-circle">
-                        <i class="mdi mdi-calendar text-success"></i>
-                      </div>
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject mb-1">Event today</p>
-                      <p class="text-muted ellipsis mb-0">
-                        Just a reminder that you have an event today
-                      </p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <div class="preview-icon bg-dark rounded-circle">
-                        <i class="mdi mdi-settings text-danger"></i>
-                      </div>
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject mb-1">Settings</p>
-                      <p class="text-muted ellipsis mb-0">Update dashboard</p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <div class="preview-icon bg-dark rounded-circle">
-                        <i class="mdi mdi-link-variant text-warning"></i>
-                      </div>
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject mb-1">Launch Admin</p>
-                      <p class="text-muted ellipsis mb-0">New admin wow!</p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <p class="p-3 mb-0 text-center">See all notifications</p>
-                </div>
-              </li>
-              <li class="nav-item dropdown">
-                <div
-                  class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list"
-                  aria-labelledby="profileDropdown"
-                >
-                  <h6 class="p-3 mb-0">Profile</h6>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <div class="preview-icon bg-dark rounded-circle">
-                        <i class="mdi mdi-settings text-success"></i>
-                      </div>
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject mb-1">Settings</p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <div class="preview-icon bg-dark rounded-circle">
-                        <i class="mdi mdi-logout text-danger"></i>
-                      </div>
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject mb-1">Log out</p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <p class="p-3 mb-0 text-center">Advanced settings</p>
-                </div>
-              </li>
-            </ul>
-            <button
-              class="navbar-toggler navbar-toggler-right d-lg-none align-self-center"
-              type="button"
-              data-toggle="offcanvas"
-            >
-              <span class="mdi mdi-format-line-spacing"></span>
-            </button>
-          </div>
-        </nav>
-        <!-- partial -->
-        <div class="main-panel">
-          <div class="content-wrapper">
-            <div class="row">
-              <div class="col-12 grid-margin stretch-card">
-                <div class="card corona-gradient-card"></div>
+                <div class="stat-value" id="totalUsers">Loading...</div>
+                <div class="stat-label">Total Users</div>
               </div>
             </div>
-            <div class="col-md-12 grid-margin stretch-card">
-              <div class="card">
-                <div class="card-body">
-                  <h4 class="card-title text-center mb-4">Generate Report</h4>
-                  <div class="d-flex justify-content-center mb-4">
-                    <button
-                      class="btn btn-outline-primary mx-2 btnDateRange"
-                      data-range="daily"
-                    >
-                      Daily
-                    </button>
-                    <button
-                      class="btn btn-outline-primary mx-2 btnDateRange"
-                      data-range="weekly"
-                    >
-                      Weekly
-                    </button>
-                    <button
-                      class="btn btn-outline-primary mx-2 btnDateRange"
-                      data-range="monthly"
-                    >
-                      Monthly
-                    </button>
-                    <button
-                      class="btn btn-outline-primary mx-2 btnDateRange"
-                      data-range="custom"
-                    >
-                      Custom Date
-                    </button>
-                  </div>
-                  <div
-                    id="customDateInputs"
-                    class="inputSet mt-4"
-                    style="display: none"
-                  >
-                    <div class="row">
-                      <div class="col-md-6 mb-3">
-                        <label for="start-date" class="form-label"
-                          >Start Date:</label
-                        >
-                        <input
-                          type="date"
-                          id="start-date"
-                          class="form-control"
-                        />
-                      </div>
-                      <div class="col-md-6 mb-3">
-                        <label for="end-date" class="form-label"
-                          >End Date:</label
-                        >
-                        <input type="date" id="end-date" class="form-control" />
-                      </div>
-                    </div>
-                    <div class="text-center">
-                      <!-- <button id="custom-download-btn" class="btn btn-primary">Download Custom Report</button> -->
-                    </div>
-                  </div>
-                  <div class="text-center mt-3">
-                    <button
-                      id="download-btn"
-                      class="btn btn-success btnDownloadPdf"
-                    >
-                      Download Report
-                    </button>
-                  </div>
-                  <div
-                    id="error-msg"
-                    class="error text-danger text-center mt-3"
-                  ></div>
+            
+            <div class="stat-card products">
+              <div class="stat-content">
+                <div class="stat-icon">
+                  <i class="fas fa-box"></i>
                 </div>
+                <div class="stat-value" id="totalProducts">Loading...</div>
+                <div class="stat-label">Total Products</div>
               </div>
             </div>
-            <div class="dashboardData">
-              <div class="row">
-                <div class="col-xl-3 col-sm-6 grid-margin stretch-card">
-                  <div class="card">
-                    <div class="card-body">
-                      <div class="row">
-                        <div class="col-9">
-                          <div
-                            class="d-flex align-items-center align-self-start"
-                          >
-                            <h3 class="mb-0">3002</h3>
-                          </div>
-                        </div>
-                      </div>
-                      <h6 class="text-muted font-weight-normal">Totel Users</h6>
-                    </div>
-                  </div>
+            
+            <div class="stat-card orders">
+              <div class="stat-content">
+                <div class="stat-icon">
+                  <i class="fas fa-shopping-cart"></i>
                 </div>
-                <div class="col-xl-3 col-sm-6 grid-margin stretch-card">
-                  <div class="card">
-                    <div class="card-body">
-                      <div class="row">
-                        <div class="col-9">
-                          <div
-                            class="d-flex align-items-center align-self-start"
-                          >
-                            <h3 class="mb-0">266</h3>
-                          </div>
-                        </div>
-                      </div>
-                      <h6 class="text-muted font-weight-normal">
-                        Totel Products
-                      </h6>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-xl-3 col-sm-6 grid-margin stretch-card">
-                  <div class="card">
-                    <div class="card-body">
-                      <div class="row">
-                        <div class="col-9">
-                          <div
-                            class="d-flex align-items-center align-self-start"
-                          >
-                            <h3 class="mb-0">66</h3>
-                          </div>
-                        </div>
-                      </div>
-                      <h6 class="text-muted font-weight-normal">
-                        Totel Orders
-                      </h6>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-xl-3 col-sm-6 grid-margin stretch-card">
-                  <div class="card">
-                    <div class="card-body">
-                      <div class="row">
-                        <div class="col-9">
-                          <div
-                            class="d-flex align-items-center align-self-start"
-                          >
-                            <h3 class="mb-0">277</h3>
-                          </div>
-                        </div>
-                      </div>
-                      <h6 class="text-muted font-weight-normal">
-                        Weekly Sales
-                      </h6>
-                    </div>
-                  </div>
-                </div>
+                <div class="stat-value" id="totalOrders">Loading...</div>
+                <div class="stat-label">Total Orders</div>
               </div>
             </div>
-            <div class="row">
-              <div class="col-md-12 grid-margin stretch-card">
-                <div class="card">
-                  <div class="card">
-                    <div class="card-body">
-                      <div>
-                        <h3>Top-Selling Products</h3>
-                        <canvas id="topSellingChart"></canvas>
-                      </div>
-                      <div>
-                        <h3>Top-Selling Categories</h3>
-                        <canvas id="topSellingCategoriesChart"></canvas>
-                      </div>
-                      <div>
-                        <h3>Top-Selling Brands</h3>
-                        <canvas id="topSellingBrandsChart"></canvas>
-                      </div>
-                      <div>
-                        <h3>Site visitors</h3>
-                        <canvas id="lineChartWithDots"></canvas>
-                      </div>
-                    </div>
-                  </div>
+            
+            <div class="stat-card revenue">
+              <div class="stat-content">
+                <div class="stat-icon">
+                  <i class="fas fa-rupee-sign"></i>
                 </div>
+                <div class="stat-value" id="totalRevenue">Loading...</div>
+                <div class="stat-label">Total Revenue</div>
               </div>
             </div>
           </div>
-          <!-- content-wrapper ends -->
-        </div>
-        <!-- main-panel ends -->
+
+          <!-- Report Generation -->
+          <div class="report-section">
+            <h2 class="chart-title">
+              <i class="fas fa-file-download"></i>
+              Generate Reports
+            </h2>
+            
+            <div class="report-buttons">
+              <button class="report-btn active" data-range="daily">
+                <i class="fas fa-calendar-day"></i><br>Daily
+              </button>
+              <button class="report-btn" data-range="weekly">
+                <i class="fas fa-calendar-week"></i><br>Weekly
+              </button>
+              <button class="report-btn" data-range="monthly">
+                <i class="fas fa-calendar-alt"></i><br>Monthly
+              </button>
+              <button class="report-btn" data-range="custom">
+                <i class="fas fa-calendar-check"></i><br>Custom
+              </button>
+            </div>
+            
+            <div id="customDateInputs" class="date-inputs">
+              <div class="form-group">
+                <label for="start-date">Start Date</label>
+                <input type="date" id="start-date" class="form-control" />
+              </div>
+              <div class="form-group">
+                <label for="end-date">End Date</label>
+                <input type="date" id="end-date" class="form-control" />
+              </div>
+            </div>
+            
+            <div class="download-section">
+              <button class="download-btn pdf btnDownloadPdf">
+                <i class="fas fa-file-pdf"></i>
+                Download PDF
+              </button>
+              <button class="download-btn excel" onclick="downloadReport('excel')">
+                <i class="fas fa-file-excel"></i>
+                Download Excel
+              </button>
+              <button class="download-btn csv" onclick="downloadReport('csv')">
+                <i class="fas fa-file-csv"></i>
+                Download CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Charts -->
+          <div class="chart-container">
+            <h3 class="chart-title">
+              <i class="fas fa-chart-bar"></i>
+              Top Selling Products
+            </h3>
+            <canvas id="topSellingChart" height="100"></canvas>
+          </div>
+          
+          <div class="chart-container">
+            <h3 class="chart-title">
+              <i class="fas fa-chart-pie"></i>
+              Top Selling Categories
+            </h3>
+            <canvas id="topSellingCategoriesChart" height="100"></canvas>
+          </div>
+          
+          <div class="chart-container">
+            <h3 class="chart-title">
+              <i class="fas fa-chart-area"></i>
+              Top Selling Brands
+            </h3>
+            <canvas id="topSellingBrandsChart" height="100"></canvas>
+          </div>
+          
+          <div class="chart-container">
+            <h3 class="chart-title">
+              <i class="fas fa-chart-line"></i>
+              Visitor Analytics
+            </h3>
+            <canvas id="lineChartWithDots" height="100"></canvas>
+          </div>
+
+          <!-- Dashboard Data Container -->
+          <div class="dashboardData"></div>
+        </main>
       </div>
-      <!-- page-body-wrapper ends -->
     </div>
-    <!-- container-scroller -->
-    <!-- plugins:js -->
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-map"></script>
+    <script src="/js/ios-toast.js"></script>
     <script src="/js/admin/dashboard.js"></script>
-    <!-- End custom js for this page -->
   </body>
 </html>

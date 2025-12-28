@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Variant Management - Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/modern-admin.css">
+    <link rel="stylesheet" href="/css/ios-toast.css">
+    <style>
+      .color-dot {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-block;
+        border: 1px solid #ddd;
+        vertical-align: middle;
+      }
+      .attribute-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        margin: 0.125rem;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+      }
+      .stock-low {
+        color: #dc3545;
+        font-weight: bold;
+      }
+      .stock-out {
+        color: #6c757d;
+        font-style: italic;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="admin-layout">
+      <%- include('../layouts/headerAdmin.ejs') %>
+      
+      <div class="admin-main">
+        <header class="admin-header">
+          <div class="d-flex align-items-center gap-3">
+              <a href="/admin/products" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Products
+              </a>
+              <h1 style="font-size: 1.5rem; font-weight: 600; margin: 0;">
+                Manage Variants: <%= product.name %>
+              </h1>
+          </div>
+        </header>
+        
+        <main class="admin-content">
+          <!-- Product Info Card -->
+          <div class="card mb-4">
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-8">
+                  <h5 class="card-title">Product Information</h5>
+                  <p class="mb-1"><strong>Category:</strong> <%= product.category?.name || 'Unknown' %></p>
+                  <p class="mb-1"><strong>Base Price:</strong> ₹<%= product.basePrice || product.price %></p>
+                  <p class="mb-0"><strong>Total Variants:</strong> <%= variants.length %></p>
+                </div>
+                <div class="col-md-4 text-end">
+                  <a href="/admin/products/<%= product._id %>/variants/bulk" class="btn btn-outline-primary btn-sm me-2">
+                    <i class="fas fa-layer-group"></i> Bulk Create
+                  </a>
+                  <button class="btn btn-primary btn-sm" onclick="openAddVariantModal()">
+                    <i class="fas fa-plus"></i> Add Variant
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Variants Table -->
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h4 class="card-title mb-0">Product Variants</h4>
+              <div class="d-flex gap-2">
+                <button class="btn btn-outline-info btn-sm" onclick="refreshVariants()">
+                  <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table align-middle">
+                  <thead>
+                    <tr>
+                      <th>SKU</th>
+                      <th>Attributes</th>
+                      <th>Stock</th>
+                      <th>Reserved</th>
+                      <th>Available</th>
+                      <th>Price Adj.</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="variantsTableBody">
+                    <% if (variants && variants.length > 0) { %>
+                        <% variants.forEach((variant) => { %>
+                          <tr data-variant-id="<%= variant._id %>">
+                            <td>
+                              <small class="text-muted font-monospace"><%= variant.sku %></small>
+                            </td>
+                            <td>
+                              <div class="d-flex flex-wrap gap-1">
+                                <% Object.entries(variant.attributes).forEach(([key, value]) => { %>
+                                  <span class="attribute-badge">
+                                    <strong><%= key %>:</strong> <%= value %>
+                                  </span>
+                                <% }) %>
+                              </div>
+                              <% if (Object.keys(variant.attributes).length === 0) { %>
+                                <span class="text-muted">No attributes</span>
+                              <% } %>
+                            </td>
+                            <td>
+                              <span class="stock-total"><%= variant.stock %></span>
+                            </td>
+                            <td>
+                              <span class="stock-reserved text-warning"><%= variant.reserved || 0 %></span>
+                            </td>
+                            <td>
+                              <span class="stock-available <%= variant.availableStock <= 0 ? 'stock-out' : variant.isLowStock ? 'stock-low' : '' %>">
+                                <%= variant.availableStock %>
+                              </span>
+                              <% if (variant.isLowStock && variant.availableStock > 0) { %>
+                                <i class="fas fa-exclamation-triangle text-warning ms-1" title="Low Stock"></i>
+                              <% } %>
+                            </td>
+                            <td>
+                              <span class="<%= variant.priceAdjustment > 0 ? 'text-success' : variant.priceAdjustment < 0 ? 'text-danger' : '' %>">
+                                <%= variant.priceAdjustment > 0 ? '+' : '' %>₹<%= variant.priceAdjustment %>
+                              </span>
+                            </td>
+                            <td>
+                                <span class="badge <%= variant.isActive ? 'bg-success' : 'bg-danger' %>">
+                                    <%= variant.isActive ? 'Active' : 'Inactive' %>
+                                </span>
+                            </td>
+                            <td>
+                              <div class="btn-group btn-group-sm">
+                                <button 
+                                  class="btn btn-outline-primary" 
+                                  onclick="openEditVariantModal('<%= variant._id %>')"
+                                  title="Edit Variant"
+                                >
+                                  <i class="fas fa-edit"></i>
+                                </button>
+                                <button 
+                                  class="btn btn-outline-info" 
+                                  onclick="openStockModal('<%= variant._id %>')"
+                                  title="Manage Stock"
+                                >
+                                  <i class="fas fa-boxes"></i>
+                                </button>
+                                <button 
+                                  class="btn btn-outline-secondary" 
+                                  onclick="viewStockHistory('<%= variant._id %>')"
+                                  title="Stock History"
+                                >
+                                  <i class="fas fa-history"></i>
+                                </button>
+                                <button 
+                                  class="btn btn-outline-danger" 
+                                  onclick="deleteVariant('<%= variant._id %>')"
+                                  title="Delete Variant"
+                                >
+                                  <i class="fas fa-trash"></i>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        <% }) %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <div>
+                                  <i class="fas fa-box-open fa-3x mb-3"></i>
+                                  <p class="mb-0">No variants found for this product.</p>
+                                  <small>Click "Add Variant" to create the first variant.</small>
+                                </div>
+                            </td>
+                        </tr>
+                    <% } %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Add/Edit Variant Modal -->
+    <div class="modal fade" id="variantModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="variantModalLabel">Add Variant</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="variantForm">
+                <input type="hidden" id="variantId">
+                <input type="hidden" id="productId" value="<%= product._id %>">
+
+                <!-- Dynamic Attributes Section -->
+                <div id="attributesSection">
+                  <h6 class="mb-3">Product Attributes</h6>
+                  <div id="attributesList">
+                    <!-- Attributes will be loaded dynamically -->
+                  </div>
+                </div>
+
+                <hr>
+
+                <div class="row mb-3">
+                    <div class="col-4">
+                        <label class="form-label">Stock Quantity</label>
+                        <input type="number" class="form-control" id="variantStock" min="0" required>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label">Price Adjustment (₹)</label>
+                        <input type="number" class="form-control" id="variantPriceAdj" value="0" step="0.01">
+                        <div class="form-text">Add or subtract from base price</div>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label">Special Price (₹)</label>
+                        <input type="number" class="form-control" id="variantSpecialPrice" min="0" step="0.01">
+                        <div class="form-text">Override price (optional)</div>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Low Stock Threshold</label>
+                    <input type="number" class="form-control" id="variantLowStockThreshold" value="10" min="0">
+                    <div class="form-text">Alert when stock falls below this number</div>
+                </div>
+
+                <div class="modal-footer px-0 pb-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save Variant</button>
+                </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stock Management Modal -->
+    <div class="modal fade" id="stockModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Manage Stock</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="stockForm">
+                <input type="hidden" id="stockVariantId">
+                
+                <div class="mb-3">
+                  <label class="form-label">Current Stock</label>
+                  <input type="text" class="form-control" id="currentStock" readonly>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">New Stock Quantity</label>
+                    <input type="number" class="form-control" id="newStock" min="0" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Reason for Change</label>
+                    <select class="form-select" id="stockReason">
+                      <option value="Manual adjustment">Manual adjustment</option>
+                      <option value="Inventory recount">Inventory recount</option>
+                      <option value="Damaged goods">Damaged goods</option>
+                      <option value="Returned items">Returned items</option>
+                      <option value="New stock received">New stock received</option>
+                      <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="modal-footer px-0 pb-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Update Stock</button>
+                </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stock History Modal -->
+    <div class="modal fade" id="stockHistoryModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Stock History</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div id="stockHistoryContent">
+              <!-- History will be loaded here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/ios-toast.js"></script>
+    <script>
+        const variantModal = new bootstrap.Modal(document.getElementById('variantModal'));
+        const stockModal = new bootstrap.Modal(document.getElementById('stockModal'));
+        const stockHistoryModal = new bootstrap.Modal(document.getElementById('stockHistoryModal'));
+        const productId = document.getElementById('productId').value;
+        
+        let availableAttributes = [];
+
+        // Load available attributes on page load
+        async function loadAttributes() {
+          try {
+            const response = await fetch(`/api/products/${productId}/attributes`);
+            const data = await response.json();
+            if (data.success) {
+              availableAttributes = data.attributes;
+            }
+          } catch (error) {
+            console.error('Error loading attributes:', error);
+          }
+        }
+
+        function renderAttributeInputs(selectedAttributes = {}) {
+          const container = document.getElementById('attributesList');
+          container.innerHTML = '';
+
+          availableAttributes.forEach(attr => {
+            const div = document.createElement('div');
+            div.className = 'mb-3';
+            
+            let inputHtml = '';
+            if (attr.type === 'COLOR_PICKER') {
+              // For color picker, show dropdown of predefined colors from attribute values
+              inputHtml = `
+                <select class="form-select" id="attr_${attr.name}" ${attr.isRequired ? 'required' : ''}>
+                  <option value="">Choose ${attr.displayName}</option>
+                  ${attr.values.map(val => 
+                    `<option value="${val.value}" ${selectedAttributes[attr.name] === val.value ? 'selected' : ''}>
+                      ${val.displayValue}
+                    </option>`
+                  ).join('')}
+                </select>
+                <small class="text-muted">Select from predefined colors only</small>
+              `;
+            } else if (attr.type === 'SELECT') {
+              inputHtml = `
+                <select class="form-select" id="attr_${attr.name}" ${attr.isRequired ? 'required' : ''}>
+                  <option value="">Choose ${attr.displayName}</option>
+                  ${attr.values.map(val => 
+                    `<option value="${val.value}" ${selectedAttributes[attr.name] === val.value ? 'selected' : ''}>
+                      ${val.displayValue}
+                    </option>`
+                  ).join('')}
+                </select>
+              `;
+            } else {
+              inputHtml = `
+                <input type="text" class="form-control" id="attr_${attr.name}" 
+                       placeholder="Enter ${attr.displayName}" 
+                       value="${selectedAttributes[attr.name] || ''}" ${attr.isRequired ? 'required' : ''}>
+              `;
+            }
+
+            div.innerHTML = `
+              <label class="form-label">
+                ${attr.displayName} ${attr.isRequired ? '<span class="text-danger">*</span>' : ''}
+              </label>
+              ${inputHtml}
+              <div class="form-text">
+                <strong>Available values:</strong> ${attr.values.map(v => v.displayValue).join(', ')}
+              </div>
+            `;
+            container.appendChild(div);
+          });
+        }
+
+        async function openAddVariantModal() {
+          await loadAttributes();
+          document.getElementById('variantId').value = '';
+          document.getElementById('variantForm').reset();
+          document.getElementById('variantModalLabel').innerText = 'Add New Variant';
+          renderAttributeInputs();
+          variantModal.show();
+        }
+
+        async function openEditVariantModal(variantId) {
+          try {
+            await loadAttributes();
+            
+            const response = await fetch(`/api/variants/${variantId}`);
+            const data = await response.json();
+            
+            if (data.success) {
+              const variant = data.variant;
+              
+              document.getElementById('variantId').value = variantId;
+              document.getElementById('variantStock').value = variant.stock;
+              document.getElementById('variantPriceAdj').value = variant.priceAdjustment || 0;
+              document.getElementById('variantSpecialPrice').value = variant.specialPrice || '';
+              document.getElementById('variantLowStockThreshold').value = variant.lowStockThreshold || 10;
+              document.getElementById('variantModalLabel').innerText = 'Edit Variant';
+              
+              renderAttributeInputs(variant.attributes);
+              variantModal.show();
+            }
+          } catch (error) {
+            Toast.error('Error', 'Failed to load variant data');
+          }
+        }
+
+        function openStockModal(variantId) {
+          // Find variant data from table
+          const row = document.querySelector(`tr[data-variant-id="${variantId}"]`);
+          const currentStock = row.querySelector('.stock-total').textContent;
+          
+          document.getElementById('stockVariantId').value = variantId;
+          document.getElementById('currentStock').value = currentStock;
+          document.getElementById('newStock').value = currentStock;
+          stockModal.show();
+        }
+
+        async function viewStockHistory(variantId) {
+          try {
+            const response = await fetch(`/admin/variants/${variantId}/history`);
+            const data = await response.json();
+            
+            if (data.success) {
+              const content = document.getElementById('stockHistoryContent');
+              
+              if (data.movements.length === 0) {
+                content.innerHTML = '<p class="text-muted">No stock movements found.</p>';
+              } else {
+                content.innerHTML = `
+                  <div class="table-responsive">
+                    <table class="table table-sm">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Type</th>
+                          <th>Quantity</th>
+                          <th>Previous</th>
+                          <th>New</th>
+                          <th>Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${data.movements.map(movement => `
+                          <tr>
+                            <td>${new Date(movement.createdAt).toLocaleDateString()}</td>
+                            <td><span class="badge bg-secondary">${movement.type}</span></td>
+                            <td class="${movement.quantity > 0 ? 'text-success' : 'text-danger'}">
+                              ${movement.quantity > 0 ? '+' : ''}${movement.quantity}
+                            </td>
+                            <td>${movement.previousStock}</td>
+                            <td>${movement.newStock}</td>
+                            <td>${movement.reason || '-'}</td>
+                          </tr>
+                        `).join('')}
+                      </tbody>
+                    </table>
+                  </div>
+                `;
+              }
+              
+              stockHistoryModal.show();
+            }
+          } catch (error) {
+            Toast.error('Error', 'Failed to load stock history');
+          }
+        }
+
+        // Form submissions
+        document.getElementById('variantForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const variantId = document.getElementById('variantId').value;
+            const stock = Number(document.getElementById('variantStock').value);
+            const priceAdjustment = Number(document.getElementById('variantPriceAdj').value);
+            const specialPrice = document.getElementById('variantSpecialPrice').value ? Number(document.getElementById('variantSpecialPrice').value) : null;
+            const lowStockThreshold = Number(document.getElementById('variantLowStockThreshold').value);
+            
+            // Collect attributes
+            const attributes = {};
+            availableAttributes.forEach(attr => {
+              const value = document.getElementById(`attr_${attr.name}`).value;
+              if (value) {
+                attributes[attr.name] = value;
+              }
+            });
+            
+            const isEdit = !!variantId;
+            const url = isEdit ? `/admin/variants/${variantId}` : `/admin/products/${productId}/variants`;
+            const method = isEdit ? 'PUT' : 'POST';
+
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                      attributes, 
+                      stock, 
+                      priceAdjustment,
+                      specialPrice,
+                      lowStockThreshold
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    Toast.success('Success', result.message);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                Toast.error('Error', error.message);
+            }
+        });
+
+        document.getElementById('stockForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const variantId = document.getElementById('stockVariantId').value;
+            const stock = Number(document.getElementById('newStock').value);
+            const reason = document.getElementById('stockReason').value;
+
+            try {
+                const response = await fetch(`/admin/variants/${variantId}/stock`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stock, reason })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    Toast.success('Stock Updated', result.message);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    throw new Error(result.message);
+                }
+            } catch (error) {
+                Toast.error('Error', error.message);
+            }
+        });
+
+        async function deleteVariant(id) {
+            const confirmed = await Toast.confirm({
+                title: 'Delete Variant',
+                message: "Are you sure you want to delete this variant? This action cannot be undone.",
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                type: 'error'
+            });
+
+            if (confirmed) {
+                try {
+                    const response = await fetch(`/admin/variants/${id}`, { method: 'DELETE' });
+                    const json = await response.json();
+                    if (json.success) {
+                        Toast.success('Deleted', 'Variant has been deleted successfully');
+                        setTimeout(() => location.reload(), 1500);
+                    } else {
+                        throw new Error(json.message);
+                    }
+                } catch (error) {
+                    Toast.error('Error', error.message);
+                }
+            }
+        }
+
+        function refreshVariants() {
+          location.reload();
+        }
+
+        // Load attributes on page load
+        loadAttributes();
+    </script>
+  </body>
+</html>

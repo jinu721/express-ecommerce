@@ -7,9 +7,6 @@ const { sendOtpEmail } = require("../services/mailServiece");
 const { generateOtp, otpExpiry } = require("../utils/otpGenrator");
 
 module.exports = {
-  // ~~~ Load user's profile ~~~
-  // Purpose: Loads the user's profile page.
-  // Response: Renders profile page with user data.
   async ProfileLoad(req, res) {
     try {
       const currentUser = req.session.currentEmail;
@@ -19,16 +16,12 @@ module.exports = {
       console.log(err);
     }
   },
-  // ~~~ Update user's profile ~~~
-  // Purpose: Updates user's username and phone.
-  // Response: Checks if the username is taken, updates the user info.
   async UserUpdate(req, res) {
     try {
       const { username, phone } = req.body;
       const currentUser = await userModel.findOne({
         email: req.session.currentEmail,
       });
-      // Check if the username is already taken
       const isUsernameExist = await userModel.findOne({
         username,
         _id: { $ne: currentUser._id },
@@ -40,7 +33,6 @@ module.exports = {
           val: false,
         });
       }
-      // Update user information
       const updateData = { username };
       if (phone) updateData.phone = phone;
       await userModel.updateOne({ _id: currentUser._id }, updateData);
@@ -52,13 +44,9 @@ module.exports = {
       return res.status(500).json({ val: false });
     }
   },
-  // ~~~ Load the Forgot Password page ~~~
   ForgotPassLoad(req, res) {
     res.render("forgot");
   },
-  // ~~~ Request for password reset ~~~
-  // Purpose: Sends OTP to the user's email for password reset.
-  // Response: Sends OTP and returns success message.
   async ForgetPassRequest(req, res) {
     console.log("Rex");
     try {
@@ -88,9 +76,6 @@ module.exports = {
     }
   },
 
-  // ~~~ Verify the OTP for password reset ~~~
-  // Purpose: Verifies the OTP provided by the user.
-  // Response: Confirms OTP validity and allows password reset.
   async ForgetPassverify(req, res) {
     const { email, otp } = req.body;
     try {
@@ -105,9 +90,6 @@ module.exports = {
       console.log(err);
     }
   },
-  // ~~~ Change the user's password ~~~
-  // Purpose: Resets the user's password after OTP verification.
-  // Response: Updates the password in the database.
   async ForgetPassChange(req, res) {
     const { password, email } = req.body;
     try {
@@ -120,9 +102,6 @@ module.exports = {
       console.log(err);
     }
   },
-  // ~~~ Load the user's address data ~~~
-  // Purpose: Loads the current user's address.
-  // Response: Returns the address information if the user exists.
   async AddressLoad(req, res) {
     try {
       const currentUser = await userModel.findOne({
@@ -140,9 +119,6 @@ module.exports = {
       return res.status(500).json({ val: false });
     }
   },
-  // ~~~ Create a new address for the user ~~~
-  // Purpose: Adds a new address to the user's profile.
-  // Response: Successfully adds address or returns error if user not found.
   async AddressCreate(req, res) {
     const {
       pincode,
@@ -184,7 +160,6 @@ module.exports = {
       return res.status(500).json({ val: false });
     }
   },
-  // ~~~ Edit a user's address load ~~~
   async EditAddressLoad(req, res) {
     const { addressId } = req.params;
     try {
@@ -199,9 +174,6 @@ module.exports = {
       res.status(500).json({ val: false });
     }
   },
-  // ~~~ Edit a user's address ~~~
-  // Purpose: Updates an existing address of the user.
-  // Response: Returns updated address or error if not found.
   async EditAddress(req, res) {
     const {
       id,
@@ -233,7 +205,6 @@ module.exports = {
       );
 
       if (!addressUpdate.matchedCount) {
-        // Check if any document was updated
         return res
           .status(404)
           .json({ val: false, message: "Address not found" });
@@ -245,9 +216,6 @@ module.exports = {
       res.status(500).json({ val: false, message: "Internal server error" });
     }
   },
-  // ~~~ Delete a user's address ~~~
-  // Purpose: Deletes the specified address from the user's profile.
-  // Response: Returns success or error if the address is not found.
   async DeleteAddress(req, res) {
     const { addressId } = req.params;
     try {
@@ -267,9 +235,6 @@ module.exports = {
       res.status(500).json({ val: false, message: "Internal server error" });
     }
   },
-  // ~~~ Change user's password ~~~
-  // Purpose: Allows the user to change their current password.
-  // Response: Returns success or error if password change fails.
   async ChangePassword(req, res) {
     const { currentPass, newPass } = req.body;
     const { currentEmail } = req.session;
@@ -293,9 +258,6 @@ module.exports = {
       res.status(500).json({ val: false, message: "Internal server error" });
     }
   },
-  // ~~~ Load user's orders with pagination ~~~
-  // Purpose: Retrieves orders for the logged-in user with pagination.
-  // Response: Returns a list of orders and pagination details.
 
   async ordersPageLoad(req, res) {
     const { currentId } = req.session;

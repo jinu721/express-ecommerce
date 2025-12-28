@@ -428,97 +428,74 @@ tabs.forEach((tab) => {
   });
 });
 
-async function fetchWallet() {
+let currentPage = 1;
+const limit = 10;
+
+async function fetchWallet(page = 1) {
   const balanceSection = document.querySelector(".balanceSection");
-  const transactionHistorySection = document.querySelector(
-    ".transactionHistorySection"
-  );
+  const transactionHistorySection = document.querySelector(".transactionHistorySection");
   balanceSection.innerHTML = "";
   transactionHistorySection.innerHTML = "";
+
   try {
-    const response = await fetch("account/wallet");
+    const response = await fetch(`account/wallet?page=${page}&limit=${limit}`);
     const data = await response.json();
-    console.log(data);
+
     if (data.val) {
       balanceSection.innerHTML = `
-      <div class="card">
-        <div class="balance-header">
-          <span>Balance</span>
-          <div class="currency-toggle">R/ &#8377;</div>
-        </div>
-        <div class="balance-amount">&#8377;${data.wallet.balance}</div>
-        <div class="transactions">
-          <span>↗ +&#8377; ${data.wallet.balance}</span>
-          <span>↙ -&#8377; ${0}</span>
-        </div>
-
-        <div class="info-section">
-          <div class="info-item">
-            <span class="label">Wallet ID:</span>
-            <span>${data.wallet._id}</span>
+        <div class="card">
+          <div class="balance-header">
+            <span>Balance</span>
+            <div class="currency-toggle">R/ &#8377;</div>
+          </div>
+          <div class="balance-amount">&#8377;${data.wallet.balance}</div>
+          <div class="transactions">
+            <span>↗ +&#8377; ${data.wallet.balance}</span>
+            <span>↙ -&#8377; ${0}</span>
+          </div>
+          <div class="info-section">
+            <div class="info-item">
+              <span class="label">Wallet ID:</span>
+              <span>${data.wallet._id}</span>
+            </div>
           </div>
         </div>
-      </div>
       `;
+
       data.wallet.transactionHistory.forEach((x) => {
-        function formatDate(dateString) {
-          const date = new Date(dateString);
-          const options = {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-            hour: "numeric",
-            minute: "numeric",
-            hour12: true,
-          };
-
-          return date.toLocaleString("en-US", options);
-        }
-        function capitalize(str) {
-          return str.replace(/\b\w/g, function (char) {
-            return char.toUpperCase();
-          });
-        }
-
         const div = document.createElement("div");
         div.classList.add("transactionItem");
         div.innerHTML = `
-        <div class="transaction-item">
-              <div class="transaction-info">
-                <div class="transaction-icon ${
-                  x.transactionType === "refund" ? "icon-receive" : "icon-send"
-                }">${x.transactionType === "refund" ? "↓" : "↑"}</div>
-                <div class="transaction-details">
-                  <span class="transaction-title"
-                    >${capitalize(x.transactionType)}</span
-                  >
-                  <span class="transaction-date">${formatDate(
-                    x.transactionDate
-                  )}</span>
-                </div>
-              </div>
-              <div
-                class="transaction-details"
-                style="text-align: right"
-              >
-                <span class="transaction-amount amount-received"
-                  >${x.transactionType === "refund" ? "+" : "-"}&#8377;${
-          x.transactionAmount
-        }</span
-                >
-                <span class="transaction-status status-completed"
-                  >Completed</span
-                >
+          <div class="transaction-item">
+            <div class="transaction-info">
+              <div class="transaction-icon ${
+                x.transactionType === "refund" ? "icon-receive" : "icon-send"
+              }">${x.transactionType === "refund" ? "↓" : "↑"}</div>
+              <div class="transaction-details">
+                <span class="transaction-title">${x.transactionType}</span>
+                <span class="transaction-date">${x.transactionDate}</span>
               </div>
             </div>
+            <div class="transaction-details" style="text-align: right">
+              <span class="transaction-amount amount-received">${
+                x.transactionType === "refund" ? "+" : "-"
+              }&#8377;${x.transactionAmount}</span>
+              <span class="transaction-status status-completed">Completed</span>
+            </div>
+          </div>
         `;
         transactionHistorySection.append(div);
       });
+
+      document.getElementById("pageNumber").innerText = `Page ${page}`;
+      document.getElementById("prevPage").disabled = page === 1;
+      document.getElementById("nextPage").disabled = page === data.totalPages;
     }
   } catch (err) {
-    console.log(err);
+    console.error(err);
   }
 }
+
 
 async function fetchAddress() {
   try {

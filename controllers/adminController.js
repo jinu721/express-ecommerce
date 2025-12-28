@@ -3,21 +3,14 @@ const productModel = require("../models/productModel");
 const categoryModel = require("../models/categoryModel");
 const orderModel = require("../models/orderModel");
 const visitorModel = require("../models/visitorModel");
-const path = require("path");
-let pdf = require("html-pdf");
-const ejs = require("ejs");
 const moment = require("moment");
+const PDFDocument = require('pdfkit');
+const ExcelJS = require('exceljs');
 
 module.exports = {
-  // ~~~ Dashboard Load ~~~
-  // Purpose: Renders the dashboard page.
-  // Response: Loads the dashboard view.
   whenDashboardLoad(req, res) {
     res.render("dashboard");
   },
-  // ~~~ Dashboard Data ~~~
-  // Purpose: Retrieves and returns dashboard data based on date range.
-  // Response: Returns dashboard data including total users, products, orders, etc.
   async dashboardData(req, res) {
     const { range, startDate, endDate } = req.query;
     try {
@@ -45,7 +38,11 @@ module.exports = {
 
       const dateFilter = { createdAt: { $gte: start, $lt: end } };
 
-      const [users, products, orders, sales, pendingMoney, categoryData] =
+      const Brand = require("../models/brandModel");
+      const Offer = require("../models/offerModel");
+      const Variant = require("../models/variantModel");
+
+      const [users, products, orders, sales, pendingMoney, categoryData, offersCount, brandsCount, lowStockCount] =
         await Promise.all([
           userModel.find({}),
           productModel.find({}, "_id"),
@@ -105,6 +102,9 @@ module.exports = {
               },
             },
           ]),
+          Offer.countDocuments({ isActive: true }),
+          Brand.countDocuments({ isActive: true }),
+          Variant.countDocuments({ stock: { $lt: 10 }, isActive: true })
         ]);
 
       const totalSales = sales[0]?.count || 0;
@@ -227,6 +227,9 @@ module.exports = {
         topSellingCategories,
         topSellingBrands,
         vistors,
+        offersCount,
+        brandsCount,
+        lowStockCount
       };
       res.status(200).json({ val: true, dashboard });
     } catch (err) {
@@ -237,54 +240,39 @@ module.exports = {
       });
     }
   },
-  // ~~~ Download Report ~~~
-  // Purpose: Generate and download sales report in PDF based on the selected date range.
-  // Response: Returns PDF file for download.
   async downloadReport(req, res) {
     console.log("Processing downloadReport...");
-
+  
     try {
-      const { startDate, endDate, range } = req.body;
-
+      const { startDate, endDate, range, format = 'pdf' } = req.body;
+  
       let start, end;
       const today = new Date();
-
+  
       if (range === "daily") {
         start = new Date(today.setHours(0, 0, 0, 0));
         end = new Date(today.setHours(23, 59, 59, 999));
       } else if (range === "weekly") {
-        const startOfWeek = new Date(
-          today.setDate(today.getDate() - today.getDay())
-        );
+        const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
         start = new Date(startOfWeek.setHours(0, 0, 0, 0));
         end = new Date(today.setHours(23, 59, 59, 999));
       } else if (range === "monthly") {
         start = new Date(today.getFullYear(), today.getMonth(), 1);
-        end = new Date(
-          today.getFullYear(),
-          today.getMonth() + 1,
-          0,
-          23,
-          59,
-          59,
-          999
-        );
+        end = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
       } else if (range === "custom") {
         if (!startDate || !endDate) {
-          return res
-            .status(400)
-            .json({
-              msg: "Start and end dates are required for custom range.",
-            });
+          return res.status(400).json({
+            msg: "Start and end dates are required for custom range.",
+          });
         }
         start = new Date(startDate);
         end = new Date(endDate);
       }
-
-      console.log(range);
+  
+      console.log(range, format);
       console.log(startDate, endDate);
       console.log(start, end);
-
+  
       const salesDataResult = await orderModel.aggregate([
         {
           $match: {
@@ -305,20 +293,20 @@ module.exports = {
           },
         },
       ]);
-
+  
       const salesData = salesDataResult[0] || {
         totalRevenue: 0,
         totalSales: 0,
         itemsSold: 0,
       };
-
+  
       const detailedOrders = await orderModel
         .find({
           orderStatus: "delivered",
           createdAt: { $gte: start, $lte: end },
         })
         .populate("items.product", "name price");
-
+  
       const totalDiscounts = await orderModel.aggregate([
         {
           $match: {
@@ -333,68 +321,134 @@ module.exports = {
           },
         },
       ]);
+  
+      const discountAmount = totalDiscounts[0]?.totalDiscount || 0;
 
-      const pdfDoc = new PDFDocument({ margin: 30 });
-      res.setHeader('Content-Disposition', `attachment; filename=SalesReport.pdf`);
-      res.setHeader('Content-Type', 'application/pdf');
-      pdfDoc.pipe(res);
-  
-      pdfDoc.fontSize(20).text('Sales Report', { align: 'center' }).moveDown();
-      pdfDoc.fontSize(12).text(`Start Date: ${start.toISOString().split("T")[0]}`, { align: 'left' });
-      pdfDoc.text(`End Date: ${end.toISOString().split("T")[0]}`, { align: 'left' });
-      pdfDoc.text(`Overall Discount: ₹${totalDiscounts.toFixed(2)}`, { align: 'left' });
-      pdfDoc.moveDown();
-      pdfDoc.text('Summary:', { underline: true }).moveDown();
-      pdfDoc.text(`Total Revenue: ₹${salesData.totalRevenue.toFixed(2)}`, { align: 'left' });
-      pdfDoc.text(`Total Sales: ${salesData.totalSales}`, { align: 'left' });
-      pdfDoc.text(`Items Sold: ${salesData.itemsSold}`, { align: 'left' });
-      pdfDoc.moveDown();
-      pdfDoc.text('Detailed Orders:', { underline: true }).moveDown();
-      pdfDoc.text(
-        `Product Name`.padEnd(30) +
-        `Quantity`.padEnd(10) +
-        `Price`.padEnd(15),
-        { align: 'left' }
-      );
-      
-      detailedOrders.forEach(order => {
-        order.items.forEach(item => {
-          const productName = item.product.name.padEnd(30);
-          const quantity = String(item.quantity).padEnd(10);
-          const price = `₹${item.product.price.toFixed(2)}`;
-          
-          pdfDoc.text(`${productName}${quantity}${price}`);
+      if (format === 'excel') {
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Sales Report');
+
+        // Add headers
+        worksheet.columns = [
+          { header: 'Order ID', key: 'orderId', width: 15 },
+          { header: 'Product Name', key: 'productName', width: 30 },
+          { header: 'Quantity', key: 'quantity', width: 10 },
+          { header: 'Price', key: 'price', width: 15 },
+          { header: 'Total', key: 'total', width: 15 },
+          { header: 'Date', key: 'date', width: 15 }
+        ];
+
+        // Add summary data
+        worksheet.addRow({});
+        worksheet.addRow({ orderId: 'SUMMARY', productName: '', quantity: '', price: '', total: '', date: '' });
+        worksheet.addRow({ orderId: 'Total Revenue', productName: `₹${salesData.totalRevenue.toFixed(2)}`, quantity: '', price: '', total: '', date: '' });
+        worksheet.addRow({ orderId: 'Total Sales', productName: salesData.totalSales, quantity: '', price: '', total: '', date: '' });
+        worksheet.addRow({ orderId: 'Items Sold', productName: salesData.itemsSold, quantity: '', price: '', total: '', date: '' });
+        worksheet.addRow({ orderId: 'Total Discounts', productName: `₹${discountAmount.toFixed(2)}`, quantity: '', price: '', total: '', date: '' });
+        worksheet.addRow({});
+
+        // Add detailed orders
+        detailedOrders.forEach(order => {
+          order.items.forEach(item => {
+            worksheet.addRow({
+              orderId: order._id.toString(),
+              productName: item.product.name,
+              quantity: item.quantity,
+              price: `₹${item.product.price.toFixed(2)}`,
+              total: `₹${(item.quantity * item.product.price).toFixed(2)}`,
+              date: order.createdAt.toISOString().split('T')[0]
+            });
+          });
         });
-      });
-  
-      pdfDoc.end();
+
+        res.setHeader('Content-Disposition', 'attachment; filename=SalesReport.xlsx');
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        
+        await workbook.xlsx.write(res);
+        res.end();
+
+      } else if (format === 'csv') {
+        let csvContent = 'Order ID,Product Name,Quantity,Price,Total,Date\n';
+        
+        // Add summary
+        csvContent += '\nSUMMARY\n';
+        csvContent += `Total Revenue,₹${salesData.totalRevenue.toFixed(2)}\n`;
+        csvContent += `Total Sales,${salesData.totalSales}\n`;
+        csvContent += `Items Sold,${salesData.itemsSold}\n`;
+        csvContent += `Total Discounts,₹${discountAmount.toFixed(2)}\n\n`;
+        
+        // Add detailed orders
+        detailedOrders.forEach(order => {
+          order.items.forEach(item => {
+            csvContent += `${order._id},${item.product.name},${item.quantity},₹${item.product.price.toFixed(2)},₹${(item.quantity * item.product.price).toFixed(2)},${order.createdAt.toISOString().split('T')[0]}\n`;
+          });
+        });
+
+        res.setHeader('Content-Disposition', 'attachment; filename=SalesReport.csv');
+        res.setHeader('Content-Type', 'text/csv');
+        res.send(csvContent);
+
+      } else {
+        // PDF format (existing code)
+        const pdfDoc = new PDFDocument({ margin: 30 });
+        res.setHeader("Content-Disposition", `attachment; filename=SalesReport.pdf`);
+        res.setHeader("Content-Type", "application/pdf");
+        pdfDoc.pipe(res);
+    
+        pdfDoc.fontSize(20).text("Sales Report", { align: "center" }).moveDown();
+        pdfDoc.fontSize(12).text(`Start Date: ${start.toISOString().split("T")[0]}`, { align: "left" });
+        pdfDoc.text(`End Date: ${end.toISOString().split("T")[0]}`, { align: "left" });
+        pdfDoc.text(`Overall Discount: ₹${discountAmount.toFixed(2)}`, { align: "left" });
+        pdfDoc.moveDown();
+        pdfDoc.text("Summary:", { underline: true }).moveDown();
+        pdfDoc.text(`Total Revenue: ₹${salesData.totalRevenue.toFixed(2)}`, { align: "left" });
+        pdfDoc.text(`Total Sales: ${salesData.totalSales}`, { align: "left" });
+        pdfDoc.text(`Items Sold: ${salesData.itemsSold}`, { align: "left" });
+        pdfDoc.moveDown();
+        pdfDoc.text("Detailed Orders:", { underline: true }).moveDown();
+        pdfDoc.text(
+          `Product Name`.padEnd(30) +
+            `Quantity`.padEnd(10) +
+            `Price`.padEnd(15),
+          { align: "left" }
+        );
+    
+        detailedOrders.forEach(order => {
+          order.items.forEach(item => {
+            const productName = item.product.name.padEnd(30);
+            const quantity = String(item.quantity).padEnd(10);
+            const price = `₹${item.product.price.toFixed(2)}`;
+    
+            pdfDoc.text(`${productName}${quantity}${price}`);
+          });
+        });
+    
+        pdfDoc.end();
+      }
     } catch (error) {
       console.error("Error in downloadReport:", error);
-      res
-        .status(500)
-        .json({ msg: "An error occurred while generating the report." });
+      res.status(500).json({ msg: "An error occurred while generating the report." });
     }
   },
-  // ~~~ Admin Login Page Load ~~~
-  // Purpose: Renders the login page when the admin login route is accessed.
-  // Response: Renders the "login" view.
+
   whenAdminLoginLoad(req, res) {
     res.render("login");
   },
-  // ~~~ Load Users with Pagination ~~~
-// Purpose: Fetch and display users with pagination (7 users per page).
-// Response: Renders the "usersManagement" page with user data.
   async whenUsersLoad(req, res) {
     const { page = 1 } = req.query;
     const limit = 7;
     const skip = (page - 1) * limit;
     try {
       const users = await userModel
-        .find({ role: "user" })
+        .find({}) 
         .skip(skip)
         .limit(limit);
-      const totalUsers = await userModel.countDocuments();
+        
+      const totalUsers = await userModel.countDocuments({});
       const totalPages = Math.ceil(totalUsers / limit);
+      
+      const currentAdminId = req.session.currentId;
+      
       return res.status(200).render("usersManagement", {
         val: users.length > 0,
         msg: users.length ? null : "No users found",
@@ -402,6 +456,7 @@ module.exports = {
         currentPage: Number(page),
         totalPages,
         pagesToShow: 3,
+        currentAdminId: currentAdminId,
       });
     } catch (err) {
       console.log(err);
@@ -412,12 +467,10 @@ module.exports = {
         currentPage: 1,
         totalPages: 1,
         pagesToShow: 3,
+        currentAdminId: null,
       });
     }
   },
-  // ~~~ View Specific User ~~~
-// Purpose: Fetch and display a specific user based on the userId in the URL parameters.
-// Response: Returns the user data in JSON format.
   async whenUsersView(req, res) {
     const { userId } = req.params;
     try {
@@ -428,26 +481,32 @@ module.exports = {
       console.log(err);
     }
   },
-  // ~~~ Ban/Unban User ~~~
-// Purpose: Ban or unban a user based on the id and value from the query parameters.
-// Response: Returns a success message if the operation was successful.
   async whenUsersBan(req, res) {
     const { id, val } = req.query;
     try {
       console.log(id, val);
+      
+      const targetUser = await userModel.findById(id);
+      if (!targetUser) {
+        return res.status(404).json({ val: false, msg: "User not found" });
+      }
+      
+      if (targetUser.role === 'admin') {
+        return res.status(403).json({ val: false, msg: "Cannot ban admin users" });
+      }
+      
       if (val === "Ban") {
         await userModel.updateOne({ _id: id }, { isDeleted: true });
+        res.status(200).json({ val: true, msg: "User has been banned successfully" });
       } else {
         await userModel.updateOne({ _id: id }, { isDeleted: false });
+        res.status(200).json({ val: true, msg: "User has been unbanned successfully" });
       }
-      res.status(200).json({ val: true });
     } catch (err) {
-      res.status(500).json({ val: false });
+      console.log(err);
+      res.status(500).json({ val: false, msg: "Error updating user status" });
     }
   },
-  // ~~~ Admin Login ~~~
-// Purpose: Handle admin login. Validates username and password.
-// Response: Returns success or error message based on the login credentials.
   whenAdminLogin(req, res) {
     const { username, password } = req.body;
     try {
@@ -465,14 +524,12 @@ module.exports = {
         });
       }
       req.session.AdminloggedIn = true;
+      req.session.currentId = "admin"; // Set admin ID for user management
       return res.status(200).json({ val: true, type: null, msg: null });
     } catch (err) {
       res.status(500).json({ val: false, type: null, msg: err });
     }
   },
-  // ~~~ Search Users ~~~
-// Purpose: Search for users by username or email based on a query string.
-// Response: Returns a list of users matching the search criteria.
   async searchUsers(req, res) {
     const { key } = req.query;
     try {
@@ -482,31 +539,34 @@ module.exports = {
           { email: { $regex: key, $options: "i" } },
         ],
       });
-      if (!users) {
+      if (!users || users.length === 0) {
         return res.status(400).json({ val: false, msg: "No users found" });
       }
-      console.log(users);
-      res.status(200).json({ val: true, users });
+      const currentAdminId = req.session.currentId;
+      res.status(200).json({ val: true, users, currentAdminId });
     } catch (err) {
       console.log(err);
       res.status(500).json({ val: false, msg: "Something went wrong" });
     }
   },
-  // ~~~ Search Products ~~~
-// Purpose: Search for products by name or brand based on a query string.
-// Response: Returns a list of products matching the search criteria.
   async searchProducts(req, res) {
     const { key } = req.query;
     try {
+      const Brand = require("../models/brandModel");
+      const matchedBrands = await Brand.find({ name: { $regex: key, $options: "i" } });
+      const brandIds = matchedBrands.map(b => b._id);
+
       const products = await productModel
         .find({
           $or: [
             { name: { $regex: key, $options: "i" } },
-            { brand: { $regex: key, $options: "i" } },
+            { brand: { $in: brandIds } },
           ],
         })
-        .populate("category");
-      if (!products) {
+        .populate("category")
+        .populate("brand"); 
+
+      if (!products || products.length === 0) {
         return res.status(400).json({ val: false, msg: "No products found" });
       }
       res.status(200).json({ val: true, products });
@@ -515,9 +575,6 @@ module.exports = {
       res.status(500).json({ val: false, msg: "Something went wrong" });
     }
   },
-  // ~~~ Search Orders ~~~
-// Purpose: Search for orders by username, order status, or payment method based on a query string.
-// Response: Returns a list of orders matching the search criteria.
   async searchOrders(req, res) {
     const { key } = req.query;
     try {
@@ -537,9 +594,6 @@ module.exports = {
       res.status(500).json({ val: false, msg: "Something went wrong" });
     }
   },
-  // ~~~ Search Categories ~~~
-// Purpose: Search for categories by name based on a query string.
-// Response: Returns a list of categories matching the search criteria.
   async searchCategories(req, res) {
     const { key } = req.query;
     try {
@@ -555,9 +609,6 @@ module.exports = {
       res.status(500).json({ val: false, msg: "Something went wrong" });
     }
   },
-  // ~~~ Search Coupons ~~~
-// Purpose: Search for coupons by code based on a query string.
-// Response: Returns a list of coupons matching the search criteria.
   async searchCoupons(req, res) {
     const { key } = req.query;
     try {

@@ -1,425 +1,455 @@
-const cropperInstances = [];
-const croppedImages = [];
-let currentImageIndex = null;
 
+// Global State
+let imageSelector;
+let editImageSelector;
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("Initializing image selectors...");
+  
+  // Initialize image selectors
+  imageSelector = new ImageSelector('imageSelector', {
+    maxImages: 4,
+    minImages: 1,
+    allowCrop: true,
+    aspectRatio: 1
+  });
+
+  editImageSelector = new ImageSelector('editImageSelector', {
+    maxImages: 4,
+    minImages: 1,
+    allowCrop: true,
+    aspectRatio: 1
+  });
+  
+  console.log("Image selectors initialized:", {
+    imageSelector: !!imageSelector,
+    editImageSelector: !!editImageSelector
+  });
+  
+  // Make them globally available for debugging
+  window.imageSelector = imageSelector;
+  window.editImageSelector = editImageSelector;
+});
+
+// Add Product Form Elements
 const name = document.getElementById("productName");
 const description = document.getElementById("productDescription");
 const categorySelect = document.getElementById("productCategory");
 const brand = document.getElementById("productBrand");
 const ogPrice = document.getElementById("productOgPrice");
-const offerPrice = document.getElementById("productOfferPrice");
 const tags = document.getElementById("productTags");
 const warranty = document.getElementById("productWarranty");
 const returnPolicy = document.getElementById("productReturnPolicy");
 const cashOnDelivery = document.getElementById("cashOnDelivery");
 
-const nameRegex = /^[a-zA-Z0-9 ]{3,}$/;
-const priceRegex = /^\d+(\.\d{1,2})?$/;
-const tagsRegex = /^#([a-zA-Z0-9]+(?:\s#[a-zA-Z0-9]+)*)$/;
-
-
-function previewAndCrop(event, index) {
-  const file = event.target.files[0];
-  const errorMsg = document.querySelector(`.imageError${index}`);
-  const cropPreview = document.getElementById(`cropPreview${index}`);
-  const cropPreviewSection = document.getElementById(`cropPreviewSection${index}`);
-  if (errorMsg) errorMsg.textContent = "";
-
-  if (!file) {
-    return;
-  }
-
-  if (!["image/png", "image/jpg", "image/jpeg"].includes(file.type)) {
-    errorMsg.textContent = "Only jpg, png, and jpeg formats are allowed.";
-    errorMsg.style.display = "block";
-    event.target.value = ""; 
-    return;
-  }
-
-  if (errorMsg) {
-    errorMsg.style.display = "none";
-  }
-
-  cropPreview.src = URL.createObjectURL(file);
-  cropPreviewSection.style.display = "block";
-
-  if (cropperInstances[index]) {
-    cropperInstances[index].destroy(); 
-  }
-
-  cropperInstances[index] = new Cropper(cropPreview, {
-    aspectRatio: 1,
-    viewMode: 1,
-    autoCropArea: 1,
-    scalable: true,
-    zoomable: true,
-    movable: true,
-  });
-
-  currentImageIndex = index;
-}
-
-function startCropping(index) {
-  const cropper = cropperInstances[index];
-  const cropPreviewSection = document.getElementById(`cropPreviewSection${index}`);
-  const croppedPreview = document.getElementById(`croppedPreview${index}`);
-
-  if (!cropper) return;
-  cropper.getCroppedCanvas().toBlob((blob) => {
-    croppedImages[index] = blob;
-    const croppedURL = URL.createObjectURL(blob);
-
-    croppedPreview.src = croppedURL;
-    croppedPreview.style.display = "block";
-    cropPreviewSection.style.display = "none";
-
-    console.log(`Cropped image for index ${index} saved.`);
-  });
-}
-
-function validateImages() {
-  let allImagesValid = true;
-
-  document.querySelectorAll(".productImgInput").forEach((input, index) => {
-    const errorMsg = document.getElementById(`imageError${index}`);
-    const file = input.files[0];
-    if (errorMsg) errorMsg.textContent = "";
-
-    if (!file) {
-      if (errorMsg) {
-        errorMsg.textContent = `Image ${index + 1} is required.`;
-        errorMsg.style.display = "block";
-      }
-      allImagesValid = false;
-    } else if (!["image/png", "image/jpg", "image/jpeg"].includes(file.type)) {
-      if (errorMsg) {
-        errorMsg.textContent = "Only jpg, png, and jpeg formats are allowed.";
-        errorMsg.style.display = "block";
-      }
-      allImagesValid = false;
-    } else {
-      if (errorMsg) errorMsg.style.display = "none";
-    }
-  });
-
-  return allImagesValid;
-}
-
-
-const colorsOption = [];
-
-function addColor() {
-  const colorPicker = document.getElementById("colorPicker");
-  const selectedColor = colorPicker.value;
-  if (!colorsOption.includes(selectedColor)) {
-    colorsOption.push(selectedColor);
-    const colorCircle = document.createElement("div");
-    colorCircle.style.width = "20px";
-    colorCircle.style.height = "20px";
-    colorCircle.style.backgroundColor = selectedColor;
-    colorCircle.style.borderRadius = "50%";
-    colorCircle.style.display = "inline-block";
-    colorCircle.style.margin = "5px";
-    document.getElementById("showColors").appendChild(colorCircle);
-  }
-  colorPicker.value = "#ffffff";
-}
-
-const sizeStock = {};
-
-function validateStockAndMaxQuantity(stockId, maxQuantityId, errorMessageId, inputId) {
-  const stockInput = document.getElementById(stockId);
-  const maxQuantityInput = document.getElementById(maxQuantityId);
-  const errorMessage = document.getElementById(errorMessageId);
-  if (!stockInput || !maxQuantityInput || !errorMessage) {
-    console.error(
-      `Missing element: ${
-        !stockInput
-          ? stockId
-          : !maxQuantityInput
-          ? maxQuantityId
-          : errorMessageId
-      }`
-    );
-    return false;
-  }
-  errorMessage.textContent = "";
-  if (maxQuantityInput.value <= 0 || isNaN(maxQuantityInput.value)) {
-    errorMessage.textContent = "Maximum quantity must be a positive number.";
-    return false;
-  }
-  if (parseInt(maxQuantityInput.value) > parseInt(stockInput.value)) {
-    errorMessage.textContent =
-      "Maximum quantity cannot exceed the available stock.";
-    return false;
-  }
-
-  return true;
-}
-
-function handleSizeCheckboxChange(size, stockId, maxQuantityId, errorMessageId) {
-  const checkbox = document.getElementById(size);
-  const stockInputDiv = document.getElementById(stockId);
-
-  if (!checkbox || !stockInputDiv) {
-    console.error(`Missing element for size: ${size}`);
-    return;
-  }
-
-  if (checkbox.checked) {
-    stockInputDiv.style.display = "block";
-  } else {
-    stockInputDiv.style.display = "none"; 
-    delete sizeStock[size];
-  }
-}
-
-function collectStockData() {
-  const sizeMap = {
-    sizeS: "S",
-    sizeM: "M",
-    sizeL: "L",
-    sizeXL: "XL",
-    sizeXXL: "XXL",
-    sizeXXXL: "XXXL",
-  };
-
-  const allSizes = Object.keys(sizeMap);
-
-  allSizes.forEach((size) => {
-    const stockId = "stockInput" + size.slice(4); 
-    const maxQuantityId = "maxQuantity" + size.slice(4);
-    const errorMessageId = "stock" + size.slice(4) + "Error";
-    const inputId = "productStock" + size.slice(4);
-
-    const checkbox = document.getElementById(size);
-    if (checkbox && checkbox.checked) {
-      const isValid = validateStockAndMaxQuantity(
-        stockId,
-        maxQuantityId,
-        errorMessageId,
-        inputId
-      );
-      if (isValid) {
-        const stockValue = document.getElementById(inputId).value;
-        const maxQuantityValue = document.getElementById(maxQuantityId).value;
-        const sizeAbbreviation = sizeMap[size];
-        sizeStock[sizeAbbreviation] = {
-          stock: stockValue,
-          maxQuantity: maxQuantityValue,
-        };
-      }
-    }
-  });
-  console.log(sizeStock);
-  return sizeStock; 
-}
-
-document.querySelectorAll(".checkBoxFOrSizes").forEach((checkbox) => {
-  checkbox.addEventListener("change", function () {
-    const size = checkbox.id;
-    const stockId = "stockInput" + size.slice(4);
-    const maxQuantityId = "maxQuantity" + size.slice(4);
-    const errorMessageId = "stock" + size.slice(4) + "Error";
-
-    handleSizeCheckboxChange(size, stockId, maxQuantityId, errorMessageId);
-  });
-});
-
-function validateAndSubmit() {
-  const errorMsgs = document.querySelectorAll(".error-message");
-  errorMsgs.forEach((error) => (error.textContent = ""));
-
-  if (!nameRegex.test(name.value)) {
-    showError(name, "Product name must be at least 3 characters long and alphanumeric.");
-    return;
-  }
-
-  
-  
-  if (description.value.length < 5) {
-    showError(description, "Description must be at least 5 characters long.");
-  } else if (categorySelect.value === "") {
-    showError(categorySelect, "Please select a category.");
-  } else if (!tagsRegex.test(tags.value)) {
-    showError(
-      tags,
-      "Tags should start with #, have letters or numbers, and be separated by spaces."
-    );
-  } else if (!priceRegex.test(ogPrice.value)) {
-    showError(
-      ogPrice,
-      "Original Price must be a valid number with up to 2 decimal places."
-    );
-  } else {
-    const stockData = collectStockData();
-    const formData = new FormData();
-    formData.append("name", name.value);
-    formData.append("description", description.value);
-    formData.append("category", categorySelect.value);
-    formData.append("brand", brand.value);
-    formData.append("price", parseFloat(ogPrice.value));
-    formData.append("tags", tags.value);
-    formData.append("sizes", JSON.stringify(sizeStock));
-    formData.append("colors", colorsOption);
-    formData.append("cashOnDelivery", cashOnDelivery.checked);
-    formData.append(
-      "offerPrice",
-      offerPrice.value !== "" ? offerPrice.value : null
-    );
-    formData.append(
-      "warranty",
-      warranty.value !== "" ? warranty.value : null
-    );
-    formData.append(
-      "returnPolicy",
-      returnPolicy.value !== "" ? returnPolicy.value : null
-    );
-
-    croppedImages.forEach((croppedImage, index) => {
-      if (croppedImage) {
-        formData.append(`productImage${index + 1}`, croppedImage);
-      }
-    });
-
-    (async function addData() {
-      try {
-        const response = await fetch("/admin/products/add", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await response.json();
-        console.log(data.msg);
-      } catch (err) {
-        console.error("Error ::-", err);
-      }
-    })();
-  }
-}
-
-function showError(input, message) {
-  const error = document.createElement("p");
-  error.className = "error-message";
-  error.style.color = "red";
-  error.textContent = message;
-  input.parentElement.appendChild(error);
-}
-
+// ~~~~~~~~~~~~~~~~ Add Product ~~~~~~~~~~~~~~~~
 
 document.querySelector(".btn-CreateProduct").addEventListener("click", (event) => {
-  event.preventDefault(); 
-  validateAndSubmit();
+  event.preventDefault();
+
+  // Basic Validation
+  if (name.value.length < 3) { 
+    Toast.error("Validation Error", "Product name must be at least 3 characters long");
+    return; 
+  }
+  if (!categorySelect.value) { 
+    Toast.error("Validation Error", "Please select a category");
+    return; 
+  }
+  if (!brand.value) { 
+    Toast.error("Validation Error", "Please select a brand");
+    return; 
+  }
+  if (!ogPrice.value) { 
+    Toast.error("Validation Error", "Please enter a price");
+    return; 
+  }
+
+  // Validate images
+  if (!imageSelector.validate()) {
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("name", name.value);
+  formData.append("description", description.value);
+  formData.append("category", categorySelect.value); 
+  formData.append("brand", brand.value);
+  formData.append("price", parseFloat(ogPrice.value));
+  formData.append("tags", tags.value);
+  formData.append("cashOnDelivery", cashOnDelivery.checked);
+  
+  if(warranty.value) formData.append("warranty", warranty.value);
+  if(returnPolicy.value) formData.append("returnPolicy", returnPolicy.value);
+
+  // Add images from image selector
+  const imageFormData = imageSelector.getFormData('productImage');
+  for (let [key, value] of imageFormData.entries()) {
+    formData.append(key, value);
+  }
+
+  // Show loading toast
+  const loadingToast = Toast.info("Creating Product", "Please wait while we create your product...", { duration: 0 });
+
+  fetch("/admin/products/add", {
+      method: "POST",
+      body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+      Toast.hide(loadingToast);
+      if (data.val) {
+          Toast.success("Product Created", data.msg + " You can now manage variants using the 'Variants' button.");
+          setTimeout(() => window.location.reload(), 2000);
+      } else {
+          Toast.error("Creation Failed", data.msg);
+      }
+  })
+  .catch(err => {
+      Toast.hide(loadingToast);
+      Toast.error("Error", "Failed to create product. Please try again.");
+      console.error(err);
+  });
 });
 
-function toggleOfferPriceInput() {
-  const offerPriceDiv = document.getElementById("offerPriceDiv");
-  const checkbox = document.getElementById("toggleOfferPrice");
-  offerPriceDiv.style.display = checkbox.checked ? "block" : "none";
+// ~~~~~~~~~~~~~~~~ Edit Product Modal ~~~~~~~~~~~~~~~~
+
+async function openEditModal(productId) {
+    try {
+        const loadingToast = Toast.info("Loading", "Fetching product details...", { duration: 0 });
+        
+        const response = await fetch(`/admin/products/${productId}/details`);
+        const result = await response.json();
+        
+        Toast.hide(loadingToast);
+        
+        if (!result.success) {
+            Toast.error("Error", "Failed to fetch product details");
+            return;
+        }
+
+        const { product } = result;
+        const p = product;
+
+        // Populate Form
+        document.getElementById('updateProductId').value = p._id;
+        document.getElementById('updateProductName').value = p.name;
+        document.getElementById('updateProductDescription').value = p.description;
+        document.getElementById('updateProductPrice').value = p.basePrice || p.price;
+        
+        // Populate Tags
+        if (p.tags && p.tags.length > 0) {
+            document.getElementById('updateProductTags').value = '#' + p.tags.join('#');
+        } else {
+            document.getElementById('updateProductTags').value = '';
+        }
+        
+        // Populate Cash on Delivery
+        document.getElementById('updateCashOnDelivery').checked = p.cashOnDelivery || false;
+        
+        // Populate Warranty
+        const warrantyCheckbox = document.getElementById('updateShowWarranty');
+        const warrantyInput = document.getElementById('updateProductWarranty');
+        const warrantyDiv = document.getElementById('updateWarrantyDiv');
+        
+        if (p.warranty) {
+            warrantyCheckbox.checked = true;
+            warrantyInput.value = p.warranty;
+            warrantyDiv.style.display = 'block';
+        } else {
+            warrantyCheckbox.checked = false;
+            warrantyInput.value = '';
+            warrantyDiv.style.display = 'none';
+        }
+        
+        // Populate Return Policy
+        const returnPolicyCheckbox = document.getElementById('updateShowReturnPolicy');
+        const returnPolicyInput = document.getElementById('updateProductReturnPolicy');
+        const returnPolicyDiv = document.getElementById('updateReturnPolicyDiv');
+        
+        if (p.returnPolicy) {
+            returnPolicyCheckbox.checked = true;
+            returnPolicyInput.value = p.returnPolicy;
+            returnPolicyDiv.style.display = 'block';
+        } else {
+            returnPolicyCheckbox.checked = false;
+            returnPolicyInput.value = '';
+            returnPolicyDiv.style.display = 'none';
+        }
+        
+        // Populate Category
+        const catSelect = document.getElementById('updateProductCategory');
+        if (typeof p.category === 'object') {
+            catSelect.value = p.category._id;
+        } else {
+            catSelect.value = p.category;
+        }
+
+        // Populate Brand
+        const brandSelect = document.getElementById('updateProductBrand');
+        if (typeof p.brand === 'object') {
+            brandSelect.value = p.brand._id;
+        } else {
+            brandSelect.value = p.brand;
+        }
+
+        // Show Modal first
+        const modal = new bootstrap.Modal(document.getElementById('productUpdateModal'));
+        modal.show();
+
+        // Wait for modal to be fully shown, then load images with simple approach
+        document.getElementById('productUpdateModal').addEventListener('shown.bs.modal', function() {
+            console.log("Modal shown, loading images with enhanced selector...");
+            
+            // Simple approach - just show the images directly
+            const imageContainer = document.getElementById('editImageSelector');
+            if (!imageContainer) {
+                console.error("editImageSelector container not found!");
+                return;
+            }
+            
+            // Create 4-slot image selector
+            let currentImages = ['', '', '', '']; // Initialize 4 empty slots
+            
+            // Fill existing images
+            if (p.images && p.images.length > 0) {
+                p.images.forEach((img, index) => {
+                    if (index < 4) {
+                        const cleanImg = img.replace(/\\/g, '/');
+                        currentImages[index] = cleanImg.startsWith('/') ? cleanImg : `/${cleanImg}`;
+                    }
+                });
+            }
+            
+            function renderImageSelector() {
+                const slotsHTML = currentImages.map((imageUrl, index) => {
+                    const isEmpty = !imageUrl;
+                    const isPrimary = index === 0;
+                    
+                    return `
+                        <div class="image-slot" data-index="${index}" 
+                             style="position: relative; aspect-ratio: 1; border: 2px dashed ${isEmpty ? '#d1d5db' : '#10b981'}; 
+                                    border-radius: 12px; overflow: hidden; cursor: pointer; background: ${isEmpty ? '#f9fafb' : 'white'};"
+                             onclick="selectImageForSlot(${index})">
+                            ${isEmpty ? `
+                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #6b7280;">
+                                    <svg style="width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.5;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    </svg>
+                                    <div style="font-size: 14px; font-weight: 500;">${isPrimary ? 'Primary Image' : `Image ${index + 1}`}</div>
+                                    <div style="font-size: 12px; opacity: 0.7;">Click to upload${isPrimary ? ' (Required)' : ''}</div>
+                                </div>
+                            ` : `
+                                <img src="${imageUrl}" alt="Product Image ${index + 1}" 
+                                     style="width: 100%; height: 100%; object-fit: cover;"
+                                     onload="console.log('Image loaded: ${imageUrl}')"
+                                     onerror="console.error('Image failed: ${imageUrl}')">
+                                <div style="position: absolute; top: 8px; right: 8px; display: flex; gap: 4px;">
+                                    <button type="button" onclick="event.stopPropagation(); removeImageFromSlot(${index})" 
+                                            style="width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(239, 68, 68, 0.9); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-trash" style="font-size: 12px;"></i>
+                                    </button>
+                                </div>
+                                <div style="position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px;">
+                                    ${index + 1}
+                                </div>
+                                ${isPrimary ? '<div style="position: absolute; top: 8px; left: 8px; background: #10b981; color: white; padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;">PRIMARY</div>' : ''}
+                            `}
+                        </div>
+                    `;
+                }).join('');
+                
+                imageContainer.innerHTML = `
+                    <div class="enhanced-image-selector">
+                        <label class="form-label">Product Images (Up to 4 images)</label>
+                        <div class="image-slots-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 16px 0;">
+                            ${slotsHTML}
+                        </div>
+                        <input type="file" id="hiddenImageInput" accept="image/*" style="display: none;" onchange="handleImageSelection(event)">
+                        <div style="margin-top: 16px;">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> 
+                                Click on any slot to add/replace an image. The first slot is the primary image.
+                            </small>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Global functions for image handling
+            window.selectImageForSlot = function(index) {
+                window.currentSlotIndex = index;
+                document.getElementById('hiddenImageInput').click();
+            };
+            
+            window.removeImageFromSlot = function(index) {
+                currentImages[index] = '';
+                renderImageSelector();
+                console.log(`Removed image from slot ${index + 1}`);
+            };
+            
+            window.handleImageSelection = function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                // Validate file
+                if (!file.type.startsWith('image/')) {
+                    Toast.error('Invalid File', 'Please select an image file');
+                    return;
+                }
+                
+                if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                    Toast.error('File Too Large', 'Please select an image smaller than 5MB');
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentImages[window.currentSlotIndex] = e.target.result;
+                    renderImageSelector();
+                    console.log(`Added image to slot ${window.currentSlotIndex + 1}`);
+                    
+                    // Store the file for form submission
+                    if (!window.selectedFiles) window.selectedFiles = {};
+                    window.selectedFiles[window.currentSlotIndex] = file;
+                };
+                reader.readAsDataURL(file);
+                
+                // Clear the input
+                event.target.value = '';
+            };
+            
+            // Get images for form submission
+            window.getSelectedImages = function() {
+                const formData = new FormData();
+                let hasNewImages = false;
+                
+                // Add new files
+                if (window.selectedFiles) {
+                    Object.keys(window.selectedFiles).forEach(index => {
+                        formData.append(`productImage${parseInt(index) + 1}`, window.selectedFiles[index]);
+                        hasNewImages = true;
+                    });
+                }
+                
+                // Add existing images that weren't replaced
+                currentImages.forEach((imageUrl, index) => {
+                    if (imageUrl && !imageUrl.startsWith('data:') && !(window.selectedFiles && window.selectedFiles[index])) {
+                        // This is an existing image that wasn't replaced
+                        formData.append(`existingproductImage${index + 1}`, imageUrl);
+                    }
+                });
+                
+                return { formData, hasChanges: hasNewImages || currentImages.some((img, i) => !img && p.images && p.images[i]) };
+            };
+            
+            // Initial render
+            renderImageSelector();
+            console.log("Enhanced image selector created");
+        }, { once: true });
+
+    } catch (error) {
+        Toast.error("Error", "Failed to load product details");
+        console.error("Error fetching product details:", error);
+    }
 }
 
+document.querySelector(".btn-UpdateProduct").addEventListener("click", (event) => {
+    event.preventDefault();
+    
+    const id = document.getElementById('updateProductId').value;
+    const nameVal = document.getElementById('updateProductName').value;
+    const descVal = document.getElementById('updateProductDescription').value;
+    const catVal = document.getElementById('updateProductCategory').value;
+    const brandVal = document.getElementById('updateProductBrand').value;
+    const priceVal = document.getElementById('updateProductPrice').value;
+    const tagsVal = document.getElementById('updateProductTags').value;
+    const cashOnDeliveryVal = document.getElementById('updateCashOnDelivery').checked;
+    const warrantyVal = document.getElementById('updateShowWarranty').checked ? 
+                       document.getElementById('updateProductWarranty').value : '';
+    const returnPolicyVal = document.getElementById('updateShowReturnPolicy').checked ? 
+                           document.getElementById('updateProductReturnPolicy').value : '';
+
+    // Basic validation
+    if (nameVal.length < 3) {
+        Toast.error("Validation Error", "Product name must be at least 3 characters long");
+        return;
+    }
+
+    // Create FormData to handle both text and file data
+    const formData = new FormData();
+    formData.append('name', nameVal);
+    formData.append('description', descVal);
+    formData.append('category', catVal);
+    formData.append('brand', brandVal);
+    formData.append('price', priceVal);
+    formData.append('tags', tagsVal);
+    formData.append('cashOnDelivery', cashOnDeliveryVal);
+    formData.append('warranty', warrantyVal);
+    formData.append('returnPolicy', returnPolicyVal);
+
+    // Add images using the enhanced selector
+    if (window.getSelectedImages) {
+        const imageData = window.getSelectedImages();
+        console.log("Image data:", imageData);
+        
+        // Add all image data to form
+        for (let [key, value] of imageData.formData.entries()) {
+            formData.append(key, value);
+        }
+    } else {
+        console.log("No image selector found, keeping existing images");
+    }
+
+    const loadingToast = Toast.info("Updating", "Saving product changes...", { duration: 0 });
+    
+    fetch(`/admin/products/update/${id}`, {
+        method: "POST",
+        body: formData // Send as FormData instead of JSON
+    })
+    .then(res => res.json())
+    .then(data => {
+        Toast.hide(loadingToast);
+        if (data.val) {
+             Toast.success("Updated", data.msg);
+             setTimeout(() => window.location.reload(), 2000);
+        } else {
+             Toast.error("Update Failed", data.msg);
+        }
+    })
+    .catch(err => {
+        Toast.hide(loadingToast);
+        Toast.error("Error", "Failed to update product");
+        console.error(err);
+    });
+});
+
+// ~~~~~~~~~~~~~~~~ UI Helpers ~~~~~~~~~~~~~~~~
+
 function toggleWarrantyInput() {
-  const warrantyDiv = document.getElementById("warrantyDiv");
-  warrantyDiv.style.display = warrantyDiv.style.display === "none" ? "block" : "none";
+  const div = document.getElementById("warrantyDiv");
+  div.style.display = div.style.display === "none" ? "block" : "none";
 }
 
 function toggleReturnPolicyInput() {
-  const returnPolicyDiv = document.getElementById("returnPolicyDiv");
-  returnPolicyDiv.style.display = returnPolicyDiv.style.display === "none" ? "block" : "none";
+  const div = document.getElementById("returnPolicyDiv");
+  div.style.display = div.style.display === "none" ? "block" : "none";
 }
 
-function toggleStockInput(size) {
-  const stockInputDiv = document.getElementById(`stockInput${size}`);
-  const checkbox = document.getElementById(`size${size}`);
-  stockInputDiv.style.display = checkbox.checked ? 'block' : 'none';
-  if (!checkbox.checked) {
-    document.getElementById(`productStock${size}`).value = '';
-  }
+function toggleUpdateWarrantyInput() {
+  const div = document.getElementById("updateWarrantyDiv");
+  div.style.display = div.style.display === "none" ? "block" : "none";
 }
 
+function toggleUpdateReturnPolicyInput() {
+  const div = document.getElementById("updateReturnPolicyDiv");
+  div.style.display = div.style.display === "none" ? "block" : "none";
+}
 
-
-const productNameUpdate = document.querySelector('#productUpdateName');
-const image1 = document.querySelector('.image1');
-const image2 = document.querySelector('.image2');
-const image3 = document.querySelector('.image3');
-const image4 = document.querySelector('.image4');
-const productDescriptionUpdate = document.querySelector('#productUpdateDescription');
-const productCategoryUpdate = document.querySelector('#productUpdateCategory');
-const productTagsUpdate = document.querySelector('#productUpdateTags');
-const productBrandUpdate = document.querySelector('#productUpdateBrand');
-const colorPickerUpdate = document.querySelector('#colorPickerUpdate');
-const productOgPriceUpdate = document.querySelector('#productUpdateOgPrice');
-const productStockUpdate = document.querySelector('#productUpdateStock');
-const cashOnDeliveryUpdate = document.querySelector('#cashOnDeliveryUpdate');
-const toggleOfferPriceUpdate = document.querySelector('#toggleOfferPriceUpdate');
-const toggleWarrantyUpdate = document.querySelector('#toggleWarrantyUpdate');
-const returnPolicyUpdate = document.querySelector('#productUpdateReturnPolicy');
-
-const productImagesUpdate = document.querySelectorAll('.product-update-image');
-const sizeOptionsUpdate = document.querySelectorAll('.form-check-input'); 
-
-
-const btnUnlist = document.querySelectorAll(".btnListAndUnlist");
-
-btnUnlist.forEach((elem) => {
-  elem.addEventListener("click", async () => {
-    try {
-      const productId = elem.getAttribute("data-id");
-      const res = await fetch(
-        `/admin/products/unlist?id=${productId}&val=${elem.textContent}`
-      );
-      const data = await res.json();
-      console.log(data);
-      if (data.val) {
-        if (elem.textContent === "Unlist") {
-          elem.classList.replace(
-            "badge-outline-primary",
-            "badge-outline-success"
-          );
-          elem.textContent = "List";
-        } else {
-          console.log(elem.textContent);
-          elem.classList.replace(
-            "badge-outline-success",
-            "badge-outline-primary"
-          );
-          elem.textContent = "Unlist";
-        }
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  });
-});
-
-
-
-
-document.querySelector('.resultContainer').addEventListener('click', async (event) => {
-  if (event.target.classList.contains('btn-ban')) {
-    const elem = event.target; 
-    try {
-      const userId = elem.getAttribute('data-id');
-      const res = await fetch(`/admin/users/ban/?id=${userId}&val=${elem.textContent}`);
-      const data = await res.json();
-      console.log(data);
-      if (data.val) {
-        if (elem.textContent === "Ban") {
-          elem.classList.replace("badge-outline-danger", "badge-outline-primary");
-          elem.textContent = "Unban";
-        } else {
-          elem.classList.replace("badge-outline-primary", "badge-outline-danger");
-          elem.textContent = "Ban";
-        }
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  }
-});
+// ~~~~~~~~~~~~~~~~ Search & Utils ~~~~~~~~~~~~~~~~
 
 let debounceTimer;
-
 function searchDebouncing() {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
@@ -429,62 +459,120 @@ function searchDebouncing() {
 
 async function searchData() {
   const query = document.querySelector('.searchProducts').value.trim();
-  console.log(query);
   const resultsContainer = document.querySelector('.resultContainer');
   resultsContainer.innerHTML = '';
   try {
-    const response = await fetch(`/admin/products/search?key=${query}`);
+    const response = await fetch(`/product/search?key=${query}`);
     const data = await response.json();
     if (data.val) {
-      console.log(data);
-      data.products.forEach((item,index) => {
+      data.results.forEach((item,index) => {
         const productHTML = `
                 <tr>
                   <td>${index+1}</td>
+                  ${[0,1,2,3].map(i => `
+                    <td>
+                      ${item.images && item.images[i] ? 
+                        `<img src="/${item.images[i]}" class="product-image-thumb"/>` : 
+                        `<div class="no-image-thumb"><i class="fas fa-image"></i></div>`
+                      }
+                    </td>
+                  `).join('')}
+                  <td>${ item.name }</td>
+                  <td>${ item.category || 'N/A' }</td>
+                  <td>${ typeof item.brand === 'object' && item.brand ? item.brand.name : (item.brand || 'N/A') }</td>
+                  <td>₹${ item.price }</td>
                   <td>
-                    <img src="/${ item.images[0] }" alt="image" />
+                    <span data-id="${item._id}" class="badge btnListAndUnlist ${ item.isDeleted?'badge-outline-success':'badge-outline-danger' }" style="cursor: pointer;">
+                        ${ item.isDeleted?'List':'Unlist' }
+                    </span>
                   </td>
                   <td>
-                    <img src="/${ item.images[1] }" alt="image" />
-                  </td>
-                  <td>
-                    <img src="/${ item.images[2] }" alt="image" />
-                  </td>
-                  <td>
-                    <img src="/${ item.images[3] }" alt="image" />
-                  </td>
-                  <td> ${ item.name }</td>
-                  <td>
-                     ${item.category.name}
-                  </td>
-                  <td>${ item.brand }</td>
-                  <td>${ item.price }</td>
-                  <td></td>
-                  <td>
-                    <div
-                      data-id="<%= data._id  %>"
-                      class="badge btnListAndUnlist ${ item.isDeleted?'badge-outline-success':'badge-outline-primary' }"
-                    >
-                      ${ item.isDeleted?'List':'Unlist' }
+                    <div class="action-buttons">
+                      <button class="btn btn-sm btn-outline-warning" onclick="openEditModal('${item._id}')" title="Edit Product">
+                        <i class="fas fa-edit"></i> Edit
+                      </button>
+                      <a href="/admin/products/${item._id}/variants/manage" class="btn btn-sm btn-outline-info" title="Manage Variants">
+                        <i class="fas fa-layer-group"></i> Variants
+                      </a>
+                      <button class="btn btn-sm btn-outline-danger" onclick="deleteProduct('${item._id}')" title="Delete Permanently">
+                        <i class="fas fa-trash"></i> Delete
+                      </button>
                     </div>
-                  </td>
-                  <td>
-                    <a href="/admin/products/update/${item._id}">
-                      <div
-                        class="badge btnUpdateProduct badge-outline-warning"
-                      >
-                        Update
-                      </div>
-                    </a>
                   </td>
                 </tr>
         `;
         resultsContainer.innerHTML += productHTML;
       });
     } else {
-      console.log(data.msg);
+       resultsContainer.innerHTML = `<tr><td colspan="11" class="text-center">No products found</td></tr>`;
     }
   } catch (err) {
     console.log(err);
+  }
+}
+
+// ~~~~~~~~~~~~~~~~ List/Unlist Products ~~~~~~~~~~~~~~~~
+
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('btnListAndUnlist')) {
+    const productId = e.target.getAttribute('data-id');
+    const action = e.target.textContent.trim();
+    
+    fetch(`/admin/products/unlist?id=${productId}&val=${action}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.val) {
+          // Toggle the button appearance and text
+          if (action === 'Unlist') {
+            e.target.textContent = 'List';
+            e.target.classList.remove('badge-outline-danger');
+            e.target.classList.add('badge-outline-success');
+            Toast.success("Product Listed", "Product is now visible to customers");
+          } else {
+            e.target.textContent = 'Unlist';
+            e.target.classList.remove('badge-outline-success');
+            e.target.classList.add('badge-outline-danger');
+            Toast.success("Product Unlisted", "Product is now hidden from customers");
+          }
+        } else {
+          Toast.error("Update Failed", "Failed to update product status");
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        Toast.error("Error", "Error updating product status");
+      });
+  }
+});
+
+// ~~~~~~~~~~~~~~~~ Permanent Delete Product ~~~~~~~~~~~~~~~~
+
+async function deleteProduct(productId) {
+  const confirmed = await Toast.confirm({
+    title: 'Permanently Delete Product?',
+    message: 'This action cannot be undone. The product will be completely removed from the database.',
+    confirmText: 'Yes, Delete',
+    cancelText: 'Cancel',
+    type: 'error'
+  });
+
+  if (confirmed) {
+    try {
+      const response = await fetch(`/admin/products/delete/${productId}`, {
+        method: 'DELETE'
+      });
+      
+      const data = await response.json();
+      
+      if (data.val) {
+        Toast.success('Product Deleted', data.msg);
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        Toast.error('Delete Failed', data.msg);
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      Toast.error('Error', 'Failed to delete product');
+    }
   }
 }

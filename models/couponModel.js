@@ -1,70 +1,109 @@
 const mongoose = require('mongoose');
 
-
-// ~~~ Coupon Schema ~~~
-// Purpose: Defines the structure for coupon data in the database, used for promotions or discounts.
-// Fields:
-// - `code`: A unique, trimmed string representing the coupon code (required).
-// - `discountType`: Specifies the type of discount ("percentage" or "flat") (required).
-// - `discountValue`: The value of the discount (must be a non-negative number, required).
-// - `maxDiscount`: The maximum discount value for percentage-based coupons (optional).
-// - `minPurchase`: The minimum purchase amount required to use the coupon (default: 0).
-// - `startDate`: The date when the coupon becomes active (required).
-// - `endDate`: The expiration date of the coupon (required).
-// - `usageLimit`: The maximum number of times the coupon can be used (optional).
-// - `usedCount`: Tracks how many times the coupon has been used (default: 0).
-// - `isActive`: Indicates whether the coupon is currently active (default: true).
-// Features:
-// - Automatically manages timestamps (`createdAt`, `updatedAt`) using `timestamps: true`.
-
-
 const couponSchema = new mongoose.Schema({
   code: {
     type: String,
     required: true,
     unique: true,
-    trim: true, 
+    uppercase: true,
+    trim: true
+  },
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  description: {
+    type: String,
+    required: true
   },
   discountType: {
     type: String,
-    enum: ['percentage', 'flat'], 
-    required: true,
+    enum: ['PERCENTAGE', 'FIXED_AMOUNT'],
+    required: true
   },
   discountValue: {
     type: Number,
     required: true,
-    min: 0,
+    min: 0
   },
-  maxDiscount: {
-    type: Number, 
-    default: null,
+  maxDiscountAmount: {
+    type: Number,
+    default: null // For percentage coupons
   },
-  minPurchase: {
-    type: Number, 
-    default: 0,
+  minOrderValue: {
+    type: Number,
+    required: true,
+    default: 0
   },
+  
+  // Validity
   startDate: {
     type: Date,
-    required: true,
+    required: true
   },
-  endDate: {
+  expiryDate: {
     type: Date,
-    required: true,
+    required: true
   },
+  
+  // Usage limits
   usageLimit: {
-    type: Number, 
-    default: null,
+    type: Number,
+    default: null // null means unlimited
+  },
+  usagePerUser: {
+    type: Number,
+    default: 1 // How many times one user can use this coupon
   },
   usedCount: {
-    type: Number, 
-    default: 0,
+    type: Number,
+    default: 0
   },
+  
+  // User restrictions
+  applicableUsers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Users'
+  }], // Empty array means all users
+  
+  // Product/Category restrictions
+  applicableProducts: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Products'
+  }],
+  applicableCategories: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category'
+  }],
+  
+  // Status
   isActive: {
-    type: Boolean, 
-    default: true,
+    type: Boolean,
+    default: true
   },
+  
+  // Admin details
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Users',
+    required: true
+  }
 }, {
-  timestamps: true, 
+  timestamps: true
+});
+
+// Indexes
+couponSchema.index({ code: 1 });
+couponSchema.index({ isActive: 1, expiryDate: 1 });
+couponSchema.index({ startDate: 1, expiryDate: 1 });
+
+// Validate dates
+couponSchema.pre('save', function(next) {
+  if (this.startDate >= this.expiryDate) {
+    next(new Error('Expiry date must be after start date'));
+  }
+  next();
 });
 
 module.exports = mongoose.model('Coupons', couponSchema);

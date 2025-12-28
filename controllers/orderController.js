@@ -10,24 +10,26 @@ const crypto = require("crypto");
 const couponModel = require("../models/couponModel");
 const PDFDocument = require('pdfkit');
 
+// New Services & Models
+const Variant = require("../models/variantModel");
+const stockService = require("../services/stockService");
+const pricingService = require("../services/pricingService");
+const notificationService = require("../services/notificationService");
+
 let orderId = 100;
 
 module.exports = {
   // ~~~ Place Order Controller ~~~
   // Purpose: Handles the placing of an order for the user, including validation of items, and total amount calculation.
   // Response: Returns a success or failure response based on the order process.
+  // ~~~ Place Order Controller (REFACTORED) ~~~
   async placeOrder(req, res) {
-    const { item, selectedAddressId, selectedPayment, isOfferApplied, code } =
-      req.body;
+    const { item, selectedAddressId, selectedPayment, isOfferApplied, code } = req.body;
     const userId = req.session.currentId;
 
     try {
-      console.log(isOfferApplied);
-
       if (!item || !selectedAddressId || !selectedPayment) {
-        return res
-          .status(400)
-          .json({ val: false, msg: "Missing required fields" });
+        return res.status(400).json({ val: false, msg: "Missing required fields" });
       }
 
       let parsedItem;
@@ -37,261 +39,255 @@ module.exports = {
         return res.status(400).json({ val: false, msg: "Invalid item format" });
       }
 
-      console.log(`parsed item :----------- ${parsedItem}`);
-
-      const isArray = Array.isArray(parsedItem);
-      let items, totalAmount;
-
-      const validateItem = (product) => {
-        if (
-          !product._id ||
-          typeof product.quantity !== "number" ||
-          typeof product.offerPrice !== "number" ||
-          !product.size ||
-          !product.color
-        ) {
-          console.log(product._id);
-          console.log(typeof product.quantity !== "number");
-          console.log(typeof product.offerPrice !== "number");
-          console.log(product.size);
-          console.log(product.color);
-          return res
-            .status(400)
-            .json({ val: false, msg: "Invalid product data" });
+      const itemsList = Array.isArray(parsedItem) ? parsedItem : [parsedItem];
+      
+      // 1. Validate Items & Calculate Prices
+      const processedItems = [];
+      for (const prod of itemsList) {
+        if (!prod._id || !prod.quantity || !prod.size || !prod.color) {
+            return res.status(400).json({ val: false, msg: "Invalid product data" });
         }
-      };
 
-      if (isArray) {
-        parsedItem.forEach((product) => {
-          const result = validateItem(product);
-          if (result) return result;
+        // Get product details
+        const product = await productModel.findById(prod._id);
+        if (!product) {
+            return res.status(404).json({ val: false, msg: "Product not found" });
+        }
+
+        // Find Variant
+        const variant = await Variant.findOne({ 
+            product: prod._id, 
+            'attributes.size': prod.size,
+            'attributes.color': prod.color 
         });
-        items = parsedItem.map((product) => ({
-          product: new mongoose.Types.ObjectId(product._id),
-          quantity: product.quantity,
-          offerPrice: product.offerPrice,
-          size: product.size,
-          color: product.color,
-        }));
-        totalAmount = items.reduce(
-          (sum, item) => sum + Number(item.offerPrice) * Number(item.quantity),
-          0
-        );
-        await cartModel.deleteMany({ userId });
-      } else {
-        const result = validateItem(parsedItem);
-        if (result) return result;
-        items = {
-          product: new mongoose.Types.ObjectId(parsedItem._id),
-          quantity: parsedItem.quantity,
-          offerPrice: parsedItem.offerPrice,
-          size: parsedItem.size,
-          color: parsedItem.color,
-        };
-        totalAmount = Number(items.offerPrice) * Number(items.quantity);
-        await cartModel.deleteOne({
-          userId,
-          "items.product": parsedItem._id,
+
+        if (!variant) {
+            return res.status(404).json({ val: false, msg: `Variant not found: ${prod.size} - ${prod.color}` });
+        }
+
+        // Check Stock Availability
+        const stockStatus = await stockService.checkAvailability(variant._id, prod.quantity);
+        if (!stockStatus.available) {
+            return res.status(400).json({ 
+                val: false, 
+                msg: `Insufficient stock for ${prod.size}/${prod.color}. Available: ${stockStatus.stock}` 
+            });
+        }
+
+        // Calculate pricing with offers
+        const pricingResult = await pricingService.calculateBestOffer(product, Number(prod.quantity), userId);
+
+        processedItems.push({
+            product: new mongoose.Types.ObjectId(prod._id),
+            variant: variant._id,
+            quantity: Number(prod.quantity),
+            offerPrice: pricingResult.finalPrice / Number(prod.quantity), // Unit price after offers
+            originalPrice: pricingResult.originalPrice / Number(prod.quantity), // Original unit price
+            totalPrice: pricingResult.finalPrice, // Total price for this item
+            discount: pricingResult.discount, // Total discount for this item
+            size: prod.size,
+            color: prod.color,
+            appliedOffer: pricingResult.offer
         });
       }
 
-      const user = await userModel.findOne({ _id: userId });
-      const address = user.address.find(
-        (addr) => addr._id.toString() === selectedAddressId
+      // Calculate Total
+      const totalAmount = processedItems.reduce(
+        (sum, i) => sum + i.totalPrice, 0
       );
+      const originalTotal = processedItems.reduce(
+        (sum, i) => sum + (i.originalPrice * i.quantity), 0
+      );
+      const totalOfferDiscount = processedItems.reduce(
+        (sum, i) => sum + i.discount, 0
+      );
+
+      // Clear Cart (if from cart)
+      if (Array.isArray(parsedItem)) {
+          await cartModel.deleteMany({ userId });
+      } else {
+          await cartModel.deleteOne({ userId, "items.product": parsedItem._id });
+      }
+
+      // 2. Address & Coupon Application
+      const user = await userModel.findOne({ _id: userId });
+      const address = user.address.find(a => a._id.toString() === selectedAddressId);
       if (!address) {
-        return res.status(400).json({ val: false, msg: "Invalid address ID" });
+          return res.status(400).json({ val: false, msg: "Invalid address ID" });
       }
 
-      let discountedPrice = totalAmount;
+      let finalAmount = totalAmount;
+      let couponDiscount = 0;
+      const couponDetails = isOfferApplied ? { code, discountApplied: 0 } : null;
 
-      console.log(isOfferApplied, code);
-      console.log(totalAmount);
-      if (isOfferApplied) {
-        const coupon = await couponModel.findOne({});
-        console.log("Its offer Applied");
-        if (coupon.discountType === "percentage") {
-          const discountPercentage = parseFloat(coupon.discountValue);
-          let discountAmount = (totalAmount * discountPercentage) / 100;
-          if (coupon.maxDiscount) {
-            discountAmount = Math.min(discountAmount, coupon.maxDiscount);
-          }
-          discountedPrice = totalAmount - discountAmount;
-        } else if (coupon.discountType === "flat") {
-          const flatDiscount = parseFloat(coupon.discountValue);
-          discountedPrice = totalAmount - flatDiscount;
+      if (isOfferApplied && code) {
+        try {
+            const couponResult = await pricingService.applyCoupon(code, totalAmount, userId, processedItems);
+            couponDiscount = couponResult.discount;
+            finalAmount = couponResult.finalAmount;
+            if (couponDetails) {
+                couponDetails.discountApplied = couponDiscount;
+                couponDetails.couponId = couponResult.coupon._id;
+            }
+        } catch (error) {
+            return res.status(400).json({ val: false, msg: error.message });
         }
-        discountedPrice = Math.max(discountedPrice, 0);
-      } else {
-        console.log("not offer Applied");
       }
 
-      console.log(discountedPrice);
+      const amountToSend = finalAmount;
 
-      const amountToSend = discountedPrice || totalAmount;
-
-      const couponDetails = isOfferApplied
-        ? { code, discountApplied: totalAmount - discountedPrice }
-        : null;
-
+      // 3. Payment Processing
       if (selectedPayment === "cash_on_delivery") {
-        if (amountToSend > 1000) {
-          return res.status(400).json({
-            val: false,
-            msg: "COD only available for product less than 1000",
+          if (amountToSend > 1000) {
+              return res.status(400).json({ val: false, msg: "COD only available for orders under ₹1000" });
+          }
+
+          const order = await orderModel.create({
+              orderId: orderId++,
+              user: userId,
+              items: processedItems,
+              totalAmount: amountToSend,
+              paymentMethod: selectedPayment,
+              shippingAddress: address,
+              coupon: couponDetails,
+              orderedAt: new Date(),
+              paymentStatus: "pending",
+              orderStatus: "processing",
+              statusHistory: [{ status: "processing", updatedAt: new Date() }]
           });
-        }
-        const order = await orderModel.create({
-          orderId: orderId++,
-          user: userId,
-          items: isArray ? items : [items],
-          totalAmount: amountToSend,
-          paymentMethod: selectedPayment,
-          shippingAddress: address,
-          coupon: couponDetails,
-          orderedAt: new Date(),
-          paymentStatus: "pending",
-          orderStatus: "processing",
-          statusHistory: [{ status: "processing", updatedAt: new Date() }],
-        });
-        for (let i = 0; i < (isArray ? items : [items]).length; i++) {
-          const {
-            product: productId,
-            size,
-            quantity: quantityOrdered,
-          } = isArray ? items[i] : items;
-          const product = await productModel.findById(productId);
 
-          if (!product || !product.sizes[size]) {
-            return res
-              .status(404)
-              .json({ val: false, msg: "Product or size not found" });
+          // Track offer usage
+          for (const item of processedItems) {
+              if (item.appliedOffer) {
+                  await pricingService.recordOfferUsage(item.appliedOffer._id);
+              }
           }
 
-          if (product.sizes[size].stock >= quantityOrdered) {
-            product.sizes[size].stock -= quantityOrdered;
-            product.markModified("sizes");
-            await product.save();
-          } else {
-            return res.status(400).json({
-              val: false,
-              msg: `Not enough stock for size ${size}`,
-            });
+          // Track coupon usage if applied
+          if (couponDetails && couponDetails.couponId) {
+              await pricingService.recordCouponUsage(
+                  couponDetails.couponId,
+                  userId,
+                  order._id,
+                  couponDetails.discountApplied,
+                  totalAmount
+              );
           }
-        }
 
-        return res.status(200).json({
-          val: true,
-          msg: "Order placed successfully with Cash on Delivery",
-        });
+          // Deduct Stock
+          for (const item of processedItems) {
+              await stockService.deductStock(item.variant, item.quantity);
+          }
+          
+
+          // Notify
+          notificationService.notifyNewOrder(order);
+          notificationService.notifyUser(userId, {
+              type: 'order_placed',
+              title: 'Order Placed',
+              message: `Your order #${order.orderId} has been placed successfully.`,
+              data: { orderId: order._id, status: 'processing' }
+          });
+
+          return res.status(200).json({ val: true, msg: "Order placed successfully" });
+
       } else if (selectedPayment === "razorpay") {
-        const razorpayOrder = await razorpay.orders.create({
-          amount: Math.round(discountedPrice * 100),
-          currency: "INR",
-          receipt: `order_rcptid_${Math.random()
-            .toString(36)
-            .substring(2, 15)}`,
-          notes: {
-            userId,
-            addressId: selectedAddressId,
-          },
-        });
-        const order = await orderModel.create({
-          orderId: orderId++,
-          user: userId,
-          items: items,
-          totalAmount: amountToSend,
-          paymentMethod: selectedPayment,
-          shippingAddress: address,
-          coupon: couponDetails,
-          razorpayOrderId: razorpayOrder.id,
-          orderedAt: new Date(),
-          paymentStatus: "pending",
-          orderStatus: "processing",
-          statusHistory: [{ status: "processing", updatedAt: new Date() }],
-        });
-        console.log(razorpayOrder);
-        return res.status(200).json({
-          val: true,
-          msg: "Razorpay order created successfully",
-          order: razorpayOrder,
-          key: "rzp_test_P7m0ieN3xeK18I",
-        });
+          const razorpayOrder = await razorpay.orders.create({
+              amount: Math.round(amountToSend * 100),
+              currency: "INR",
+              receipt: `order_rcptid_${Date.now()}`,
+              notes: { userId, addressId: selectedAddressId }
+          });
+
+          const order = await orderModel.create({
+              orderId: orderId++,
+              user: userId,
+              items: processedItems,
+              totalAmount: amountToSend,
+              paymentMethod: selectedPayment,
+              shippingAddress: address,
+              coupon: couponDetails,
+              razorpayOrderId: razorpayOrder.id,
+              orderedAt: new Date(),
+              paymentStatus: "pending",
+              orderStatus: "processing",
+              statusHistory: [{ status: "processing", updatedAt: new Date() }]
+          });
+
+          // Note: For Razorpay, we'll track usage after payment verification
+          // Store order ID for later tracking
+          req.session.pendingOrderId = order._id;
+
+          return res.status(200).json({
+              val: true,
+              msg: "Razorpay order created",
+              order: razorpayOrder,
+              key: "rzp_test_P7m0ieN3xeK18I"
+          });
+
       } else if (selectedPayment === "wallet") {
-        let wallet = await walletModel.findOne({
-          userId: req.session.currentId,
-        });
-        if (!wallet) {
-          return res.status(404).json({ val: false, msg: "Wallet not found" });
-        }
-        console.log(wallet.balance);
-        console.log(amountToSend);
-        if (wallet.balance < amountToSend) {
-          return res
-            .status(404)
-            .json({ val: false, msg: "Not enough money in wallet" });
-        }
-
-        wallet.balance -= discountedPrice ? discountedPrice : totalAmount;
-        wallet.transactionHistory.push({
-          transactionType: "purchase",
-          transactionAmount: discountedPrice ? discountedPrice : totalAmount,
-          transactionDate: new Date(),
-          description: `Purchase of the order ${item.orderId}`,
-        });
-        console.log(wallet);
-        await wallet.save();
-        const order = await orderModel.create({
-          orderId: orderId++,
-          user: userId,
-          items: isArray ? items : [items],
-          totalAmount: amountToSend,
-          paymentMethod: selectedPayment,
-          shippingAddress: address,
-          coupon: couponDetails,
-          orderedAt: new Date(),
-          paymentStatus: "paid",
-          orderStatus: "processing",
-          statusHistory: [{ status: "processing", updatedAt: new Date() }],
-        });
-        for (let i = 0; i < (isArray ? items : [items]).length; i++) {
-          const {
-            product: productId,
-            size,
-            quantity: quantityOrdered,
-          } = isArray ? items[i] : items;
-          const product = await productModel.findById(productId);
-
-          if (!product || !product.sizes[size]) {
-            return res
-              .status(404)
-              .json({ val: false, msg: "Product or size not found" });
+          const wallet = await walletModel.findOne({ userId });
+          if (!wallet || wallet.balance < amountToSend) {
+              return res.status(400).json({ val: false, msg: "Insufficient wallet balance" });
           }
 
-          if (product.sizes[size].stock >= quantityOrdered) {
-            product.sizes[size].stock -= quantityOrdered;
-            product.markModified("sizes");
-            await product.save();
-          } else {
-            return res.status(400).json({
-              val: false,
-              msg: `Not enough stock for size ${size}`,
-            });
-          }
-        }
+          wallet.balance -= amountToSend;
+          wallet.transactionHistory.push({
+              transactionType: "purchase",
+              transactionAmount: amountToSend,
+              transactionDate: new Date(),
+              description: `Purchase of order`
+          });
+          await wallet.save();
 
-        return res.status(200).json({
-          val: true,
-          msg: "Order placed successfully with Wallet payment",
-        });
+          const order = await orderModel.create({
+              orderId: orderId++,
+              user: userId,
+              items: processedItems,
+              totalAmount: amountToSend,
+              paymentMethod: selectedPayment,
+              shippingAddress: address,
+              coupon: couponDetails,
+              orderedAt: new Date(),
+              paymentStatus: "paid",
+              orderStatus: "processing",
+              statusHistory: [{ status: "processing", updatedAt: new Date() }]
+          });
+
+          // Track offer usage
+          for (const item of processedItems) {
+              if (item.appliedOffer) {
+                  await pricingService.recordOfferUsage(item.appliedOffer._id);
+              }
+          }
+
+          // Track coupon usage if applied
+          if (couponDetails && couponDetails.couponId) {
+              await pricingService.recordCouponUsage(
+                  couponDetails.couponId,
+                  userId,
+                  order._id,
+                  couponDetails.discountApplied,
+                  totalAmount
+              );
+          }
+
+          // Deduct Stock
+          for (const item of processedItems) {
+              await stockService.deductStock(item.variant, item.quantity);
+          }
+
+          // Notify
+          notificationService.notifyNewOrder(order);
+
+          return res.status(200).json({ val: true, msg: "Order placed successfully with Wallet" });
       } else {
-        return res
-          .status(400)
-          .json({ val: false, msg: "Invalid payment method" });
+          return res.status(400).json({ val: false, msg: "Invalid payment method" });
       }
+
     } catch (err) {
-      console.error("Error in placing order:", err);
-      return res.status(500).json({ val: false, msg: "Server error" });
+      console.error("Place Order Error:", err);
+      return res.status(500).json({ val: false, msg: "Server error: " + err.message });
     }
   },
   // ~~~ Cancel Order Controller ~~~
@@ -399,7 +395,6 @@ module.exports = {
   async reqestReturn(req, res) {
     const { orderId } = req.params;
     const { reasonMsg } = req.body;
-    console.log(reasonMsg);
     try {
       const updateResult = await orderModel.updateOne(
         { _id: orderId },
@@ -492,6 +487,10 @@ module.exports = {
       });
       order.statusHistory.push({ status: newStatus, updatedAt: new Date() });
       await order.save();
+      
+      // Notify User
+      notificationService.notifyOrderStatusChange(order.user, order, newStatus);
+
       return res.json({
         val: true,
         status: newStatus,
@@ -506,15 +505,14 @@ module.exports = {
   // ~~~ Verify Payment ~~~
   // Purpose: Verifies the payment for an order using Razorpay's payment gateway.
   // Response: Returns a success message if payment is verified or an error message if failed.
+  // ~~~ Verify Payment (REFACTORED) ~~~
   async verifyPayment(req, res) {
     const { paymentId, orderId, signature, retryOrderId } = req.body;
     const userId = req.session.currentId;
-    console.log(paymentId, orderId, signature);
+    
     try {
       if (!paymentId || !orderId || !signature) {
-        return res
-          .status(400)
-          .json({ val: false, msg: "Missing required fields" });
+        return res.status(400).json({ val: false, msg: "Missing required fields" });
       }
       const body = orderId + "|" + paymentId;
       const expectedSignature = crypto
@@ -523,17 +521,12 @@ module.exports = {
         .digest("hex");
 
       if (expectedSignature !== signature) {
-        return res
-          .status(400)
-          .json({ val: false, msg: "Invalid payment signature" });
+        return res.status(400).json({ val: false, msg: "Invalid payment signature" });
       }
 
       const payment = await razorpay.payments.fetch(paymentId);
-
       if (payment.status !== "captured") {
-        return res
-          .status(400)
-          .json({ val: false, msg: "Payment not captured" });
+        return res.status(400).json({ val: false, msg: "Payment not captured" });
       }
 
       const orderGetId = retryOrderId || userId;
@@ -542,20 +535,83 @@ module.exports = {
       if (retryOrderId) {
         order = await orderModel.findOne({ _id: orderGetId });
       } else {
-        order = await orderModel
-          .findOne({ user: orderGetId })
-          .sort({ orderedAt: -1 });
+        // This query logic in original code seems fragile (finding by user and sort).
+        // Better to find by razorpayOrderId if stored (we stored it in placeOrder).
+        // For backward compatibility, I'll allow finding by user but prefer explicit ID if possible.
+        // But here `orderId` variable corresponds to razorpay_order_id, checking placeOrder logic:
+        // razorpay.orders.create returns an ID, stored in 'orderId' param here?
+        // Wait, Razorpay sends `razorpay_order_id`, `razorpay_payment_id`, `razorpay_signature`
+        // So `req.body.orderId` IS `razorpay_order_id`.
+        order = await orderModel.findOne({ razorpayOrderId: orderId });
+        if (!order) {
+           // Fallback to original logic if razorpayOrderId not found (legacy orders)
+           order = await orderModel.findOne({ user: userId }).sort({ orderedAt: -1 });
+        }
+      }
+
+      if (!order) {
+          return res.status(404).json({ val: false, msg: "Order not found" });
+      }
+
+      // Check if already paid to avoid double deduction
+      if (order.paymentStatus === 'paid') {
+          return res.status(200).json({ val: true, msg: "Order already paid", orderId: order._id });
       }
 
       order.paymentStatus = "paid";
-
-      order.markModified("paymentStatus");
       await order.save();
+
+      // Track offer and coupon usage after successful payment
+      for (const item of order.items) {
+          if (item.appliedOffer) {
+              await pricingService.recordOfferUsage(item.appliedOffer._id);
+          }
+      }
+
+      // Track coupon usage if applied
+      if (order.coupon && order.coupon.couponId) {
+          await pricingService.recordCouponUsage(
+              order.coupon.couponId,
+              userId,
+              order._id,
+              order.coupon.discountApplied,
+              order.totalAmount + (order.coupon.discountApplied || 0)
+          );
+      }
+
+      // Deduct Stock (Important!)
+      // Need to find variant IDs. If stored in items (new orders), use that.
+      // If not (legacy), finding variant is hard. But refactored placeOrder stores variantId.
+      for (const item of order.items) {
+          if (item.variant) {
+              await stockService.deductStock(item.variant, item.quantity);
+          } else {
+             // Fallback for legacy items: map product/size/color to variant
+             // This is best effort.
+             const variant = await Variant.findOne({
+                 product: item.product,
+                 'attributes.size': item.size,
+                 'attributes.color': item.color
+             });
+             if (variant) {
+                 await stockService.deductStock(variant._id, item.quantity);
+             }
+          }
+      }
+
+      // Notifications
+      notificationService.notifyNewOrder(order);
+      notificationService.notifyUser(userId, {
+          type: 'order_paid',
+          title: 'Payment Received',
+          message: `Payment for order #${order.orderId} was successful.`,
+          data: { orderId: order._id, status: 'paid' }
+      });
 
       res.status(200).json({
         val: true,
-        msg: "Payment verified and order placed successfully",
-        orderId,
+        msg: "Payment verified and order confirmed",
+        orderId: order._id,
       });
     } catch (err) {
       console.error("Error verifying payment:", err);

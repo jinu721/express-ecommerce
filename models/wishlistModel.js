@@ -10,6 +10,7 @@ const mongoose = require('mongoose');
 
 const wishlistItemSchema = new mongoose.Schema({
     productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Products', required: true },
+    variantId: { type: mongoose.Schema.Types.ObjectId, ref: 'Variant' },
     size: { type: String, required: true },
     color: { type: String },
 });

@@ -21,6 +21,7 @@ const walletSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  // wallet id needed
   transactionHistory: [
     {
       transactionType: {

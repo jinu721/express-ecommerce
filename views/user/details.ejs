@@ -20,6 +20,9 @@
 
     <!--=============== CSS ===============-->
     <link rel="stylesheet" href="/css/styles.css" />
+    <link rel="stylesheet" href="/css/variant-selector.css" />
+    <link rel="stylesheet" href="/css/ios-toast.css" />
+    <link rel="stylesheet" href="/css/product-images.css" />
 
     <title>Ecommerce Website</title>
   </head>
@@ -31,80 +34,65 @@
     <!--=============== MAIN ===============-->
     <main class="main">
       <!--=============== BREADCRUMB ===============-->
-      <!-- <section class="breadcrumb">
-        <ul class="breadcrumb__list flex container">
-          <li><a href="index.html" class="breadcrumb__link">Home</a></li>
-          <li><span class="breadcrumb__link"></span>></li>
-          <li><span class="breadcrumb__link">Fashion</span></li>
-          <li><span class="breadcrumb__link"></span>></li>
-          <li><span class="breadcrumb__link"><%= product.name  %></span></li>
-        </ul>
-      </section> -->
-
       <%- include('../layouts/breadcrumbs.ejs')  %>
       
-
       <!--=============== DETAILS ===============-->
-
-      
-  
-      <input type="hidden" name="" value="<%= product._id  %>" id="productIdStore">
+      <input type="hidden" name="" value="<%= product._id  %>" id="productIdStore" data-product-id="<%= product._id %>">
 
       <section class="details section--lg">
         <div class="details__container container grid">
 
           <div class="details__group image-zoom-container">
-            <img
-              src="/<%= product.images[0] %>"
-              alt=""
-              class="details__img mainImage"
-              id="mainImage"
-              onmouseover="enableZoom(event)"
-              onmouseout="disableZoom()"
-            />
-            <div class="zoom-overlay" id="zoomOverlay"></div>
-            <div class="details__small-images grid">
+            <% if (product.images && product.images.length > 0) { %>
               <img
-                src="/<%= product.images[1] %>"
-                alt=""
-                class="details__small-img productImage2"
-                onclick="changeMainImage(this)"
+                src="/<%= product.images[0] %>"
+                alt="<%= product.name %>"
+                class="details__img mainImage"
+                id="mainImage"
+                onmouseover="enableZoom(event)"
+                onmouseout="disableZoom()"
               />
-              <img
-                src="/<%= product.images[2] %>"
-                alt=""
-                class="details__small-img productImage3"
-                onclick="changeMainImage(this)"
-              />
-              <img
-                src="/<%= product.images[3] %>"
-                alt=""
-                class="details__small-img productImage4"
-                onclick="changeMainImage(this)"
-              />
-            </div>
+              <div class="zoom-overlay" id="zoomOverlay"></div>
+              <div class="details__small-images grid">
+                <% product.images.forEach((image, index) => { %>
+                  <% if (index > 0 && image) { %>
+                    <img
+                      src="/<%= image %>"
+                      alt="<%= product.name %> - Image <%= index + 1 %>"
+                      class="details__small-img"
+                      onclick="changeMainImage(this)"
+                    />
+                  <% } %>
+                <% }) %>
+              </div>
+            <% } else { %>
+              <div class="no-image-placeholder">
+                <i class="fas fa-image"></i>
+                <p>No images available</p>
+              </div>
+            <% } %>
           </div>
-          
-          
-
 
           <div class="details__group">
             <h3 class="details__title"><%= product.name %></h3>
-            <p class="details__brand">Brand: <span><%= product.brand %></span></p>
+            <p class="details__brand">Brand: <span><%= product.brand?.name || 'No Brand' %></span></p>
+            
             <div class="details__price flex">
-              <% if(product.offerPrice !== 0) { %>
-                <span class="new__price offerPriceProduct">&#8377;<%= product.offerPrice %></span>
-                <span class="old__price">&#8377;<%= product.price %></span>
-                <span class="save__price">
-                  <%= parseInt(((product.price - product.offerPrice) / product.price) * 100) %>% Off
-                </span>
+              <% if(hasOffer) { %>
+                <span class="new__price offerPriceProduct">&#8377;<%= Math.round(discountedPrice) %></span>
+                <span class="old__price">&#8377;<%= Math.round(displayPrice) %></span>
+                <% if(isPercentageOffer) { %>
+                  <span class="save__price"><%= discountPercentage %>% Off</span>
+                <% } %>
               <% } else { %>
-                <span class="new__price">&#8377;<%= product.price %></span>
+                <span class="new__price">&#8377;<%= Math.round(displayPrice) %></span>
               <% } %>
             </div>
+            
             <p class="short__description">
               <%= product.description %>
             </p>
+            
             <ul class="products__list">
               <li class="list__item flex">
                 <i class="fi-rs-crown"></i> <%= product.warranty ? product.warranty : 'No Warranty Available' %>
@@ -116,40 +104,28 @@
                 <i class="fi-rs-credit-card"></i> <%= product.cashOnDelivery ? 'Cash on Delivery available' : 'No Cash on Delivery available' %>
               </li>
             </ul>
-            <div class="details__color flex">
-              <span class="details__color-title">Color</span>
-              <ul class="color__list">
-                <% product.colors.forEach(color => { %>
-                  <li>
-                    <a class="color__link" style="background-color:<%= color %>;" data-color-name="<%= color %>"></a>
-                  </li>
-                <% }) %>
-              </ul>
+
+            <!-- Dynamic Variant Selector -->
+            <div id="variant-selector" class="variant-selector-container">
+              <!-- This will be populated by JavaScript -->
             </div>
-            <div class="details__size flex">
-              <span class="details__size-title">Size</span>
-              <ul class="size__list">
-                <% for(let key in product.sizes){ %>
-                  <li>
-                    <a  class="size__link "><%= key %></a>
-                  </li>
-                <% } %>
-              </ul>
-            </div>
-            <div class="details__action">
-              <input type="number" class="quantity" value="1" min="1" oninput="validateQuantity(this, <%= product.stock %>)"step="1"/>
-              <a data-id="<%= product._id  %>" class="btn btn--sm btAddToCart">Add To Cart</a>
-              <a data-id="<%= product._id  %>" class="btn btn--sm btn-buynow">Buy Now</a>
+
+            <div class="details__action add-to-cart-section">
+              <input type="number" class="quantity" id="quantity" value="1" min="1" step="1"/>
+              <button class="btn btn--sm add-to-cart-btn" disabled>Add To Cart</button>
+              <button class="btn btn--sm buy-now-btn" disabled>Buy Now</button>
+              
               <% if(isAlreadyWishlist){ %>        
                 <a data-id="<%= product._id %>" class="details__action-btn wishlistDiv"  id="wishlistButton">
                   <i style="color: red;" class="fi fi-rs-heart wishlistIcon"></i>
                 </a>         
-                <% }else{ %>
-                  <a data-id="<%= product._id %>" class="details__action-btn wishlistDiv"  id="wishlistButton">
-                    <i class="fi fi-rs-heart wishlistIcon"></i>
-                  </a>         
-               <% } %>
+              <% } else { %>
+                <a data-id="<%= product._id %>" class="details__action-btn wishlistDiv"  id="wishlistButton">
+                  <i class="fi fi-rs-heart wishlistIcon"></i>
+                </a>         
+              <% } %>
             </div>
+            
             <ul class="details__meta">
               <li class="meta__list flex">
                 <% let tags = ""; %>
@@ -159,13 +135,12 @@
                 <span>Tags:</span><%= tags.slice(0, -2) %> 
               </li>
               <li class="meta__list flex">
-                Availability: <span class="stockText"></span>
+                Availability: <span class="stockText">Select options to see availability</span>
               </li>
             </ul>
           </div>
         </div>
       </section>
-      
 
       <!--=============== DETAILS TAB ===============-->
       <section class="details__tab container">
@@ -175,29 +150,7 @@
         <div class="details__tabs-content review">
           <div class="details__tab-content" content id="reviews">
             <div class="reviews__container grid reviewShowSection">
-              <div class="review__single">
-                <div>
-                  <img 
-                    src="/img/icons/image.png"
-                    alt=""
-                    class="review__img"
-                  />
-                  <h4 class="review__title ">Jacky Chan</h4>
-                </div>
-                <div class="review__data">
-                  <div class="review__rating">
-                    <i class="fi fi-rs-star"></i>
-                    <i class="fi fi-rs-star"></i>
-                    <i class="fi fi-rs-star"></i>
-                    <i class="fi fi-rs-star"></i>
-                    <i class="fi fi-rs-star"></i>
-                  </div>
-                  <p class="review__description">
-                    Thank you, very fast shipping from Poland only 3days.
-                  </p>
-                  <span class="review__date">December 4, 2022 at 3:12 pm</span>
-                </div>
-              </div>
+              <!-- Reviews will be loaded here -->
             </div>
             <% if(isBuyedUser){ %>
               <div class="review__form">
@@ -232,16 +185,25 @@
             <div class="product__item">
               <div class="product__banner">
                 <a href="/details/<%= data._id  %>" class="product__images">
-                  <img
-                    src="/<%= data.images[0]  %>"
-                    alt=""
-                    class="product__img default"
-                  />
-                  <img
-                    src="/<%= data.images[2]  %>"
-                    alt=""
-                    class="product__img hover"
-                  />
+                  <% if (data.images && data.images.length > 0 && data.images[0]) { %>
+                    <img
+                      src="/<%= data.images[0] %>"
+                      alt="<%= data.name %>"
+                      class="product__img default"
+                    />
+                    <% if (data.images.length > 2 && data.images[2]) { %>
+                      <img
+                        src="/<%= data.images[2] %>"
+                        alt="<%= data.name %>"
+                        class="product__img hover"
+                      />
+                    <% } %>
+                  <% } else { %>
+                    <div class="product__img default no-image-placeholder">
+                      <i class="fas fa-image"></i>
+                      <p>No Image</p>
+                    </div>
+                  <% } %>
                 </a>
                 <div class="product__actions">
                   <a href="#" class="action__btn" aria-label="Quick View">
@@ -270,12 +232,15 @@
                   <i class="fi fi-rs-star"></i>
                 </div>
                 <div class="product__price flex">
-                  <% if(data.offerPrice!==0){ %>
-                    <span class="new__price currentPrice">&#8377;<%= data.offerPrice %></span>
-                    <span class="old__price">&#8377;<%= data.price %></span>
-                    <% }else{ %>
-                    <span class="new__price">&#8377;<%= data.price %></span>
+                  <% if(data.hasOffer) { %>
+                    <span class="new__price">&#8377;<%= Math.round(data.finalPrice) %></span>
+                    <span class="old__price">&#8377;<%= Math.round(data.originalPrice) %></span>
+                    <% if(data.isPercentageOffer) { %>
+                      <span class="save__price"><%= data.discountPercentage %>% Off</span>
                     <% } %>
+                  <% } else { %>
+                    <span class="new__price">&#8377;<%= Math.round(data.originalPrice || data.basePrice || data.price) %></span>
+                  <% } %>
                 </div>
                 <a
                   href="#"
@@ -319,12 +284,13 @@
    <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOOTER ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
    <%- include('../layouts/footer.ejs')  %>
 
-
     <!--=============== SWIPER JS ===============-->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="/js/ios-toast.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+    <!-- Dynamic Variant Selector -->
+    <script src="/js/variantSelector.js"></script>
+    
     <!--=============== MAIN JS ===============-->
     <script src="/js/user/details.js"></script>
   </body>

@@ -91,30 +91,7 @@ updateStatusBtn.addEventListener("click", async () => {
   }
 });
 
-async function sendNotification(title, message, type, status) {
-  try {
-    const response = await fetch("/notifications", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title,
-        message,
-        type,
-        status,
-      }),
-    });
-    const data = await response.json();
-    if (data.val) {
-      console.log("Notification sended successfully");
-    } else {
-      console.log(data.msg);
-    }
-  } catch (err) {
-    console.log(`Sending notification error :- ${err}`);
-  }
-}
+
 
 
 document.querySelector(".btn-requestApproved").addEventListener("click", async () => {
@@ -190,6 +167,7 @@ document.querySelector(".btn-requestCancel").addEventListener("click", async () 
   }
 });
 
+// Consolidated notification function
 async function sendNotification(title, message, type, status) {
   try {
     const response = await fetch("/notifications", {
@@ -202,17 +180,17 @@ async function sendNotification(title, message, type, status) {
         message,
         type,
         status,
-        userId,
+        userId: document.querySelector("#userId").value,
       }),
     });
     const data = await response.json();
-    if (data.success) {
-      console.log("Notification sent successfully.");
+    if (data.val) {
+      console.log("Notification sent successfully");
     } else {
-      console.error("Notification error:", data.msg);
+      console.log(data.msg);
     }
-  } catch (error) {
-    console.error("Error sending notification:", error);
+  } catch (err) {
+    console.log(`Sending notification error :- ${err}`);
   }
 }
 

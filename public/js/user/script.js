@@ -46,6 +46,11 @@ const loginRegBreadcrumb = document.querySelector(".login-reg-breadcrumb");
 const eyeIcon = document.querySelectorAll(".eye-icon");
 const forgotPassText = document.querySelector(".forgotTxt");
 
+// Direct login button elements
+const btnLoginDirect = document.querySelector(".btnLoginDirect");
+const loginDirectText = document.querySelector(".loginDirectText");
+const loginDirectLoader = document.querySelector("#loginDirectLoader");
+
 createaccountTxt.addEventListener("click", () => {
   introSection.style.display = "none";
   loginSection.style.display = "none";
@@ -63,6 +68,84 @@ loginaccountTxt.addEventListener("click", () => {
 //   loginSection.style.display = "none";
 //   registerSection.style.display = "none";
 // });
+
+// Direct login button handler
+btnLoginDirect.addEventListener("click", (e) => {
+  e.preventDefault();
+  const usernameOrEmail = document.querySelector(".username-email");
+  const passwordInpLog = document.querySelector(".passwordLog");
+  
+  // Basic validation
+  if (!usernameOrEmail.value.trim()) {
+    errEmailLog.style.display = "flex";
+    errEmailLog.textContent = "Please enter your username or email";
+    return;
+  }
+  
+  if (!passwordInpLog.value.trim()) {
+    errPassLog.style.display = "flex";
+    errPassLog.textContent = "Please enter your password";
+    return;
+  }
+  
+  // Hide error messages
+  errEmailLog.style.display = "none";
+  errPassLog.style.display = "none";
+  
+  // Show loader
+  loginDirectText.style.display = "none";
+  loginDirectLoader.style.display = "flex";
+  
+  const userInfo = {
+    usernameOrEmail: usernameOrEmail.value.trim(),
+    password: passwordInpLog.value
+  };
+  
+  let sendReq = async () => {
+    try {
+      const resData = await fetch("/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(userInfo),
+      });
+      const parsedData = await resData.json();
+      
+      // Hide loader
+      loginDirectText.style.display = "flex";
+      loginDirectLoader.style.display = "none";
+      
+      if (!parsedData.val) {
+        if (parsedData.type === "username" || parsedData.type === "email") {
+          errEmailLog.style.display = "flex";
+          errEmailLog.textContent = parsedData.msg;
+        } else if (parsedData.type === "password") {
+          errPassLog.style.display = "flex";
+          errPassLog.textContent = parsedData.msg;
+        } else if (parsedData.type === "ban") {
+          Swal.fire({
+            icon: "error",
+            title: "Account Banned",
+            text: parsedData.msg,
+          });
+        }
+      } else {
+        // Success - redirect based on role
+        const redirectUrl = parsedData.redirectUrl || "/";
+        window.location.href = redirectUrl;
+      }
+    } catch (err) {
+      console.log(err);
+      // Hide loader on error
+      loginDirectText.style.display = "flex";
+      loginDirectLoader.style.display = "none";
+      errEmailLog.style.display = "flex";
+      errEmailLog.textContent = "An error occurred. Please try again.";
+    }
+  };
+  sendReq();
+});
 
 btnOtpReg.addEventListener("click", (e) => {
   e.preventDefault();

@@ -2,133 +2,155 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
-    />
-    <title>Admin Panel - Update Coupon</title>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
-      integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
-    <link rel="stylesheet" href="/css/admin.css" />
-    <!-- End layout styles -->
-    <link rel="shortcut icon" href="assets/images/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Update Coupon - Admin Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/modern-admin.css" />
+    <style>
+      .form-container {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .error-message {
+        color: var(--danger-color);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+      }
+      .input-group {
+        display: flex;
+        gap: 0;
+      }
+      .input-group input {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+      }
+      .input-group button {
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+        border-left: none;
+      }
+    </style>
   </head>
   <body>
-    <div class="container-scroller">
+    <div class="admin-layout">
       <%- include('../layouts/headerAdmin.ejs') %>
-      <!-- partial -->
-      <div class="container-fluid page-body-wrapper">
-        <!-- partial:partials/_navbar.html -->
+      
+      <div class="admin-main">
+        <header class="admin-header">
+          <h1 style="font-size: 1.5rem; font-weight: 600; margin: 0;">Update Coupon</h1>
+          <a href="/admin/coupons">
+            <button class="btn btn-outline-primary">
+              <i class="fas fa-arrow-left"></i> Back to Coupons
+            </button>
+          </a>
+        </header>
         
-        <!-- partial -->
-        <div style="margin-top: 20px" class="col-md-4 grid-margin stretch-card">
-          <div class="card">
-            <div class="card-body">
-              <h4 class="card-title">Update Coupon</h4>
-              <p class="card-description">Edit the Coupon Details</p>
-              <form class="forms-sample" id="updateCouponForm">
-                <div class="form-group d-flex align-items-center">
-                  <div class="input-group">
-                    <input
-                      type="text"
-                      class="form-control"
-                      id="couponCode"
-                      value="<%= coupon.code %>"
-                      placeholder="Coupon Code"
-                    />
-                    <div class="input-group-append">
+        <main class="admin-content">
+          <div class="form-container">
+            <div class="card">
+              <div class="card-header">
+                <h4 class="card-title">Edit Coupon Details</h4>
+              </div>
+              <div class="card-body">
+                <form class="forms-sample" id="updateCouponForm">
+                  <div class="form-group">
+                    <label for="couponCode" class="form-label">Coupon Code</label>
+                    <div class="input-group">
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="couponCode"
+                        value="<%= coupon.code %>"
+                        placeholder="Enter coupon code"
+                      />
                       <button
                         type="button"
                         class="btn btn-secondary"
                         id="generateCouponBtn"
-                        title="Generate Coupon"
+                        title="Generate Random Code"
                       >
                         <i class="fas fa-sync-alt"></i>
                       </button>
                     </div>
+                    <p class="error-message" id="couponCodeError"></p>
                   </div>
-                </div>
-                <p class="error-message" id="couponCodeError"></p>
 
-                <div class="form-group">
-                  <label for="discountValue">Discount Value</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="discountValue"
-                    value="<%= coupon.discountValue %>"
-                    placeholder="Discount Value"
-                  />
-                  <p class="error-message" id="discountValueError"></p>
-                </div>
-                <div class="form-group">
-                  <label for="validFrom">Valid From</label>
-                  <input type="date" class="form-control"  id="validFrom" />
-                  <p class="error-message" id="validFromError"></p>
-                </div>
-                <div class="form-group">
-                  <label for="validUntil">Valid Until</label>
-                  <input type="date" class="form-control" id="validUntil" />
-                  <p class="error-message" id="validUntilError"></p>
-                </div>
-                <div class="form-group">
-                  <label for="minPurchase">Minimum Purchase</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="minPurchase"
-                    value="<%= coupon.minPurchase %>"
-                    placeholder="Minimum Purchase Amount"
-                  />
-                  <p class="error-message" id="minPurchaseError"></p>
-                </div>
-                <div class="form-group">
-                  <label for="maxDiscount">Maximum Discount</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="maxDiscount"
-                    value="<%= coupon.maxDiscount %>"
-                    placeholder="Maximum Discount Amount"
-                  />
-                  <p class="error-message" id="maxDiscountError"></p>
-                </div>
-                <div class="form-group">
-                  <label for="usageLimit">Usage Limit</label>
-                  <input
-                    type="number"
-                    class="form-control"
-                    id="usageLimit"
-                    value="<%= coupon.usageLimit %>"
-                    placeholder="Usage Limit"
-                  />
-                  <p class="error-message" id="usageLimitError"></p>
-                </div>
-                <button
-                  type="button"
-                  class="btn btn-primary mr-2"
-                  id="submitButton"
-                  data-id="<%= coupon._id %>"
-                >
-                  Update Coupon
-                </button>
-              </form>
+                  <div class="form-group">
+                    <label for="discountValue" class="form-label">Discount Value</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="discountValue"
+                      value="<%= coupon.discountValue %>"
+                      placeholder="e.g., 100 or 10%"
+                    />
+                    <p class="error-message" id="discountValueError"></p>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="validFrom" class="form-label">Valid From</label>
+                    <input type="date" class="form-control" id="validFrom" />
+                    <p class="error-message" id="validFromError"></p>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="validUntil" class="form-label">Valid Until</label>
+                    <input type="date" class="form-control" id="validUntil" />
+                    <p class="error-message" id="validUntilError"></p>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="minPurchase" class="form-label">Minimum Purchase</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="minPurchase"
+                      value="<%= coupon.minPurchase %>"
+                      placeholder="Minimum purchase amount"
+                    />
+                    <p class="error-message" id="minPurchaseError"></p>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="maxDiscount" class="form-label">Maximum Discount</label>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="maxDiscount"
+                      value="<%= coupon.maxDiscount %>"
+                      placeholder="Maximum discount amount"
+                    />
+                    <p class="error-message" id="maxDiscountError"></p>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="usageLimit" class="form-label">Usage Limit</label>
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="usageLimit"
+                      value="<%= coupon.usageLimit %>"
+                      placeholder="Number of times coupon can be used"
+                    />
+                    <p class="error-message" id="usageLimitError"></p>
+                  </div>
+
+                  <button 
+                    type="button" 
+                    class="btn btn-primary" 
+                    id="submitButton"
+                    data-id="<%= coupon._id %>"
+                  >
+                    <i class="fas fa-save"></i> Update Coupon
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
-        <!-- main-panel ends -->
+        </main>
       </div>
-      <!-- page-body-wrapper ends -->
     </div>
 
-    <!-- endinject -->
-    <!-- Custom js for this page -->
     <script src="/js/admin/couponUpdate.js"></script>
-    <!-- End custom js for this page -->
   </body>
 </html>

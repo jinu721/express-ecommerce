@@ -147,9 +147,14 @@ async function performSearch() {
       data.results.forEach((item) => {
         const productHTML = `
           <div data-id="${item._id}" class="productItem" onclick="loadDetailsPage(event)">
-            <img data-id="${item._id}" class="productItemImg" src="/${item.images[0]}" alt="${item.name}">
+            <img data-id="${item._id}" class="productItemImg" src="${item.images[0]}" alt="${item.name}">
             <p data-id="${item._id}" class="productItemName">${item.name}</p>
-            <p data-id="${item._id}" class="productItemPrice">&#8377;${item.offerPrice}</p>
+            <p data-id="${item._id}" class="productItemPrice">
+              ${item.hasOffer 
+                ? `<span class="new__price">&#8377;${Math.round(item.finalPrice)}</span><span class="old__price">&#8377;${Math.round(item.originalPrice)}</span>${item.isPercentageOffer ? `<span class="save__price">${item.discountPercentage}% Off</span>` : ''}`
+                : `&#8377;${Math.round(item.originalPrice || item.finalPrice || item.basePrice || item.price)}`
+              }
+            </p>
           </div>
         `;
         resultsContainer.innerHTML += productHTML;

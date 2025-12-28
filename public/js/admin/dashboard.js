@@ -3,32 +3,35 @@ const endDateInput = document.getElementById("end-date");
 const downloadBtn = document.querySelector(".btnDownloadPdf");
 const errorMsg = document.getElementById("error-msg");
 
-const dateButtons = document.querySelectorAll(".btnDateRange");
+// Updated selectors for new UI
+const dateButtons = document.querySelectorAll(".report-btn");
 const customDateInputs = document.getElementById("customDateInputs");
 
 let selectedRange = "daily";
 
 function updateActiveButton(selectedButton) {
-  dateButtons.forEach((btn) => btn.classList.remove("btn-primary"));
-  dateButtons.forEach((btn) => btn.classList.add("btn-outline-primary"));
-  selectedButton.classList.remove("btn-outline-primary");
-  selectedButton.classList.add("btn-primary");
+  dateButtons.forEach((btn) => btn.classList.remove("active"));
+  selectedButton.classList.add("active");
 }
+
+// Set default active button
 const defaultButton = document.querySelector('[data-range="daily"]');
-updateActiveButton(defaultButton);
+if (defaultButton) {
+  updateActiveButton(defaultButton);
+}
+
 dateButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     const range = btn.getAttribute("data-range");
-
     updateActiveButton(btn);
-
     selectedRange = range;
+    
     if (range === "custom") {
-      customDateInputs.style.display = "flex";
+      customDateInputs.classList.add("show");
     } else {
-      customDateInputs.style.display = "none";
+      customDateInputs.classList.remove("show");
       console.log(`Fetching data for ${range} range`);
-      fetchData(`/admin/dashboard/data?range=${range}`);
+      loadDashboardStats(range);
     }
   });
 });
@@ -38,348 +41,241 @@ let topSellingCategoriesChartInstance = null;
 let topSellingBrandsChartInstance = null;
 let lineChartWithDotsInstance = null;
 
-
-
-async function fetchData(url) {
-  const dashboardData = document.querySelector(".dashboardData");
-  dashboardData.innerHTML = "";
+// Function to load dashboard stats into the new UI
+async function loadDashboardStats(range = 'daily') {
   try {
-    const response = await fetch(url);
+    const response = await fetch(`/admin/dashboard/data?range=${range}`);
     const data = await response.json();
-    console.log(data);
-    if (data.val) {
-      dashboardData.innerHTML = `
-              <div class="row">
-                <div class="col-sm-4 grid-margin">
-                  <div class="card">
-                    <div class="card-body">
-                      <h5>Revenue</h5>
-                      <div class="row">
-                        <div class="col-8 col-sm-12 col-xl-8 my-auto">
-                          <div class="d-flex d-sm-block d-md-flex align-items-center">
-                            <h2 class="mb-0">&#8377;${data.dashboard.totalRevenue}</h2>
-                          </div>
-                        </div>
-                        <div class="col-4 col-sm-12 col-xl-4 text-center text-xl-right">
-                          <i class="icon-lg mdi mdi-codepen text-primary ml-auto"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-sm-4 grid-margin">
-                  <div class="card">
-                    <div class="card-body">
-                      <h5>Pending money</h5>
-                      <div class="row">
-                        <div class="col-8 col-sm-12 col-xl-8 my-auto">
-                          <div class="d-flex d-sm-block d-md-flex align-items-center">
-                            <h2 class="mb-0">&#8377;${data.dashboard.totalPendingMoney}</h2>
-                          </div>
-                        </div>
-                        <div class="col-4 col-sm-12 col-xl-4 text-center text-xl-right">
-                          <i class="icon-lg mdi mdi-wallet-travel text-danger ml-auto"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div class="col-sm-4 grid-margin">
-                  <div class="card">
-                    <div class="card-body">
-                      <h5>Overall discount</h5>
-                      <div class="row">
-                        <div class="col-8 col-sm-12 col-xl-8 my-auto">
-                          <div class="d-flex d-sm-block d-md-flex align-items-center">
-                            <h2 class="mb-0">&#8377;${data.dashboard.totalDiscounts}</h2>
-                          </div>
-                        </div>
-                        <div class="col-4 col-sm-12 col-xl-4 text-center text-xl-right">
-                          <i class="icon-lg mdi mdi-monitor text-success ml-auto"></i>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-        <div class="row">
-          <div class="col-xl-3 col-sm-6 grid-margin stretch-card">
-            <div class="card">
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-9">
-                    <div class="d-flex align-items-center align-self-start">
-                      <h3 class="mb-0">${data.dashboard.usersCount}</h3>
-                    </div>
-                  </div>
-                </div>
-                <h6 class="text-muted font-weight-normal">Total Users</h6>
-              </div>
-            </div>
-          </div>
-          <div class="col-xl-3 col-sm-6 grid-margin stretch-card">
-            <div class="card">
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-9">
-                    <div class="d-flex align-items-center align-self-start">
-                      <h3 class="mb-0">${data.dashboard.productsCount}</h3>
-                    </div>
-                  </div>
-                </div>
-                <h6 class="text-muted font-weight-normal">Total Products</h6>
-              </div>
-            </div>
-          </div>
-          <div class="col-xl-3 col-sm-6 grid-margin stretch-card">
-            <div class="card">
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-9">
-                    <div class="d-flex align-items-center align-self-start">
-                      <h3 class="mb-0">${data.dashboard.ordersCount}</h3>
-                    </div>
-                  </div>
-                </div>
-                <h6 class="text-muted font-weight-normal">Total Orders</h6>
-              </div>
-            </div>
-          </div>
-          <div class="col-xl-3 col-sm-6 grid-margin stretch-card">
-            <div class="card">
-              <div class="card-body">
-                <div class="row">
-                  <div class="col-9">
-                    <div class="d-flex align-items-center align-self-start">
-                      <h3 class="mb-0">${data.dashboard.categories.length}</h3>
-                    </div>
-                  </div>
-                </div>
-                <h6 class="text-muted font-weight-normal">Total Categories</h6>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        `;
-        const generateRandomColor = () =>
-          `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.6)`;
-        
-        const generateRandomBorderColor = () =>
-          `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 1)`;
-
-        const topSellingProductsCtx = document
-          .getElementById("topSellingChart")
-          .getContext("2d");
-        if (topSellingProductsChartInstance) {
-          topSellingProductsChartInstance.destroy();
-        }
-        topSellingProductsChartInstance = new Chart(topSellingProductsCtx, {
-          type: "bar",
-          data: {
-            labels: data.dashboard.topSellingProducts.map((prod) => prod.product.name),
-            datasets: [
-              {
-                label: "Sales Quantity",
-                data: data.dashboard.topSellingProducts.map((prod) => prod.totalQuantity),
-                backgroundColor: data.dashboard.topSellingProducts.map(generateRandomColor),
-                borderColor: data.dashboard.topSellingProducts.map(generateRandomBorderColor),
-                borderWidth: 1,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { display: true },
-            },
-            scales: {
-              x: { beginAtZero: true },
-              y: { beginAtZero: true },
-            },
-          },
-        });
-        
-        const topSellingCategoriesCtx = document
-          .getElementById("topSellingCategoriesChart")
-          .getContext("2d");
-        if (topSellingCategoriesChartInstance) {
-          topSellingCategoriesChartInstance.destroy();
-        }
-        topSellingCategoriesChartInstance = new Chart(topSellingCategoriesCtx, {
-          type: "bar",
-          data: {
-            labels: data.dashboard.topSellingCategories.map((cat) => cat.category),
-            datasets: [
-              {
-                label: "Sales Quantity",
-                data: data.dashboard.topSellingCategories.map((cat) => cat.totalQuantity),
-                backgroundColor: data.dashboard.topSellingCategories.map(generateRandomColor),
-                borderColor: data.dashboard.topSellingCategories.map(generateRandomBorderColor),
-                borderWidth: 1,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { display: true },
-            },
-            scales: {
-              x: { beginAtZero: true },
-              y: { beginAtZero: true },
-            },
-          },
-        });
-        
-        const topSellingBrandsCtx = document
-          .getElementById("topSellingBrandsChart")
-          .getContext("2d");
-        if (topSellingBrandsChartInstance) {
-          topSellingBrandsChartInstance.destroy();
-        }
-        topSellingBrandsChartInstance = new Chart(topSellingBrandsCtx, {
-          type: "bar",
-          data: {
-            labels: data.dashboard.topSellingBrands.map((brand) => brand.brand),
-            datasets: [
-              {
-                label: "Sales Quantity",
-                data: data.dashboard.topSellingBrands.map((brand) => brand.totalQuantity),
-                backgroundColor: data.dashboard.topSellingBrands.map(generateRandomColor),
-                borderColor: data.dashboard.topSellingBrands.map(generateRandomBorderColor),
-                borderWidth: 1,
-              },
-            ],
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { display: true },
-            },
-            scales: {
-              x: { beginAtZero: true },
-              y: { beginAtZero: true },
-            },
-          },
-        });
-
-      const visitorData = data.dashboard?.vistors || [];
-      if (visitorData.length === 0) {
-        console.error("No visitor data available.");
-        return;
-      }
-
-      const dates = visitorData.map((data) => {
-        const date = new Date(data.date);
-        return date.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        });
-      });
-
-      const uniqueVisitors = visitorData.map(
-        (data) => data.uniqueVisitors || 0
-      );
-      const totalViews = visitorData.map((data) => data.totalViews || 0);
-
-      const canvas = document.getElementById("lineChartWithDots");
-      if (!canvas) {
-        console.error("Canvas element with ID 'lineChartWithDots' not found.");
-        return;
-      }
-
-      const ctx = canvas.getContext("2d");
-
-      if (lineChartWithDotsInstance) {
-        lineChartWithDotsInstance.destroy();
-      }
-
-      lineChartWithDotsInstance = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: dates,
-          datasets: [
-            {
-              label: "Unique Visitors",
-              data: uniqueVisitors,
-              borderColor: "rgba(54, 162, 235, 1)",
-              backgroundColor: "rgba(54, 162, 235, 0.2)",
-              fill: false,
-              pointRadius: 5,
-              pointBackgroundColor: "rgba(54, 162, 235, 1)",
-              borderWidth: 2,
-              tension: 0.3,
-            },
-            {
-              label: "Total Views",
-              data: totalViews,
-              borderColor: "rgba(255, 99, 132, 1)",
-              backgroundColor: "rgba(255, 99, 132, 0.2)",
-              fill: false,
-              pointBackgroundColor: "rgba(255, 99, 132, 1)",
-              borderWidth: 2,
-              tension: 0.3,
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          plugins: {
-            legend: { display: true },
-          },
-          scales: {
-            x: {
-              type: "category",
-              title: { display: true, text: "Date" },
-            },
-            y: {
-              beginAtZero: true,
-              title: { display: true, text: "Count" },
-            },
-          },
-        },
-      });
+    
+    if (data.val && data.dashboard) {
+      const dashboard = data.dashboard;
+      
+      // Update stat cards
+      document.getElementById('totalUsers').textContent = dashboard.usersCount || 0;
+      document.getElementById('totalProducts').textContent = dashboard.productsCount || 0;
+      document.getElementById('totalOrders').textContent = dashboard.ordersCount || 0;
+      document.getElementById('totalRevenue').textContent = `₹${(dashboard.totalRevenue || 0).toLocaleString()}`;
+      
+      // Update charts with new data
+      updateCharts(dashboard);
+      
+      Toast.success('Dashboard Updated', `Data loaded for ${range} period`);
     } else {
-      console.log(data.msg);
+      Toast.error('Data Load Failed', data.msg || 'Failed to load dashboard data');
     }
-  } catch (err) {
-    console.log(err);
+  } catch (error) {
+    console.error('Error loading dashboard stats:', error);
+    Toast.error('Error', 'Failed to load dashboard data');
   }
 }
 
-document.querySelector(".btnDownloadPdf").addEventListener("click", () => {});
+// Function to update all charts
+function updateCharts(dashboard) {
+  updateTopSellingProductsChart(dashboard.topSellingProducts || []);
+  updateTopSellingCategoriesChart(dashboard.topSellingCategories || []);
+  updateTopSellingBrandsChart(dashboard.topSellingBrands || []);
+  updateVisitorChart(dashboard.vistors || []);
+}
 
-fetchData(`/admin/dashboard/data?range=${selectedRange}`);
+// Update top selling products chart
+function updateTopSellingProductsChart(products) {
+  const ctx = document.getElementById("topSellingChart");
+  if (!ctx) return;
+  
+  if (topSellingProductsChartInstance) {
+    topSellingProductsChartInstance.destroy();
+  }
+  
+  const generateRandomColor = () =>
+    `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.6)`;
+  
+  topSellingProductsChartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: products.map((prod) => prod.product?.name || 'Unknown'),
+      datasets: [{
+        label: "Sales Quantity",
+        data: products.map((prod) => prod.totalQuantity || 0),
+        backgroundColor: products.map(() => generateRandomColor()),
+        borderColor: products.map(() => generateRandomColor()),
+        borderWidth: 1,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true } },
+      scales: { x: { beginAtZero: true }, y: { beginAtZero: true } },
+    },
+  });
+}
 
-downloadBtn.addEventListener("click", async () => {
-  errorMsg.textContent = "";
-  downloadBtn.disabled = true;
+// Update top selling categories chart
+function updateTopSellingCategoriesChart(categories) {
+  const ctx = document.getElementById("topSellingCategoriesChart");
+  if (!ctx) return;
+  
+  if (topSellingCategoriesChartInstance) {
+    topSellingCategoriesChartInstance.destroy();
+  }
+  
+  const generateRandomColor = () =>
+    `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.6)`;
+  
+  topSellingCategoriesChartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: categories.map((cat) => cat.category || 'Unknown'),
+      datasets: [{
+        label: "Sales Quantity",
+        data: categories.map((cat) => cat.totalQuantity || 0),
+        backgroundColor: categories.map(() => generateRandomColor()),
+        borderColor: categories.map(() => generateRandomColor()),
+        borderWidth: 1,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true } },
+      scales: { x: { beginAtZero: true }, y: { beginAtZero: true } },
+    },
+  });
+}
+
+// Update top selling brands chart
+function updateTopSellingBrandsChart(brands) {
+  const ctx = document.getElementById("topSellingBrandsChart");
+  if (!ctx) return;
+  
+  if (topSellingBrandsChartInstance) {
+    topSellingBrandsChartInstance.destroy();
+  }
+  
+  const generateRandomColor = () =>
+    `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.6)`;
+  
+  topSellingBrandsChartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: brands.map((brand) => brand.brand || 'Unknown'),
+      datasets: [{
+        label: "Sales Quantity",
+        data: brands.map((brand) => brand.totalQuantity || 0),
+        backgroundColor: brands.map(() => generateRandomColor()),
+        borderColor: brands.map(() => generateRandomColor()),
+        borderWidth: 1,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true } },
+      scales: { x: { beginAtZero: true }, y: { beginAtZero: true } },
+    },
+  });
+}
+
+// Update visitor chart
+function updateVisitorChart(visitors) {
+  const ctx = document.getElementById("lineChartWithDots");
+  if (!ctx) return;
+  
+  if (lineChartWithDotsInstance) {
+    lineChartWithDotsInstance.destroy();
+  }
+  
+  if (visitors.length === 0) {
+    console.log("No visitor data available");
+    return;
+  }
+  
+  const dates = visitors.map((data) => {
+    const date = new Date(data.date);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  });
+  
+  const uniqueVisitors = visitors.map((data) => data.uniqueVisitors || 0);
+  const totalViews = visitors.map((data) => data.totalViews || 0);
+  
+  lineChartWithDotsInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: dates,
+      datasets: [
+        {
+          label: "Unique Visitors",
+          data: uniqueVisitors,
+          borderColor: "rgba(54, 162, 235, 1)",
+          backgroundColor: "rgba(54, 162, 235, 0.2)",
+          fill: false,
+          pointRadius: 5,
+          pointBackgroundColor: "rgba(54, 162, 235, 1)",
+          borderWidth: 2,
+          tension: 0.3,
+        },
+        {
+          label: "Total Views",
+          data: totalViews,
+          borderColor: "rgba(255, 99, 132, 1)",
+          backgroundColor: "rgba(255, 99, 132, 0.2)",
+          fill: false,
+          pointBackgroundColor: "rgba(255, 99, 132, 1)",
+          borderWidth: 2,
+          tension: 0.3,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: true } },
+      scales: {
+        x: { type: "category", title: { display: true, text: "Date" } },
+        y: { beginAtZero: true, title: { display: true, text: "Count" } },
+      },
+    },
+  });
+}
+
+// Load initial data immediately on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Show loading state
+  const statsCards = document.querySelectorAll('.stat-value');
+  statsCards.forEach(card => {
+    card.textContent = 'Loading...';
+  });
+  
+  // Load data immediately
+  loadDashboardStats(selectedRange);
+});
+
+// Enhanced download function for multiple formats
+async function downloadReport(format) {
+  const errorMsg = document.getElementById("error-msg");
+  const startDateInput = document.getElementById("start-date");
+  const endDateInput = document.getElementById("end-date");
+  
+  if (errorMsg) errorMsg.textContent = "";
 
   if (selectedRange === "custom") {
     if (!startDateInput.value || !endDateInput.value) {
-      errorMsg.textContent =
-        "Both start and end dates are required for custom range.";
-      downloadBtn.disabled = false;
+      if (errorMsg) errorMsg.textContent = "Both start and end dates are required for custom range.";
       return;
     }
 
     if (new Date(startDateInput.value) >= new Date(endDateInput.value)) {
-      errorMsg.textContent = "Start date must be earlier than end date.";
-      downloadBtn.disabled = false;
+      if (errorMsg) errorMsg.textContent = "Start date must be earlier than end date.";
       return;
     }
   }
 
   try {
-    const requestData = { range: selectedRange };
+    const requestData = { range: selectedRange, format: format };
     if (selectedRange === "custom") {
       requestData.startDate = startDateInput.value;
       requestData.endDate = endDateInput.value;
     }
-
-    console.log(requestData);
 
     const response = await fetch("/admin/dashboard/download-report", {
       method: "POST",
@@ -392,19 +288,87 @@ downloadBtn.addEventListener("click", async () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `SalesReport.pdf`;  
+      
+      let filename = `SalesReport`;
+      let extension = format === 'excel' ? 'xlsx' : format === 'csv' ? 'csv' : 'pdf';
+      a.download = `${filename}.${extension}`;
+      
       document.body.appendChild(a);
       a.click(); 
       document.body.removeChild(a);  
       window.URL.revokeObjectURL(url);
+      
+      Toast.success('Download Complete', `${format.toUpperCase()} report downloaded successfully`);
     } else {
       const { msg } = await response.json();
-      errorMsg.textContent = msg || "Failed to download report.";
+      if (errorMsg) errorMsg.textContent = msg || "Failed to download report.";
+      Toast.error('Download Failed', msg || "Failed to download report.");
     }
   } catch (err) {
-    errorMsg.textContent = "An error occurred while processing the request.";
+    const errorMessage = "An error occurred while processing the request.";
+    if (errorMsg) errorMsg.textContent = errorMessage;
+    Toast.error('Error', errorMessage);
     console.error(err);
-  } finally {
-    downloadBtn.disabled = false;
   }
-});
+}
+
+// PDF download button event listener
+if (downloadBtn) {
+  downloadBtn.addEventListener("click", async () => {
+    if (errorMsg) errorMsg.textContent = "";
+    downloadBtn.disabled = true;
+
+    if (selectedRange === "custom") {
+      if (!startDateInput.value || !endDateInput.value) {
+        if (errorMsg) errorMsg.textContent = "Both start and end dates are required for custom range.";
+        downloadBtn.disabled = false;
+        return;
+      }
+
+      if (new Date(startDateInput.value) >= new Date(endDateInput.value)) {
+        if (errorMsg) errorMsg.textContent = "Start date must be earlier than end date.";
+        downloadBtn.disabled = false;
+        return;
+      }
+    }
+
+    try {
+      const requestData = { range: selectedRange };
+      if (selectedRange === "custom") {
+        requestData.startDate = startDateInput.value;
+        requestData.endDate = endDateInput.value;
+      }
+
+      const response = await fetch("/admin/dashboard/download-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestData),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `SalesReport.pdf`;  
+        document.body.appendChild(a);
+        a.click(); 
+        document.body.removeChild(a);  
+        window.URL.revokeObjectURL(url);
+        
+        Toast.success('Download Complete', 'PDF report downloaded successfully');
+      } else {
+        const { msg } = await response.json();
+        if (errorMsg) errorMsg.textContent = msg || "Failed to download report.";
+        Toast.error('Download Failed', msg || "Failed to download report.");
+      }
+    } catch (err) {
+      const errorMessage = "An error occurred while processing the request.";
+      if (errorMsg) errorMsg.textContent = errorMessage;
+      Toast.error('Error', errorMessage);
+      console.error(err);
+    } finally {
+      downloadBtn.disabled = false;
+    }
+  });
+}

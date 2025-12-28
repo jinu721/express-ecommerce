@@ -1,244 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Admin Panel</title>
-    <!-- End plugin css for this page -->
-    <!-- inject:css -->
-    <!-- endinject -->
-    <!-- Layout styles -->
-    <link rel="stylesheet" href="/css/admin.css">
-    <!-- End layout styles -->
-    <!-- <link rel="shortcut icon" href="assets/images/favicon.png" /> -->
+    <title>Users Management - Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/modern-admin.css">
+    <link rel="stylesheet" href="/css/ios-toast.css">
+    <style>
+      .search-bar {
+        display: flex;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+      }
+      .search-bar input {
+        flex: 1;
+        min-width: 250px;
+      }
+      .badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+      }
+      .badge-info {
+        background-color: #3b82f6;
+        color: white;
+      }
+      .badge-warning {
+        background-color: #f59e0b;
+        color: white;
+      }
+      .badge-outline-primary {
+        background-color: transparent;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+      }
+      .badge-success {
+        background-color: #10b981;
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .badge-success:hover {
+        background-color: #059669;
+        transform: translateY(-1px);
+      }
+      .badge-danger {
+        background-color: #ef4444;
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .badge-danger:hover {
+        background-color: #dc2626;
+        transform: translateY(-1px);
+      }
+      .badge-secondary {
+        background-color: #6b7280;
+        color: white;
+      }
+      .pagination {
+        display: flex;
+        gap: 0.5rem;
+        list-style: none;
+        padding: 0;
+        justify-content: center;
+        margin-top: 2rem;
+      }
+      .pagination__link {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        color: var(--text-main);
+        text-decoration: none;
+        transition: all 0.2s;
+      }
+      .pagination__link:hover, .pagination__link.active {
+        background-color: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+      }
+      .ms-2 {
+        margin-left: 0.5rem;
+      }
+    </style>
   </head>
   <body>
-    <div class="container-scroller">
-      <!-- partial:partials/_sidebar.html -->
-      <%- include('../layouts/headerAdmin.ejs')  %>
-      <!-- partial -->
-      <div class="container-fluid page-body-wrapper">
-        <!-- partial:partials/_navbar.html -->
-        <nav class="navbar p-0 fixed-top d-flex flex-row">
-          <div class="navbar-brand-wrapper d-flex d-lg-none align-items-center justify-content-center">
-            <a class="navbar-brand brand-logo-mini" href="index.html"><img src="assets/images/logo-mini.svg" alt="logo" /></a>
-          </div>
-          <div class="navbar-menu-wrapper flex-grow d-flex align-items-stretch">
-            <button class="navbar-toggler navbar-toggler align-self-center" type="button" data-toggle="minimize">
-              <span class="mdi mdi-menu"></span>
-            </button>
-            <ul class="navbar-nav w-100">
-              <li class="nav-item w-100">
-                
-              </li>
-            </ul>
-            <ul class="navbar-nav navbar-nav-right">
-              <li class="nav-item nav-settings d-none d-lg-block">
-                <a class="nav-link" href="#">
-                  <i class="mdi mdi-view-grid"></i>
-                </a>
-              </li>
-              <li class="nav-item dropdown border-left">
-                <a class="nav-link count-indicator dropdown-toggle" id="messageDropdown" href="#" data-toggle="dropdown" aria-expanded="false">
-                  <i class="mdi mdi-email"></i>
-                  <span class="count bg-success"></span>
-                </a>
-                <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="messageDropdown">
-                  <h6 class="p-3 mb-0">Messages</h6>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <img src="assets/images/faces/face4.jpg" alt="image" class="rounded-circle profile-pic">
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject ellipsis mb-1">Mark send you a message</p>
-                      <p class="text-muted mb-0"> 1 Minutes ago </p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <img src="assets/images/faces/face2.jpg" alt="image" class="rounded-circle profile-pic">
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject ellipsis mb-1">Cregh send you a message</p>
-                      <p class="text-muted mb-0"> 15 Minutes ago </p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <img src="assets/images/faces/face3.jpg" alt="image" class="rounded-circle profile-pic">
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject ellipsis mb-1">Profile picture updated</p>
-                      <p class="text-muted mb-0"> 18 Minutes ago </p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <p class="p-3 mb-0 text-center">4 new messages</p>
-                </div>
-              </li>
-              <li class="nav-item dropdown border-left">
-                <a class="nav-link count-indicator dropdown-toggle" id="notificationDropdown" href="#" data-toggle="dropdown">
-                  <i class="mdi mdi-bell"></i>
-                  <span class="count bg-danger"></span>
-                </a>
-                <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="notificationDropdown">
-                  <h6 class="p-3 mb-0">Notifications</h6>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <div class="preview-icon bg-dark rounded-circle">
-                        <i class="mdi mdi-calendar text-success"></i>
-                      </div>
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject mb-1">Event today</p>
-                      <p class="text-muted ellipsis mb-0"> Just a reminder that you have an event today </p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <div class="preview-icon bg-dark rounded-circle">
-                        <i class="mdi mdi-settings text-danger"></i>
-                      </div>
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject mb-1">Settings</p>
-                      <p class="text-muted ellipsis mb-0"> Update dashboard </p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <div class="preview-icon bg-dark rounded-circle">
-                        <i class="mdi mdi-link-variant text-warning"></i>
-                      </div>
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject mb-1">Launch Admin</p>
-                      <p class="text-muted ellipsis mb-0"> New admin wow! </p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <p class="p-3 mb-0 text-center">See all notifications</p>
-                </div>
-              </li>
-              <li class="nav-item dropdown">
-                <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list" aria-labelledby="profileDropdown">
-                  <h6 class="p-3 mb-0">Profile</h6>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <div class="preview-icon bg-dark rounded-circle">
-                        <i class="mdi mdi-settings text-success"></i>
-                      </div>
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject mb-1">Settings</p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <a class="dropdown-item preview-item">
-                    <div class="preview-thumbnail">
-                      <div class="preview-icon bg-dark rounded-circle">
-                        <i class="mdi mdi-logout text-danger"></i>
-                      </div>
-                    </div>
-                    <div class="preview-item-content">
-                      <p class="preview-subject mb-1">Log out</p>
-                    </div>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <p class="p-3 mb-0 text-center">Advanced settings</p>
-                </div>
-              </li>
-            </ul>
-            <button class="navbar-toggler navbar-toggler-right d-lg-none align-self-center" type="button" data-toggle="offcanvas">
-              <span class="mdi mdi-format-line-spacing"></span>
-            </button>
-          </div>
-        </nav>
-        <!-- partial -->
-        <div class="row p-3">
-          <div class="col-12 grid-margin">
-            <div class="card">
-              <div class="card-body">
-                <h4 class="card-title">Order Status</h4>
-                <div class="table-responsive">
-                  <form class="nav-link mt-2 mt-md-0  d-lg-flex search">
-                    <input type="text" oninput="searchDebouncing()" class="form-control searchUsers" placeholder="Search users">
-                    <button style="height: 33px;margin: 3px 0px 0px 10px;" class="btn btn-primary" >Search</button>
-                  </form>
-                  <table class="table">
-                    <thead>
+    <div class="admin-layout">
+      <%- include('../layouts/headerAdmin.ejs') %>
+      
+      <div class="admin-main">
+        <header class="admin-header">
+          <h1 style="font-size: 1.5rem; font-weight: 600; margin: 0;">Users Management</h1>
+        </header>
+        
+        <main class="admin-content">
+          <div class="card">
+            <div class="card-header">
+              <h4 class="card-title">All Users</h4>
+            </div>
+            <div class="card-body">
+              <form class="search-bar">
+                <input 
+                  type="text" 
+                  class="form-control searchUsers" 
+                  placeholder="Search users..." 
+                  oninput="searchDebouncing()"
+                />
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-search"></i> Search
+                </button>
+              </form>
+              
+              <div class="table-responsive">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Username</th>
+                      <th>Email</th>
+                      <th>Role</th>
+                      <th>Join Date</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody class="resultContainer">
+                    <% user.forEach((value) => { %>
                       <tr>
-                        <th> Username</th>
-                        <th> Email</th>
-                        <th> Role</th>
-                        <th> Join Date </th>
-                        <th> Ban </th>
-                        <!-- <th> View </th> -->
+                        <td>
+                          <%= value.username %>
+                          <% if (currentAdminId && value._id.toString() === currentAdminId.toString()) { %>
+                            <span class="badge badge-info ms-2">You</span>
+                          <% } %>
+                        </td>
+                        <td><%= value.email %></td>
+                        <td>
+                          <span class="badge <%= value.role === 'admin' ? 'badge-warning' : 'badge-outline-primary' %>">
+                            <%= value.role %>
+                          </span>
+                        </td>
+                        <td>
+                          <% 
+                            const createdAt = new Date(value.createdAt);
+                            const day = createdAt.getDate();
+                            const month = createdAt.getMonth() + 1;
+                            const year = createdAt.getFullYear();
+                            const formattedDate = `${day}/${month}/${year}`;
+                          %>
+                          <%= formattedDate %>
+                        </td>
+                        <td>
+                          <% if (value.role === 'admin') { %>
+                            <span class="badge badge-secondary">Admin User</span>
+                          <% } else { %>
+                            <span 
+                              data-id="<%= value._id %>" 
+                              class="badge <%= value.isDeleted ? 'badge-success' : 'badge-danger' %> btn-ban"
+                              style="cursor: pointer;"
+                            >
+                              <%= value.isDeleted ? 'Unban' : 'Ban' %>
+                            </span>
+                          <% } %>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody class="resultContainer">
-                      <% user.forEach((value) => { %>
-                        <tr>
-                          <td> <%= value.username %> </td>
-                          <td> <%= value.email %> </td>
-                          <td> <%= value.role %> </td>
-                          <td>
-                            <% 
-                              const createdAt = new Date(value.createdAt);
-                              const day = createdAt.getDate();
-                              const month = createdAt.getMonth() + 1;
-                              const year = createdAt.getFullYear();
-                              const formattedDate = `${day}:${month}:${year}`;
-                            %>
-                            <%= formattedDate %>
-                          </td>
-                          <td>
-                            <div data-id="<%= value._id  %>" class="badge <%= value.isDeleted?'badge-outline-primary':'badge-outline-danger' %> btn-ban"><%= value.isDeleted?'Unban':'Ban' %></div>
-                          </td>
-                        </tr>
-                      <% }); %>
-                    </tbody>
-                  </table>
-                </div>
+                    <% }); %>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
-        </div>
-        <div style="margin-top:100px ;" class="col-md-4 grid-margin stretch-card userInfoView">
-          
-          </div>
-        </div>
-        <!-- main-panel ends -->
+
+          <!-- Pagination -->
+          <ul class="pagination">
+            <% let startPage = Math.max(1, currentPage - Math.floor(pagesToShow / 2)); %>
+            <% let endPage = Math.min(totalPages, startPage + pagesToShow - 1); %>
+            <% if (endPage - startPage + 1 < pagesToShow) { %>
+              <% startPage = Math.max(1, endPage - pagesToShow + 1); %>
+            <% } %>
+            <% if (currentPage > pagesToShow) { %>
+              <li><a href="?page=1" class="pagination__link">01</a></li>
+            <% } %>
+            <% for (let i = startPage; i <= endPage; i++) { %>
+              <li>
+                <a href="?page=<%= i %>" class="pagination__link <%= currentPage === i ? 'active' : '' %>">
+                  <%= i < 10 ? '0' + i : i %>
+                </a>
+              </li>
+            <% } %>
+            <% if (endPage < totalPages) { %>
+              <li>
+                <a href="?page=<%= currentPage + pagesToShow %>" class="pagination__link">
+                  <i class="fa-solid fa-arrow-right"></i>
+                </a>
+              </li>
+              <li>
+                <a href="?page=<%= totalPages %>" class="pagination__link">
+                  <%= totalPages < 10 ? '0' + totalPages : totalPages %>
+                </a>
+              </li>
+            <% } %>
+          </ul>
+        </main>
       </div>
-      <!-- page-body-wrapper ends -->
-      <ul class="pagination" style="position: absolute; bottom: 0; width: 100%; padding: 10px 0; display: flex; justify-content: center;">
-        <% let startPage = Math.max(1, currentPage - Math.floor(pagesToShow / 2)); %>
-        <% let endPage = Math.min(totalPages, startPage + pagesToShow - 1); %>
-    
-        <% for (let i = startPage; i <= endPage; i++) { %>
-            <li class="page-item <%= currentPage === i ? 'active' : '' %>">
-                <a class="page-link" href="?page=<%= i %>"><%= i %></a>
-            </li>
-        <% } %>
-    
-        <% if (currentPage < totalPages) { %>
-            <li class="page-item">
-                <a class="page-link" href="?page=<%= currentPage + 1 %>">Next</a>
-            </li>
-        <% } %>
-    </ul>
-    
-      
-    <!-- Custom js for this page -->
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/ios-toast.js"></script>
     <script src="/js/admin/users.js"></script>
-    <!-- End custom js for this page -->
   </body>
 </html>

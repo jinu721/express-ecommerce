@@ -1,12 +1,19 @@
 const express = require('express');
+const http = require('http');
+const socketIO = require('socket.io');
 const app = express();
+const server = http.createServer(app);
+const io = socketIO(server);
 const path = require('path');
+const morgan = require("morgan");
 require("dotenv").config();  
 const session = require('express-session');  
 const connect = require("./config/mongo");  
 connect();
 
-// ~~~ Importing routes for different sections of the application ~~~
+const notificationService = require('./services/notificationService');
+notificationService.initialize(io);
+
 const usersRoutes = require('./routes/usersRoutes');
 const accountRoutes = require('./routes/accountRoutes');
 const productsRoutes = require('./routes/productRoutes');
@@ -20,9 +27,12 @@ const orderRoutes = require('./routes/orderRoutes');
 const walletRoutes = require('./routes/walletRotes');
 const couponRoutes = require('./routes/couponRoutes');
 const notifyRoutes = require('./routes/notificationRoutes');
+// New refactored routes
+const variantRoutes = require('./routes/variantRoutes');
+const offerRoutes = require('./routes/offerRoutes');
+const brandRoutes = require('./routes/brandRoutes');
 require('./services/authServiece');  
 
-// ~~~ Importing middleware for various checks and functionality ~~~
 const authCheck = require('./middlewares/authCheck');
 const banCheck = require('./middlewares/banCheck');
 const roleCheck = require('./middlewares/roleCheck');
@@ -32,31 +42,28 @@ const adminCheck = require('./middlewares/adminAuth');
 const visitorsCheck = require('./middlewares/countViewers');
 const brudCrumbsMiddleware = require('./middlewares/brudCrumbs');
 
-// ~~~ View engine setup ~~~
-// Purpose: Set EJS as the templating engine and specify the directories for views
 app.set('view engine','ejs');
 app.set('views', [path.join(__dirname, 'views', 'user'), path.join(__dirname, 'views', 'admin')]);
-
-// ~~~ Static files setup ~~~
-// Purpose: Serve static files like CSS, JavaScript, images, etc.
 app.use(express.static(path.join(__dirname,'public')))
 
-// ~~~ Body parser setup ~~~
-// Purpose: Parse incoming request bodies (URL encoded and JSON)
 app.use(express.urlencoded({extended:true}));
 app.use(express.json());
+app.use(morgan("dev"));
 
-// ~~~ Session cookie setup ~~~
-// Purpose: Setup session management to store user session data
-app.use(session({
-    secret:'key273636keySectret',  // Secret key to encrypt session data
+const sessionMiddleware = session({
+    secret:'key273636keySectret',  
     resave:false,
     saveUninitialized:false,
-    cookie:{maxAge:1000*60*60*24*30}  // Session expiration time (30 days)
-}));
+    cookie:{maxAge:1000*60*60*24*30} 
+});
 
-// ~~~ Middlewares setup ~~~
-// Purpose: Apply middleware functions for various functionalities and checks
+app.use(sessionMiddleware);
+
+// Share session with Socket.IO
+io.use((socket, next) => {
+    sessionMiddleware(socket.request, {}, next);
+});
+
 app.use(authCheck); 
 app.use(banCheck);   
 app.use(roleCheck);  
@@ -66,8 +73,13 @@ app.use(adminCheck);
 app.use(visitorsCheck);
 app.use(brudCrumbsMiddleware);  
 
-// ~~~ Cache control for register route ~~~
-// Purpose: Disable caching for the register route to ensure fresh content on each visit
+// Make io and notificationService available to routes
+app.use((req, res, next) => {
+    req.io = io;
+    req.notificationService = notificationService;
+    next();
+});
+
 app.use('/register', (req, res, next) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.set('Pragma', 'no-cache');
@@ -75,8 +87,7 @@ app.use('/register', (req, res, next) => {
     next();
 });
 
-// ~~~ User routes setup ~~~
-// Purpose: Define routes for user-related functionality
+
 app.use('/', usersRoutes);
 app.use('/', accountRoutes);
 app.use('/', productsRoutes);
@@ -90,9 +101,12 @@ app.use('/', orderRoutes);
 app.use('/', walletRoutes); 
 app.use('/', couponRoutes); 
 app.use('/', notifyRoutes); 
+// New refactored route handlers
+app.use('/', variantRoutes);
+app.use('/', offerRoutes);
+app.use('/', brandRoutes);
 
-// ~~~ 404 route ~~~
-// Purpose: Catch-all route for undefined routes, rendering the 404 page
+
 app.get('/*', (req, res) => {
     res.render('404');  
 });
@@ -102,8 +116,10 @@ app.use((err,req,res,next)=>{
     next()
 })
 
-// ~~~ Server setup ~~~
-// Purpose: Start the server on port 3000
-app.listen(3000, () => {
-    console.log('Server started on :- http://localhost:3000/');
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, () => {
+    console.log(`Server started on: http://localhost:${PORT}/`);
+    console.log('Socket.IO initialized for real-time notifications');
 });
+
+module.exports = { app, server, io };

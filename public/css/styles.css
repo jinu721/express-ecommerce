@@ -3556,3 +3556,27 @@ table {
   align-items: center;
   justify-content: center;
 }
+
+/* Loader bar styles */
+.loader-bar {
+  display: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid transparent;
+  border-top: 2px solid var(--body-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error message styles */
+.err {
+  display: none;
+  color: #e74c3c;
+  font-size: var(--small-font-size);
+  margin-top: 5px;
+}

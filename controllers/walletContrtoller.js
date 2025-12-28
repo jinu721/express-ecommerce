@@ -8,22 +8,37 @@ module.exports = {
   // If no wallet is found, returns an error message.
   async walletPageLoad(req, res) {
     const { currentId } = req.session;
+    const { page = 1, limit = 10 } = req.query; 
     try {
       const wallet = await walletModel.findOne({ userId: currentId }).lean();
-      console.log(wallet);
       if (!wallet) {
         return res.status(400).json({ val: false, msg: "No wallet found!" });
       }
-      if (wallet && wallet.transactionHistory) {
+      
+      if (wallet.transactionHistory) {
         wallet.transactionHistory.sort(
           (a, b) => new Date(b.transactionDate) - new Date(a.transactionDate)
         );
+        
+        const startIndex = (page - 1) * limit; 
+        const endIndex = page * limit; 
+  
+        const paginatedTransactions = wallet.transactionHistory.slice(startIndex, endIndex);
+        
+        wallet.transactionHistory = paginatedTransactions; 
       }
-      console.log(wallet);
-      res.status(200).json({ val: true, wallet });
+  
+      res.status(200).json({
+        val: true,
+        wallet,
+        totalTransactions: wallet.transactionHistory.length,
+        currentPage: page,
+        totalPages: Math.ceil(wallet.transactionHistory.length / limit)
+      });
     } catch (err) {
       console.log(err);
       res.status(500).json({ val: false, msg: err });
     }
-  },
+  }
+  
 };

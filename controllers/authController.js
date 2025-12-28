@@ -1,17 +1,11 @@
 const passport = require("passport");
 
 module.exports = {
-  // ~~~ Google Login Redirect ~~~
-  // Purpose: Initiates Google login authentication process.
-  // Response: Redirects to Google authentication page with requested permissions (profile and email).
   whenGoogleLogin: (req, res, next) => {
     passport.authenticate("google", {
       scope: ["profile", "email"],
     })(req, res, next);
   },
-  // ~~~ Google Callback Handler ~~~
-  // Purpose: Handles the callback after Google authentication is complete.
-  // Response: Logs in the user and redirects to the home page, or redirects to register if authentication fails.
   whenGoogleCallbacks: (req, res, next) => {
     passport.authenticate(
       "google",
@@ -30,6 +24,14 @@ module.exports = {
         req.session.userEmail = user.email;
         req.session.loggedIn = true;
         req.session.currentId = user._id;
+        req.session.userRole = user.role;
+        
+        // Set admin session if user is admin
+        if (user.role === 'admin') {
+          req.session.AdminloggedIn = true;
+          return res.redirect("/admin/dashboard");
+        }
+        
         return res.redirect("/");
       }
     )(req, res, next);

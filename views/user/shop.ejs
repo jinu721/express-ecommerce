@@ -195,6 +195,26 @@
                         <% })) %>
                     </ul>
                   </div>
+                  
+                  <!-- Brand Filter Section -->
+                  <div class="filter-col2 p-r-15 p-b-27">
+                    <div class="mtext-102 cl2 p-b-15">
+                      Brand
+                    </div>
+
+                    <ul>
+                      <li class="p-b-6">
+                        <a href="#" class="filter-link stext-106 trans-04 filter-link-active" data-brand="">
+                          All Brands
+                        </a>
+                      </li>
+                      <!-- Brands will be populated dynamically -->
+                      <div id="brandFilterList">
+                        <!-- Dynamic brand list will be inserted here -->
+                      </div>
+                    </ul>
+                  </div>
+                  
                   <div class="filter-col2 p-r-15 p-b-27">
                     <div class="mtext-102 cl2 p-b-15">
                       By name
@@ -264,7 +284,7 @@
                           <span class="product__category">          <%= x.name %></span>
                       <% } %>
                   <% }) %>
-                  <a href="details.html">
+                  <a href="/details/<%= data._id %>">
                     <h3 class="product__title"><%= data.name  %></h3>
                   </a>
                   <div class="product__rating">
@@ -275,12 +295,15 @@
                     <i class="fi fi-rs-star"></i>
                   </div>
                   <div class="product__price flex">
-                    <% if(data.offerPrice!==0){ %>
-                      <span class="new__price">&#8377;<%= data.offerPrice %></span>
-                      <span class="old__price">&#8377;<%= data.price %></span>
-                      <% }else{ %>
-                      <span class="new__price">&#8377;<%= data.price %></span>
+                    <% if(data.hasOffer) { %>
+                      <span class="new__price">&#8377;<%= Math.round(data.finalPrice) %></span>
+                      <span class="old__price">&#8377;<%= Math.round(data.originalPrice) %></span>
+                      <% if(data.isPercentageOffer) { %>
+                        <span class="save__price"><%= data.discountPercentage %>% Off</span>
                       <% } %>
+                    <% } else { %>
+                      <span class="new__price">&#8377;<%= Math.round(data.originalPrice) %></span>
+                    <% } %>
                   </div>
                   <a
                     href="#"

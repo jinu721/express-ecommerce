@@ -23,6 +23,14 @@ router.get('/details/:id', productController.productDetailesLoad);
 // Response: Renders the page showing all the products for the admin.
 router.get('/admin/products', productController.productsPageLoad);
 
+// ~~~ Product Details (Admin Modal) ~~~
+// Purpose: Fetch product details and variants for the edit modal
+router.get('/admin/products/:id/details', productController.productDetails);
+
+// ~~~ Product Details (Admin Modal) ~~~
+// Purpose: Fetch product details and variants for the edit modal
+router.get('/admin/products/:id/details', productController.productDetails);
+
 // ~~~ Add New Product ~~~
 // Purpose: Handle the addition of a new product.
 // Response: Adds the new product and its images, then returns the updated list of products.
@@ -39,6 +47,11 @@ router.post('/admin/products/add', upload.fields([
 // Response: Removes the product from the admin's product list.
 router.get('/admin/products/unlist', productController.productUnlist);
 
+// ~~~ Permanent Delete Product ~~~
+// Purpose: Permanently delete a product from the database.
+// Response: Removes the product completely.
+router.delete('/admin/products/delete/:id', productController.productDelete);
+
 // ~~~ Product Stock Page ~~~
 // Purpose: Load the page showing the stock availability of products.
 // Response: Returns the current product stock levels.
@@ -52,7 +65,12 @@ router.get('/admin/products/update/:productId', productController.productUpdateL
 // ~~~ Update Product Data ~~~
 // Purpose: Update the product details for a given product ID.
 // Response: Updates the product and returns the updated product information.
-router.post('/admin/products/update/:productId', productController.productDataUpdate);
+router.post('/admin/products/update/:productId', upload.fields([
+  { name: 'productImage1', maxCount: 1 },
+  { name: 'productImage2', maxCount: 1 },
+  { name: 'productImage3', maxCount: 1 },
+  { name: 'productImage4', maxCount: 1 }
+]), productController.productDataUpdate);
 
 // ~~~ Update Product Image ~~~
 // Purpose: Update the product image for a specific product ID.

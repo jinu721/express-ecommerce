@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Bulk Create Variants - Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="/css/modern-admin.css">
+    <link rel="stylesheet" href="/css/ios-toast.css">
+  </head>
+  <body>
+    <div class="admin-layout">
+      <%- include('../layouts/headerAdmin.ejs') %>
+      
+      <div class="admin-main">
+        <header class="admin-header">
+          <div class="d-flex align-items-center gap-3">
+              <a href="/admin/products/<%= product._id %>/variants/manage" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Back to Variants
+              </a>
+              <h1 style="font-size: 1.5rem; font-weight: 600; margin: 0;">
+                Bulk Create Variants: <%= product.name %>
+              </h1>
+          </div>
+        </header>
+        
+        <main class="admin-content">
+          <div class="card">
+            <div class="card-body">
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>Bulk Variant Creation</strong><br>
+                This feature allows you to create multiple variants at once by selecting different combinations of attributes.
+              </div>
+              
+              <% if (attributes.length === 0) { %>
+                <div class="alert alert-warning">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <strong>No Attributes Available</strong><br>
+                  You need to set up product attributes first. Please contact your administrator to configure attributes for this product category.
+                </div>
+                <a href="/admin/products/<%= product._id %>/variants/manage" class="btn btn-secondary">
+                  <i class="fas fa-arrow-left"></i> Back to Variant Management
+                </a>
+              <% } else { %>
+                <form id="bulkVariantForm">
+                  <div class="row">
+                    <% attributes.forEach(attr => { %>
+                      <div class="col-md-6 mb-3">
+                        <label class="form-label"><%= attr.displayName %></label>
+                        <div class="attribute-values">
+                          <% attr.values.forEach(value => { %>
+                            <div class="form-check">
+                              <input class="form-check-input" type="checkbox" 
+                                     name="<%= attr.name %>" 
+                                     value="<%= value.value %>" 
+                                     id="<%= attr.name %>_<%= value.value %>">
+                              <label class="form-check-label" for="<%= attr.name %>_<%= value.value %>">
+                                <%= value.displayValue %>
+                              </label>
+                            </div>
+                          <% }) %>
+                        </div>
+                      </div>
+                    <% }) %>
+                  </div>
+                  
+                  <div class="row">
+                    <div class="col-md-4">
+                      <label for="defaultStock" class="form-label">Default Stock</label>
+                      <input type="number" class="form-control" id="defaultStock" value="10" min="0">
+                    </div>
+                    <div class="col-md-4">
+                      <label for="defaultPriceAdjustment" class="form-label">Default Price Adjustment</label>
+                      <input type="number" class="form-control" id="defaultPriceAdjustment" value="0" step="0.01">
+                    </div>
+                  </div>
+                  
+                  <div class="mt-4">
+                    <button type="button" class="btn btn-primary" onclick="generateVariants()">
+                      <i class="fas fa-magic"></i> Generate Variants
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="createVariants()" style="display: none;" id="createBtn">
+                      <i class="fas fa-save"></i> Create All Variants
+                    </button>
+                  </div>
+                </form>
+                
+                <div id="variantPreview" class="mt-4" style="display: none;">
+                  <h5>Variant Preview</h5>
+                  <div class="table-responsive">
+                    <table class="table table-sm">
+                      <thead>
+                        <tr>
+                          <th>Attributes</th>
+                          <th>Stock</th>
+                          <th>Price Adjustment</th>
+                        </tr>
+                      </thead>
+                      <tbody id="variantTableBody">
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/ios-toast.js"></script>
+    <script>
+      let generatedVariants = [];
+      
+      function generateVariants() {
+        const form = document.getElementById('bulkVariantForm');
+        const formData = new FormData(form);
+        const attributes = {};
+        
+        // Group selected values by attribute
+        for (let [key, value] of formData.entries()) {
+          if (!attributes[key]) attributes[key] = [];
+          attributes[key].push(value);
+        }
+        
+        if (Object.keys(attributes).length === 0) {
+          Toast.warning('No Selection', 'Please select at least one attribute value');
+          return;
+        }
+        
+        // Generate all combinations
+        const combinations = generateCombinations(attributes);
+        const defaultStock = parseInt(document.getElementById('defaultStock').value) || 0;
+        const defaultPriceAdjustment = parseFloat(document.getElementById('defaultPriceAdjustment').value) || 0;
+        
+        generatedVariants = combinations.map(combo => ({
+          attributes: combo,
+          stock: defaultStock,
+          priceAdjustment: defaultPriceAdjustment
+        }));
+        
+        displayVariantPreview();
+      }
+      
+      function generateCombinations(attributes) {
+        const keys = Object.keys(attributes);
+        if (keys.length === 0) return [];
+        
+        let combinations = [{}];
+        
+        for (const key of keys) {
+          const newCombinations = [];
+          for (const combo of combinations) {
+            for (const value of attributes[key]) {
+              newCombinations.push({ ...combo, [key]: value });
+            }
+          }
+          combinations = newCombinations;
+        }
+        
+        return combinations;
+      }
+      
+      function displayVariantPreview() {
+        const tbody = document.getElementById('variantTableBody');
+        tbody.innerHTML = '';
+        
+        generatedVariants.forEach((variant, index) => {
+          const row = document.createElement('tr');
+          const attrString = Object.entries(variant.attributes)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join(', ');
+          
+          row.innerHTML = `
+            <td>${attrString}</td>
+            <td>
+              <input type="number" class="form-control form-control-sm" 
+                     value="${variant.stock}" min="0" 
+                     onchange="updateVariantStock(${index}, this.value)">
+            </td>
+            <td>
+              <input type="number" class="form-control form-control-sm" 
+                     value="${variant.priceAdjustment}" step="0.01" 
+                     onchange="updateVariantPrice(${index}, this.value)">
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+        
+        document.getElementById('variantPreview').style.display = 'block';
+        document.getElementById('createBtn').style.display = 'inline-block';
+      }
+      
+      function updateVariantStock(index, value) {
+        generatedVariants[index].stock = parseInt(value) || 0;
+      }
+      
+      function updateVariantPrice(index, value) {
+        generatedVariants[index].priceAdjustment = parseFloat(value) || 0;
+      }
+      
+      async function createVariants() {
+        if (generatedVariants.length === 0) {
+          Toast.warning('No Variants', 'Please generate variants first');
+          return;
+        }
+        
+        const loadingToast = Toast.info('Creating Variants', 'Please wait...', { duration: 0 });
+        
+        try {
+          const response = await fetch(`/admin/products/<%= product._id %>/variants/bulk`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ variants: generatedVariants })
+          });
+          
+          const result = await response.json();
+          Toast.hide(loadingToast);
+          
+          if (result.success) {
+            Toast.success('Success', `Created ${result.results.created.length} variants successfully`);
+            setTimeout(() => {
+              window.location.href = `/admin/products/<%= product._id %>/variants/manage`;
+            }, 2000);
+          } else {
+            Toast.error('Failed', result.message || 'Failed to create variants');
+          }
+        } catch (error) {
+          Toast.hide(loadingToast);
+          Toast.error('Error', 'Network error occurred');
+          console.error(error);
+        }
+      }
+    </script>
+  </body>
+</html>

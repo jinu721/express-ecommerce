@@ -19,16 +19,16 @@ btnAddToCart.forEach(elem => {
             });
             const data = await response.json();
             if(!data.val){
-                Swal.fire({
-                    icon: "error",
-                    title: "Oops...",
-                    text: data.msg
-                });
+                Toast.error('Error', data.msg);
             }else{
-                window.location.href = '/wishlist';
+                Toast.success('Added to Cart', 'Item moved to cart successfully');
+                setTimeout(() => {
+                    window.location.href = '/wishlist';
+                }, 1500);
             }
         }catch(err){
             console.log(err);
+            Toast.error('Error', 'Something went wrong');
         }
     })
 });
@@ -36,47 +36,40 @@ btnAddToCart.forEach(elem => {
 const btnDeleteWishlist = document.querySelectorAll('.btnDeleteWishlist');
 
 btnDeleteWishlist.forEach(elem => {
-    elem.addEventListener('click',(e)=>{
-      Swal.fire({
-        title: "Are you sure?",
-        text: "You won't be able to revert this!",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Yes, delete it!"
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          const cartItemId = e.target.getAttribute('data-id');
-          const wishlistItemId = e.target.getAttribute('data-wishlistItemId'); 
-          console.log(cartItemId);
-          console.log(wishlistItemId);
-          try{
-            const response = await fetch(`/remove-from-wishlist/${wishlistItemId}`,{
-              method:'DELETE',
-            });
-            console.log(response);
-            const data = await response.json();
-            if (data.val) {
-              console.log('removed form wishlist');
-              window.location.href = "/wishlist"
-            } else {
-              Swal.fire({
-                icon: "error",
-                title: "Oops...",
-                text: data.msg,
-              });
+    elem.addEventListener('click', async (e) => {
+        const confirmed = await Toast.confirm({
+            title: 'Remove from Wishlist',
+            message: 'Are you sure you want to remove this item from your wishlist?',
+            confirmText: 'Remove',
+            cancelText: 'Cancel',
+            type: 'warning'
+        });
+
+        if (confirmed) {
+            const cartItemId = e.target.getAttribute('data-id');
+            const wishlistItemId = e.target.getAttribute('data-wishlistItemId'); 
+            console.log(cartItemId);
+            console.log(wishlistItemId);
+            try{
+                const response = await fetch(`/remove-from-wishlist/${wishlistItemId}`,{
+                    method:'DELETE',
+                });
+                console.log(response);
+                const data = await response.json();
+                if (data.val) {
+                    console.log('removed form wishlist');
+                    Toast.success('Removed', 'Item removed from wishlist');
+                    setTimeout(() => {
+                        window.location.href = "/wishlist";
+                    }, 1500);
+                } else {
+                    Toast.error('Error', data.msg);
+                }
+            }catch(err){
+                console.log(err);
+                Toast.error('Error', 'Something went wrong');
             }
-          }catch(err){
-            console.log(err);
-          }
-          Swal.fire({
-            title: "Deleted!",
-            text: "Item has been deleted.",
-            icon: "success"
-          });
         }
-      });
     })
 });
 

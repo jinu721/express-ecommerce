@@ -1,326 +1,341 @@
+
+// Image Handling with proper swapping mechanism
 function changeMainImage(clickedImage) {
   const mainImage = document.querySelector("#mainImage");
-  const currentMainImageSrc = mainImage.src;
-  mainImage.src = clickedImage.src;
-  clickedImage.src = currentMainImageSrc;
+  const allSmallImages = document.querySelectorAll(".details__small-img");
+  
+  // Store current sources
+  const currentMainSrc = mainImage.src;
+  const currentMainAlt = mainImage.alt;
+  const clickedSrc = clickedImage.src;
+  const clickedAlt = clickedImage.alt;
+  
+  // If clicking the same image that's already main, do nothing
+  if (currentMainSrc === clickedSrc) return;
+  
+  // Remove active class from all small images
+  allSmallImages.forEach(img => img.classList.remove('active'));
+  
+  // Swap the images with smooth transition
+  mainImage.style.opacity = '0.5';
+  clickedImage.style.opacity = '0.5';
+  
+  setTimeout(() => {
+    // Swap the sources
+    mainImage.src = clickedSrc;
+    mainImage.alt = clickedAlt;
+    clickedImage.src = currentMainSrc;
+    clickedImage.alt = currentMainAlt;
+    
+    // Restore opacity
+    mainImage.style.opacity = '1';
+    clickedImage.style.opacity = '1';
+    
+    // Mark the clicked position as active (now contains the old main image)
+    clickedImage.classList.add('active');
+  }, 150);
+  
+  // Ensure all images remain clickable
+  allSmallImages.forEach(img => {
+    img.style.pointerEvents = 'auto';
+    img.style.cursor = 'pointer';
+  });
 }
 
 function enableZoom(event) {
+  const container = event.target.closest('.image-zoom-container');
   const mainImage = document.getElementById("mainImage");
-  const zoomOverlay = document.getElementById("zoomOverlay");
-
-  zoomOverlay.style.display = "block";
-  zoomOverlay.style.backgroundImage = `url('${mainImage.src}')`;
-  mainImage.addEventListener("mousemove", (event) =>
-    moveZoom(event, mainImage, zoomOverlay)
-  );
+  
+  if (!container || !mainImage) return;
+  
+  container.classList.add('zooming');
+  
+  const handleMouseMove = (e) => {
+    const rect = mainImage.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    mainImage.style.transformOrigin = `${x}% ${y}%`;
+  };
+  
+  container.addEventListener('mousemove', handleMouseMove);
+  container._handleMouseMove = handleMouseMove; // Store reference for cleanup
 }
 
 function disableZoom() {
-  const zoomOverlay = document.getElementById("zoomOverlay");
-  zoomOverlay.style.display = "none";
+  const container = document.querySelector('.image-zoom-container');
   const mainImage = document.getElementById("mainImage");
-  mainImage.removeEventListener("mousemove", moveZoom);
+  
+  if (!container || !mainImage) return;
+  
+  container.classList.remove('zooming');
+  mainImage.style.transformOrigin = 'center center';
+  
+  if (container._handleMouseMove) {
+    container.removeEventListener('mousemove', container._handleMouseMove);
+    delete container._handleMouseMove;
+  }
 }
 
-function moveZoom(event, mainImage, zoomOverlay) {
-  const { left, top, width, height } = mainImage.getBoundingClientRect();
-  const x = event.clientX - left;
-  const y = event.clientY - top;
-
-  const bgPosX = (x / width) * 100;
-  const bgPosY = (y / height) * 100;
-
-  zoomOverlay.style.left = `${event.clientX - 75}px`;
-  zoomOverlay.style.top = `${event.clientY - 75}px`;
-  zoomOverlay.style.backgroundPosition = `${bgPosX}% ${bgPosY}%`;
-}
-
-// ~~~~~~~~~~~~~~~~~~~ cart add item ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-let selectedSize = "";
-let selectedColor = "";
-
-// document.addEventListener('DOMContentLoaded', () => {
-const firstColor = document.querySelector(".color__link");
-const firstSize = document.querySelector(".size__link");
-
-if (firstColor) {
-  firstColor.classList.add("selected");
-  selectedColor = firstColor.getAttribute("data-color-name");
-  console.log("Default selected color:", selectedColor);
-}
-
-if (firstSize) {
-  firstSize.classList.add("size-active");
-  selectedSize = firstSize.textContent;
-  console.log("Default selected size:", selectedSize);
-}
-
-// });
-
-function selectColor(event) {
-  const colorLinks = document.querySelectorAll(".color__link");
-  colorLinks.forEach((link) => link.classList.remove("selected"));
-  event.target.classList.add("selected");
-  selectedColor = event.target.getAttribute("data-color-name");
-  console.log("Selected color:", selectedColor);
-}
-function selectSize(event) {
-  const sizeLinks = document.querySelectorAll(".size__link");
-  sizeLinks.forEach((link) => link.classList.remove("size-active"));
-  event.target.classList.add("size-active");
-  selectedSize = event.target.textContent;
-  console.log("Selected size:", selectedSize);
-  stockStatus();
-}
-
-document.querySelectorAll(".color__link").forEach((colorLink) => {
-  colorLink.addEventListener("click", selectColor);
-});
-
-document.querySelectorAll(".size__link").forEach((sizeLink) => {
-  sizeLink.addEventListener("click", selectSize);
-});
-
-const btAddToCart = document.querySelector(".btAddToCart");
-
-btAddToCart.addEventListener("click", async (e) => {
-  const quantity = document.querySelector(".quantity").value;
-  const price = document.querySelector(".offerPriceProduct").textContent;
-  console.log(price);
-  const productId = e.target.getAttribute("data-id");
-  console.log(quantity);
-  console.log(productId);
-  try {
-    const response = await fetch("/add-to-cart", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        productId,
-        price: parseInt(price.replace("₹", "")),
-        quantity: parseInt(quantity),
-        size: selectedSize,
-        color: selectedColor,
-        isBuyNow: false,
-      }),
+// Initialize image loading and error handling
+document.addEventListener('DOMContentLoaded', function() {
+  const images = document.querySelectorAll('.details__img, .details__small-img');
+  
+  images.forEach(img => {
+    img.addEventListener('load', function() {
+      this.classList.add('loaded');
     });
-    const data = await response.json();
-    if (!data.val) {
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: data.msg,
-      });
-    } else {
-      Swal.fire({
-        title: "Good job!",
-        text: data.msg,
-        icon: "success",
-      });
+    
+    img.addEventListener('error', function() {
+      this.classList.add('error');
+      this.alt = 'Image not available';
+    });
+    
+    // If image is already loaded (cached)
+    if (img.complete) {
+      img.classList.add('loaded');
     }
-  } catch (err) {
-    console.log(err);
+  });
+  
+  // Set first small image as active
+  const firstSmallImage = document.querySelector('.details__small-img');
+  if (firstSmallImage) {
+    firstSmallImage.classList.add('active');
   }
 });
 
-function validateQuantity(input, stock) {
+// ~~~~~~~~~~~~~~~~~~~ Dynamic Variant System ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+const productId = document.querySelector("#productIdStore").value;
+let variantSelector = null;
+let addToCartHandler = null;
+
+// Initialize the dynamic variant selector
+document.addEventListener('DOMContentLoaded', function() {
+  if (productId) {
+    // Initialize variant selector
+    variantSelector = new VariantSelector(productId, 'variant-selector');
+    addToCartHandler = new AddToCartHandler(variantSelector, productId);
+    
+    // Listen for variant changes to update UI
+    document.addEventListener('variantChanged', (e) => {
+      const { variant, attributes } = e.detail;
+      updateProductInfo(variant, attributes);
+    });
+    
+    // Check if product has variants, if not enable buttons immediately
+    setTimeout(() => {
+      const variantContainer = document.getElementById('variant-selector');
+      if (!variantContainer || variantContainer.children.length === 0) {
+        // No variants - enable buttons for simple products
+        const addToCartBtn = document.querySelector(".add-to-cart-btn");
+        const buyNowBtn = document.querySelector(".buy-now-btn");
+        const stockText = document.querySelector(".stockText");
+        
+        if (addToCartBtn) addToCartBtn.disabled = false;
+        if (buyNowBtn) buyNowBtn.disabled = false;
+        if (stockText) {
+          stockText.textContent = "In Stock";
+          stockText.style.color = 'green';
+        }
+      }
+    }, 1000); // Wait for variant selector to load
+  }
+});
+
+function updateProductInfo(variant, attributes) {
+  const stockText = document.querySelector(".stockText");
+  const addToCartBtn = document.querySelector(".add-to-cart-btn");
+  const buyNowBtn = document.querySelector(".buy-now-btn");
+  const quantityInput = document.querySelector("#quantity");
+
+  if (variant) {
+    // Update stock display
+    if (variant.isInStock) {
+      stockText.textContent = `${variant.availableStock} Items in Stock`;
+      stockText.style.color = 'green';
+      addToCartBtn.disabled = false;
+      buyNowBtn.disabled = false;
+      quantityInput.setAttribute('max', variant.availableStock);
+      
+      if (variant.isLowStock) {
+        stockText.textContent += ' (Low Stock!)';
+        stockText.style.color = 'orange';
+      }
+    } else {
+      stockText.textContent = "Out of Stock";
+      stockText.style.color = 'red';
+      addToCartBtn.disabled = true;
+      buyNowBtn.disabled = true;
+    }
+
+    // Update quantity input max value
+    const currentQty = parseInt(quantityInput.value);
+    if (currentQty > variant.availableStock) {
+      quantityInput.value = Math.max(1, variant.availableStock);
+    }
+  } else if (Object.keys(attributes).length > 0) {
+    // Selection made but no matching variant
+    stockText.textContent = "This combination is not available";
+    stockText.style.color = 'red';
+    addToCartBtn.disabled = true;
+    buyNowBtn.disabled = true;
+  } else {
+    // No selection made
+    stockText.textContent = "Select options to see availability";
+    stockText.style.color = 'gray';
+    addToCartBtn.disabled = true;
+    buyNowBtn.disabled = true;
+  }
+}
+
+// Quantity validation
+function validateQuantity(input, maxStock) {
   let value = parseInt(input.value, 10);
+  const variant = variantSelector?.getSelectedVariant();
+  const currentStock = variant ? variant.availableStock : maxStock;
+  
   if (value < 1) {
     input.value = 1;
-  } else if (value > stock) {
-    input.value = stock;
+  } else if (value > currentStock) {
+    input.value = currentStock;
+    Toast.info("Quantity Limit", `Only ${currentStock} items available in stock`);
   } else if (isNaN(value)) {
     input.value = 1;
   }
 }
 
-const productId = document.querySelector("#productIdStore").value;
-const stockText = document.querySelector(".stockText");
-
-console.log(productId);
-
-async function stockStatus() {
-  try {
-    const response = await fetch(
-      `/product-stock?id=${productId}&size=${selectedSize}`
-    );
-    const data = await response.json();
-    console.log(data);
-    stockText.textContent = data.val
-      ? `${data.stock.stock} Items in Stock`
-      : "Out of stock";
-  } catch (err) {
-    console.log(err);
-  }
-}
-
-stockStatus();
-
-const btnBuyNow = document.querySelector(".btn-buynow");
-
-btnBuyNow.addEventListener("click", async (e) => {
-  const quantity = document.querySelector(".quantity").value;
-  const price = document.querySelector(".offerPriceProduct").textContent;
-  console.log(price);
-  const productId = e.target.getAttribute("data-id");
-  console.log(quantity);
-  console.log(productId);
-  try {
-    const response = await fetch("/add-to-cart", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        productId,
-        price: parseInt(price.replace("₹", "")),
-        quantity: parseInt(quantity),
-        size: selectedSize,
-        color: selectedColor,
-        isBuyNow: true,
-      }),
+// Update quantity input listener
+document.addEventListener('DOMContentLoaded', function() {
+  const quantityInput = document.querySelector("#quantity");
+  if (quantityInput) {
+    quantityInput.addEventListener('input', function() {
+      validateQuantity(this, 999);
     });
-    const data = await response.json();
-    if (!data.val) {
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: data.msg,
-      });
-    } else {
-      window.location.href = "/checkout";
-    }
-  } catch (err) {
-    console.log(err);
   }
 });
+
+// ~~~~~~~~~~~~~~~~~~~ Wishlist ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 const wishlistButton = document.getElementById("wishlistButton");
-const wishlistIcon = wishlistButton.querySelector(".wishlistIcon");
-
-wishlistButton.addEventListener("click", (e) => {
-  const productId = wishlistButton.getAttribute("data-id");
-  const isAdding = !wishlistIcon.classList.contains("active");
-  if (isAdding) {
-    addToWishlist(productId);
-  } else {
-    const cartItemId = e.target.getAttribute("data-wishlist-item-id");
-    removeFromWishlist(cartItemId);
-  }
-  wishlistIcon.classList.toggle("active");
-  wishlistIcon.classList.add("fly");
-  wishlistIcon.addEventListener("animationend", () => {
-    wishlistIcon.classList.remove("fly");
+if (wishlistButton) {
+  const wishlistIcon = wishlistButton.querySelector(".wishlistIcon");
+  wishlistButton.addEventListener("click", (e) => {
+    e.preventDefault();
+    
+    const isActive = wishlistIcon.style.color === 'red';
+    
+    if (isActive) {
+      // Remove from wishlist
+      const cartItemId = wishlistButton.getAttribute("data-wishlist-item-id");
+      if (cartItemId) {
+        removeFromWishlist(cartItemId);
+      }
+      wishlistIcon.style.color = '';
+    } else {
+      // Add to wishlist
+      const variant = variantSelector?.getSelectedVariant();
+      const attributes = variantSelector?.getSelectedAttributes() || {};
+      addToWishlist(productId, variant, attributes);
+      wishlistIcon.style.color = 'red';
+    }
   });
-});
+}
 
-async function addToWishlist(productId) {
+async function addToWishlist(productId, variant, attributes) {
   try {
     const response = await fetch(`/add-to-wislist/${productId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ size: selectedSize, color: selectedColor }),
+      body: JSON.stringify({ 
+        variantId: variant ? variant._id : null,
+        attributes: attributes,
+        // Legacy fields for backward compatibility
+        size: attributes.SIZE || '',
+        color: attributes.COLOR || ''
+      }),
     });
     const data = await response.json();
     if (data.val) {
-      console.log("Added to wishlist");
-      Swal.fire({
-        title: 'Added!',
-        text: 'Item added to wishlist.',
-        icon: 'success',
-      });
-      wishlistButton.setAttribute("data-wishlist-item-id", data.wishlistItemId);
+      Toast.success('Added to Wishlist', 'Item added to wishlist successfully');
+      if (wishlistButton) {
+        wishlistButton.setAttribute("data-wishlist-item-id", data.wishlistItemId);
+      }
     } else {
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: data.msg,
-      });
-    }
-  } catch (err) {
-    console.log(err);
-  }
-}
-async function removeFromWishlist(cartItemId) {
-  try {
-    const response = await fetch(`/remove-from-wishlist/${cartItemId}`, {
-      method: "DELETE",
-    });
-    console.log(response);
-    const data = await response.json();
-    if (data.val) {
-      console.log("removed form wishlist");
-    } else {
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: data.msg,
-      });
+      Toast.error('Failed to Add', data.msg);
     }
   } catch (err) {
     console.log(err);
   }
 }
 
+async function removeFromWishlist(cartItemId) {
+  try {
+    const response = await fetch(`/remove-from-wishlist/${cartItemId}`, {
+      method: "DELETE",
+    });
+    const data = await response.json();
+    if (data.val) {
+      Toast.success('Removed', 'Item removed from wishlist');
+    } else {
+      Toast.error('Failed to Remove', data.msg);
+    }
+  } catch (err) {
+    console.log(err);
+  }
+}
+
+// ~~~~~~~~~~~~~~~~~~~ Reviews ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 async function fetchReviews() {
   try {
     const response = await fetch(`/product/reviews/${productId}`);
     const data = await response.json();
+    const reviewShowSection = document.querySelector(".reviewShowSection");
 
     if (!data.val) {
       console.log(data.msg);
     } else {
       reviewShowSection.innerHTML = ''; 
       data.reviews.forEach(review => {
-        const reviewItem = document.createElement('div');
         const reviewDate = new Date(review.reviewDate);
-        const formattedDate = reviewDate.toLocaleString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: 'numeric',
-          hour12: true,
+        const formattedDate = reviewDate.toLocaleString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
         });
-
+        
         let stars = '';
         for (let i = 1; i <= 5; i++) {
-          stars += i <= review.rating
-            ? '<i class="fi fi-rs-star reviewItemActive"></i>'
-            : '<i class="fi fi-rs-star"></i>';
+          stars += i <= review.rating ? 
+            '<i class="fi fi-rs-star reviewItemActive"></i>' : 
+            '<i class="fi fi-rs-star"></i>';
         }
 
         const deleteIcon = review.user === data.currentUserId
           ? `<i class="fas fa-trash reviewDeleteIcon" data-review-id="${review._id}" title="Delete Review"></i>`
           : '';
 
+        const reviewItem = document.createElement('div');
         reviewItem.innerHTML = `
           <div class="review__single">
             <div class="reviewProfile">
-              <img src="/img/icons/image.png" alt="Profile" class="review__img" />
-              <h4 class="review__title">${review.username || 'Anonymous'}</h4>
+               <img src="/img/icons/image.png" alt="Profile" class="review__img" />
+               <h4 class="review__title">${review.username || 'Anonymous'}</h4>
             </div>
             <div class="review__data">
-              <div class="review__rating">
-                ${stars}
-              </div>
-              <p class="review__description">
-                ${review.comment || 'No comment provided.'}
-              </p>
-              <span class="review__date">${formattedDate}</span>
-              ${deleteIcon} 
+               <div class="review__rating">${stars}</div>
+               <p class="review__description">${review.comment || ''}</p>
+               <span class="review__date">${formattedDate}</span>
+               ${deleteIcon}
             </div>
           </div>
         `;
-
         reviewShowSection.appendChild(reviewItem);
       });
-
+      
       document.querySelectorAll('.reviewDeleteIcon').forEach(icon => {
         icon.addEventListener('click', async (event) => {
           const reviewId = event.target.getAttribute('data-review-id');
@@ -334,18 +349,15 @@ async function fetchReviews() {
 }
 
 async function deleteReview(reviewId) {
-  const result = await Swal.fire({
-    title: 'Are you sure?',
-    text: 'Once deleted, you will not be able to recover this review!',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#d33',
-    cancelButtonColor: '#3085d6',
-    confirmButtonText: 'Yes, delete it!',
-    cancelButtonText: 'Cancel'
+  const confirmed = await Toast.confirm({
+    title: 'Delete Review',
+    message: 'Are you sure you want to delete this review? This action cannot be undone.',
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+    type: 'error'
   });
 
-  if (result.isConfirmed) {
+  if (confirmed) {
     try {
       const response = await fetch(`/product/review/delete/${reviewId}`, {
         method: 'DELETE',
@@ -356,106 +368,84 @@ async function deleteReview(reviewId) {
 
       const data = await response.json();
       if (!data.val) {
-        Swal.fire({
-          icon: 'error',
-          title: 'Oops...',
-          text: data.msg,
-        });
+        Toast.error('Delete Failed', data.msg);
       } else {
-        Swal.fire({
-          title: 'Deleted!',
-          text: 'Your review has been deleted.',
-          icon: 'success',
-        });
+        Toast.success('Deleted', 'Your review has been deleted successfully');
         fetchReviews();
       }
     } catch (err) {
       console.log(err);
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'An error occurred while deleting the review.',
-      });
+      Toast.error('Error', 'An error occurred while deleting the review');
     }
   }
 }
 
-
+// Load reviews on page load
 fetchReviews();
 
+// Review Form Logic
 const form = document.querySelector(".review__form form");
-const submitButtonReview = document.querySelector(".btnSubmitReview");
-const commentInput = document.querySelector(".reviewTextarea");
-const stars = document.querySelectorAll(".rate__product i");
-const reviewShowSection = document.querySelector(".reviewShowSection");
+if (form) {
+  const submitButtonReview = document.querySelector(".btnSubmitReview");
+  const commentInput = document.querySelector(".reviewTextarea");
+  const stars = document.querySelectorAll(".rate__product i");
+  let selectedRating = 0;
 
-let selectedRating = 0;
-
-stars.forEach((star, index) => {
-  star.addEventListener("click", () => {
-    selectedRating = index + 1;
-    stars.forEach((s, i) => {
-      s.classList.toggle("active", i < selectedRating);
+  stars.forEach((star, index) => {
+    star.addEventListener("click", () => {
+      selectedRating = index + 1;
+      stars.forEach((s, i) => {
+        s.classList.toggle("active", i < selectedRating);
+      });
     });
   });
-});
 
-submitButtonReview.addEventListener("click", (event) => {
-  event.preventDefault();
-  const comment = commentInput.value.trim();
-  if (!selectedRating) {
-    Swal.fire({
-      icon: "warning",
-      title: "Rating Required",
-      text: "Please select a star rating!",
-    });
-    return;
-  }
-  if (!comment) {
-    Swal.fire({
-      icon: "warning",
-      title: "Comment Required",
-      text: "Please write a comment!",
-    });
-    return;
-  }
-  async function addReview() {
-    try {
-      const response = await fetch(`/product/review/add/${productId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          comment,
-          rating: selectedRating,
-        }),
-      });
-      const data = await response.json();
-      console.log(data);
-      if (!data.val) {
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: data.msg,
-        });
-      } else {
-        Swal.fire({
-          title: "Review Submitted!",
-          text: "Your review has been added successfully.",
-          icon: "success",
-        });
-        fetchReviews();
-        form.reset();
-      }
-    } catch (err) {
-      console.log(err);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "An error occurred while submitting your review. Please try again later.",
-      });
+  submitButtonReview.addEventListener("click", (event) => {
+    event.preventDefault();
+    const comment = commentInput.value.trim();
+    if (!selectedRating || !comment) {
+      Toast.warning("Missing Information", "Please provide both a rating and comment");
+      return;
     }
+    
+    // Add review
+    (async () => {
+      try {
+        const response = await fetch(`/product/review/add/${productId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ comment, rating: selectedRating }),
+        });
+        const data = await response.json();
+        if (data.val) {
+          Toast.success("Review Submitted", "Your review has been added successfully");
+          fetchReviews();
+          form.reset();
+          stars.forEach(s => s.classList.remove('active'));
+          selectedRating = 0;
+        } else {
+          Toast.error("Submission Failed", data.msg);
+        }
+      } catch (err) {
+        console.log(err);
+        Toast.error("Network Error", "Please check your connection and try again");
+      }
+    })();
+  });
+}
+
+// ~~~~~~~~~~~~~~~~~~~ Real-time Socket Listener ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+window.addEventListener('productStockUpdate', (e) => {
+  const data = e.detail;
+  const currentVariant = variantSelector?.getSelectedVariant();
+  
+  // Check if update is for the currently selected variant
+  if (currentVariant && data.variantId === currentVariant._id) {
+    // Update local stock
+    currentVariant.availableStock = data.newStock;
+    updateProductInfo(currentVariant, variantSelector.getSelectedAttributes());
+    
+    Toast.info('Stock Updated', `Stock for this item changed to ${data.newStock} items`);
   }
-  addReview();
 });

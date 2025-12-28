@@ -1,0 +1,161 @@
+<!-- Add/Edit Offer Modal -->
+<div class="modal fade" id="offerModal" tabindex="-1" aria-labelledby="offerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="offerModalLabel">Create New Offer</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="offerForm">
+          <input type="hidden" id="offerId" name="offerId">
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="offerName" class="form-label">Offer Name</label>
+              <input type="text" class="form-control" id="offerName" name="name" required placeholder="e.g. Summer Sale">
+              <div class="invalid-feedback" id="offerNameError"></div>
+            </div>
+            <div class="col-md-6">
+              <label for="offerType" class="form-label">Offer Type</label>
+              <select class="form-select" id="offerType" name="type" required onchange="handleOfferTypeChange()">
+                <option value="PRODUCT">Product Offer</option>
+                <option value="CATEGORY">Category Offer</option>
+                <option value="BRAND">Brand Offer</option>
+                <option value="FESTIVAL">Festival Offer</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Dynamic Selection Section -->
+          <div class="mb-3" id="selectionSection">
+            <label class="form-label" id="selectionLabel">Applicable Items</label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="searchItemInput" placeholder="Search products, categories or brands...">
+                <button class="btn btn-outline-secondary" type="button" onclick="searchItems()">Search</button>
+            </div>
+            <div id="searchResults" class="list-group mt-2" style="max-height: 150px; overflow-y: auto; display: none;"></div>
+            
+            <!-- Selected Items Display -->
+            <div id="selectedItemsContainer" class="mt-2 d-flex flex-wrap gap-2"></div>
+            <!-- Hidden inputs to store IDs -->
+            <div id="selectedIdsInputs"></div>
+            <div class="invalid-feedback d-block" id="selectionError"></div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="discountType" class="form-label">Discount Type</label>
+              <select class="form-select" id="discountType" name="discountType" onchange="handleDiscountTypeChange()">
+                <option value="PERCENTAGE">Percentage (%)</option>
+                <option value="FIXED_AMOUNT">Fixed Amount (₹)</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label for="discountValue" class="form-label">Discount Value</label>
+              <input type="number" class="form-control" id="discountValue" name="discountValue" required min="0" step="0.01">
+              <small class="text-muted" id="discountValueHelp">Enter percentage (0-100) or fixed amount</small>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label for="minPurchase" class="form-label">Min Purchase (₹)</label>
+              <input type="number" class="form-control" id="minPurchase" name="minPurchase" min="0" value="0" step="0.01">
+            </div>
+            <div class="col-md-4">
+              <label for="maxDiscount" class="form-label">Max Discount (₹)</label>
+              <input type="number" class="form-control" id="maxDiscount" name="maxDiscount" min="0" step="0.01">
+              <small class="text-muted" id="maxDiscountHelp">Maximum discount amount (optional)</small>
+            </div>
+            <div class="col-md-4">
+              <label for="usageLimit" class="form-label">Usage Limit</label>
+              <input type="number" class="form-control" id="usageLimit" name="usageLimit" min="0">
+              <small class="text-muted">0 for unlimited</small>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="startDate" class="form-label">Start Date</label>
+              <input type="datetime-local" class="form-control" id="startDate" name="startDate" required>
+            </div>
+            <div class="col-md-6">
+              <label for="endDate" class="form-label">End Date</label>
+              <input type="datetime-local" class="form-control" id="endDate" name="endDate" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="isActive" name="isActive" checked>
+              <label class="form-check-label" for="isActive">Is Active</label>
+            </div>
+          </div>
+
+          <div class="modal-footer px-0 pb-0">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="submit" class="btn btn-primary" id="saveOfferBtn">Save Offer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function handleDiscountTypeChange() {
+  const discountType = document.getElementById('discountType').value;
+  const discountValueHelp = document.getElementById('discountValueHelp');
+  const maxDiscountHelp = document.getElementById('maxDiscountHelp');
+  const discountValueInput = document.getElementById('discountValue');
+  const maxDiscountInput = document.getElementById('maxDiscount');
+  const maxDiscountContainer = maxDiscountInput.closest('.col-md-4');
+  
+  if (discountType === 'PERCENTAGE') {
+    discountValueHelp.textContent = 'Enter percentage (0-100)';
+    maxDiscountHelp.textContent = 'Maximum discount amount (optional)';
+    discountValueInput.setAttribute('max', '100');
+    discountValueInput.setAttribute('step', '0.01');
+    maxDiscountContainer.style.display = 'block';
+    maxDiscountInput.disabled = false;
+  } else {
+    discountValueHelp.textContent = 'Enter fixed discount amount in ₹';
+    maxDiscountHelp.textContent = 'Not applicable for fixed amount discounts';
+    discountValueInput.removeAttribute('max');
+    discountValueInput.setAttribute('step', '0.01');
+    maxDiscountContainer.style.display = 'none';
+    maxDiscountInput.disabled = true;
+    maxDiscountInput.value = '';
+  }
+}
+
+function handleOfferTypeChange() {
+  const offerType = document.getElementById('offerType').value;
+  const selectionSection = document.getElementById('selectionSection');
+  const selectionLabel = document.getElementById('selectionLabel');
+  
+  if (offerType === 'FESTIVAL') {
+    selectionSection.style.display = 'none';
+  } else {
+    selectionSection.style.display = 'block';
+    switch(offerType) {
+      case 'PRODUCT':
+        selectionLabel.textContent = 'Select Products';
+        break;
+      case 'CATEGORY':
+        selectionLabel.textContent = 'Select Categories';
+        break;
+      case 'BRAND':
+        selectionLabel.textContent = 'Select Brands';
+        break;
+    }
+  }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  handleDiscountTypeChange();
+  handleOfferTypeChange();
+});
+</script>
