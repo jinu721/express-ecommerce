@@ -260,7 +260,7 @@
 
               <div class="form-group">
                 <label for="productCategory" class="form-label">Category</label>
-                <select class="form-control" id="productCategory" name="category">
+                <select class="form-control" id="productCategory" name="category" required>
                   <option value="">Select Category</option>
                   <% category.forEach((data)=>{ %>
                     <option value="<%= data._id %>"><%= data.name %></option>
@@ -321,6 +321,19 @@
                   <label for="productReturnPolicy" class="form-label">Return Policy</label>
                   <input type="text" class="form-control product-return-policy" id="productReturnPolicy" placeholder="Return Policy" />
                   <p class="error-message" id="returnPolicyError"></p>
+                </div>
+              </div>
+              
+              <!-- Shipping Configuration -->
+              <div class="form-group">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="hasCustomShipping" name="hasCustomShipping" onclick="toggleShippingInput()" />
+                  <label class="form-check-label" for="hasCustomShipping">Custom Shipping Price</label>
+                </div>
+                <div class="shipping-input mt-2" id="shippingDiv" style="display: none">
+                  <label for="shippingPrice" class="form-label">Shipping Price (₹)</label>
+                  <input type="number" class="form-control" id="shippingPrice" name="shippingPrice" placeholder="0" min="0" />
+                  <small class="form-text text-muted">Leave 0 for free shipping. Default shipping rules apply if unchecked.</small>
                 </div>
               </div>
 
@@ -419,6 +432,20 @@
                   <textarea class="form-control" id="updateProductReturnPolicy" rows="3" placeholder="Enter return policy details"></textarea>
                 </div>
               </div>
+              
+              <!-- Shipping Configuration -->
+              <div class="form-group">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="updateHasCustomShipping" onchange="toggleUpdateShippingInput()">
+                  <label class="form-check-label" for="updateHasCustomShipping">
+                    Custom Shipping Price
+                  </label>
+                </div>
+                <div id="updateShippingDiv" style="display: none; margin-top: 10px;">
+                  <input type="number" class="form-control" id="updateShippingPrice" placeholder="0" min="0">
+                  <small class="form-text text-muted">Leave 0 for free shipping. Default shipping rules apply if unchecked.</small>
+                </div>
+              </div>
 
               <div class="form-group">
                 <label class="form-label">Product Images</label>
@@ -437,5 +464,20 @@
     <script src="/js/ios-toast.js"></script>
     <script src="/js/image-selector.js"></script>
     <script src="/js/admin/products.js" defer></script>
+    
+    <script>
+      // Toggle shipping input visibility
+      function toggleShippingInput() {
+        const checkbox = document.getElementById('hasCustomShipping');
+        const shippingDiv = document.getElementById('shippingDiv');
+        shippingDiv.style.display = checkbox.checked ? 'block' : 'none';
+      }
+      
+      function toggleUpdateShippingInput() {
+        const checkbox = document.getElementById('updateHasCustomShipping');
+        const shippingDiv = document.getElementById('updateShippingDiv');
+        shippingDiv.style.display = checkbox.checked ? 'block' : 'none';
+      }
+    </script>
   </body>
 </html>

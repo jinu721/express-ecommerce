@@ -276,7 +276,13 @@
                       <i class="fi fi-rs-heart"></i>
                     </a>
                   </div>
-                  <div class="product__badge light-pink">Hot</div>
+                  <% if (data.isFestivalOffer) { %>
+                    <div class="product__badge festival-badge">
+                      <i class="fas fa-star"></i> Festival
+                    </div>
+                  <% } else { %>
+                    <div class="product__badge light-pink">Hot</div>
+                  <% } %>
                 </div>
                 <div class="product__content">
                   <%  category.forEach((x)=>{ %>

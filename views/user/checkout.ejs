@@ -213,8 +213,9 @@
               </thead>
 
               <tbody>
-                <% let subTotal = 0;  %>
+                <% let calculatedSubTotal = 0; %>
                 <% if (typeof product !== 'undefined') { %>
+                  <!-- Buy Now Single Product -->
                   <tr>
                     <td>
                       <img
@@ -227,15 +228,21 @@
                       <h3 class="table__title"><%= product.name %></h3>
                       <p class="table__quantity">x <%= quantity %></p>
                     </td>
-                    <td><span class="table__price">&#8377;<%= product.offerPrice * quantity %></span></td>
-                    <% subTotal += product.offerPrice * quantity; %>
+                    <td><span class="table__price">&#8377;<%= isNaN(product.totalPrice) ? '0' : Math.round(product.totalPrice) %></span></td>
                   </tr>
+                  <% calculatedSubTotal = product.totalPrice || 0; %>
                 <% } else { %>
+                  <!-- Cart Items -->
                   <% cartItems.forEach(data => { %>
+                    <% 
+                      const itemPrice = data.price || data.offerPrice || 0;
+                      const itemTotal = itemPrice * data.quantity;
+                      calculatedSubTotal += itemTotal;
+                    %>
                     <tr>
                       <td>
                         <img
-                          src="/<%= data.images[0] %>"
+                          src="/<%= data.images && data.images[0] ? data.images[0] : '/images/default-placeholder.png' %>"
                           alt="Product Image"
                           class="order__img"
                         />
@@ -244,31 +251,47 @@
                         <h3 class="table__title"><%= data.name %></h3>
                         <p class="table__quantity">x <%= data.quantity %></p>
                       </td>
-                      <td><span class="table__price">&#8377;<%= data.offerPrice * data.quantity %></span></td>
-                      <% subTotal += data.offerPrice * data.quantity; %>
+                      <td><span class="table__price">&#8377;<%= isNaN(itemTotal) ? '0' : Math.round(itemTotal) %></span></td>
                     </tr>
                   <% }); %>
                 <% } %>
               
                 <tr>
                   <td><span class="order__subtitle">Subtotal</span></td>
-                  <td colspan="2"><span class="table__price">&#8377;<%= subTotal %></span></td>
+                  <td colspan="2"><span class="table__price">&#8377;<%= isNaN(subtotal || calculatedSubTotal) ? '0' : Math.round(subtotal || calculatedSubTotal) %></span></td>
                 </tr>
+                
+                <% if (typeof discount !== 'undefined' && discount > 0) { %>
+                <tr>
+                  <td><span class="order__subtitle">Discount</span></td>
+                  <td colspan="2"><span class="table__price" style="color: #28a745;">-&#8377;<%= Math.round(discount) %></span></td>
+                </tr>
+                <% } %>
+                
                 <tr>
                   <td><span class="order__subtitle">Shipping</span></td>
                   <td colspan="2">
-                    <% if(deliveryCharge){ %>
+                    <% if(deliveryCharge && deliveryCharge > 0){ %>
                       <span class="table__price">&#8377;<span class="delivaryCharge"><%= deliveryCharge %></span></span>
                     <% }else{ %>
                       <span class="table__price delivaryCharge">Free Shipping</span>
                     <% } %>
                   </td>
                 </tr>
-                <tr>
-                  <td><span class="order__subtitle">Total</span></td>
+                
+                <% if (typeof walletBalance !== 'undefined') { %>
+                <tr style="background-color: #f8f9fa;">
+                  <td><span class="order__subtitle" style="color: #007bff;"><i class="fas fa-wallet"></i> Wallet Balance</span></td>
+                  <td colspan="2"><span class="table__price" style="color: #007bff; font-weight: bold;">&#8377;<%= Math.round(walletBalance || 0) %></span></td>
+                </tr>
+                <% } %>
+                
+                <tr style="border-top: 2px solid #dee2e6;">
+                  <td><span class="order__subtitle" style="font-weight: bold; font-size: 1.1rem;">Total</span></td>
                   <td colspan="2">
-                    <span class="old__price oldPriceTag">&#8377;<span class="oldPriceTagValue"><%= subTotal + deliveryCharge %></span></span>
-                    <span class="order__grand-total offerAppliedPriceTag">&#8377;<span class="offerAppliedPriceTagValue"><%= subTotal +  deliveryCharge %></span></span>
+                    <span class="order__grand-total" style="font-weight: bold; font-size: 1.2rem; color: #28a745;">
+                      &#8377;<%= isNaN(total) ? '0' : Math.round(total) %>
+                    </span>
                   </td>
                 </tr>
               </tbody>

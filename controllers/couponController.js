@@ -277,6 +277,73 @@ module.exports = {
   },
   
   // Validate coupon code (for frontend)
+  // Apply coupon with legacy response format
+  async applyCoupon(req, res) {
+    try {
+      const { couponCode, totalPrice } = req.body;
+      const userId = req.session.currentId;
+      
+      if (!couponCode || !totalPrice || !userId) {
+        return res.json({
+          val: false,
+          msg: 'Coupon code and total price are required'
+        });
+      }
+      
+      try {
+        const result = await pricingService.applyCoupon(couponCode, totalPrice, userId);
+        
+        res.json({
+          val: true,
+          msg: 'Coupon applied successfully',
+          originalPrice: totalPrice,
+          discountedPrice: result.finalAmount,
+          discount: result.discount,
+          coupon: result.coupon
+        });
+      } catch (error) {
+        res.json({
+          val: false,
+          msg: error.message
+        });
+      }
+    } catch (error) {
+      console.error('Error applying coupon:', error);
+      res.json({
+        val: false,
+        msg: 'Failed to apply coupon'
+      });
+    }
+  },
+
+  // Remove coupon with legacy response format
+  async removeCoupon(req, res) {
+    try {
+      const { couponCode } = req.body;
+      const userId = req.session.currentId;
+      
+      if (!couponCode || !userId) {
+        return res.json({
+          val: false,
+          msg: 'Coupon code is required'
+        });
+      }
+      
+      // For now, just return success since we're not storing applied coupons in session
+      // In a real implementation, you might want to clear session data or database records
+      res.json({
+        val: true,
+        msg: 'Coupon removed successfully'
+      });
+    } catch (error) {
+      console.error('Error removing coupon:', error);
+      res.json({
+        val: false,
+        msg: 'Failed to remove coupon'
+      });
+    }
+  },
+
   async validateCoupon(req, res) {
     try {
       const { code, orderValue, userId } = req.body;

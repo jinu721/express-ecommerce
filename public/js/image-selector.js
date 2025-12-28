@@ -357,6 +357,16 @@ class ImageSelector {
     this.updateDisplay();
   }
 
+  // Reset method (alias for clear)
+  reset() {
+    this.clear();
+  }
+
+  // Load existing images (alias for loadImages)
+  loadExistingImages(imageUrls) {
+    this.loadImages(imageUrls);
+  }
+
   // Load existing images
   loadImages(imageUrls) {
     console.log("ImageSelector.loadImages called with:", imageUrls);

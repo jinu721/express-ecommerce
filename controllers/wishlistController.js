@@ -23,10 +23,24 @@ module.exports = {
       const productIds = wishlist.items.map((item) => item.productId);
       const products = await productModel.find({ _id: { $in: productIds } });
       
+      // Calculate offer prices for wishlist products
+      const productsWithOffers = await Promise.all(products.map(async (product) => {
+        const offerResult = await pricingService.calculateBestOffer(product, 1, currentId);
+        return {
+          ...product.toObject(),
+          originalPrice: offerResult.originalPrice,
+          finalPrice: offerResult.finalPrice,
+          discount: offerResult.discount,
+          discountPercentage: offerResult.discount > 0 ? Math.round((offerResult.discount / offerResult.originalPrice) * 100) : 0,
+          hasOffer: offerResult.offer !== null,
+          offer: offerResult.offer
+        };
+      }));
+      
       return res.status(200).render("wishlist", {
         isWishlistEmpty: false,
         msg: null,
-        products,
+        products: productsWithOffers,
         wishlist,
         wishlistItems: wishlist.items,
       });
@@ -190,7 +204,7 @@ module.exports = {
           return { product: p, variant: v, quantity: i.quantity };
        }));
        const cartTotalInfo = await pricingService.calculateCartTotal(populatedItems, req.user);
-       cart.cartTotal = cartTotalInfo.total;
+       cart.cartTotal = Math.round(cartTotalInfo.total * 100) / 100;
        
        await cart.save();
 

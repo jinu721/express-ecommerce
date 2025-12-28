@@ -74,11 +74,30 @@ function displayProducts(products) {
     products.forEach((product) => {
       const productItem = document.createElement("div");
       productItem.classList.add("product__item");
+      
+      // Determine badge type
+      const badgeHtml = product.isFestivalOffer ? 
+        `<div class="product__badge festival-badge">
+          <i class="fas fa-star"></i> Festival
+        </div>` : 
+        `<div class="product__badge light-pink">Hot</div>`;
+      
+      // Handle pricing with NaN protection
+      const originalPrice = product.originalPrice || product.basePrice || product.price || 0;
+      const finalPrice = product.finalPrice || originalPrice;
+      const hasValidOffer = product.hasOffer && finalPrice < originalPrice;
+      
+      const priceHtml = hasValidOffer
+        ? `<span class="new__price">&#8377;${Math.round(finalPrice)}</span>
+           <span class="old__price">&#8377;${Math.round(originalPrice)}</span>
+           ${product.isPercentageOffer ? `<span class="save__price">${product.discountPercentage}% Off</span>` : ''}`
+        : `<span class="new__price">&#8377;${Math.round(originalPrice)}</span>`;
+      
       productItem.innerHTML = `
           <div class="product__banner">
             <a href="/details/${product._id}" class="product__images">
               <img src="${product.images[0]}" alt="${product.name}" class="product__img default" />
-              <img src="${product.images[1]}" alt="${product.name}" class="product__img hover" />
+              <img src="${product.images[1] || product.images[0]}" alt="${product.name}" class="product__img hover" />
             </a>
             <div class="product__actions">
               <a href="#" class="action__btn" aria-label="Quick View">
@@ -88,7 +107,7 @@ function displayProducts(products) {
                 <i class="fi fi-rs-heart"></i>
               </a>
             </div>
-            <div class="product__badge light-pink">Hot</div>
+            ${badgeHtml}
           </div>
           <div class="product__content">
             <span class="product__category">${product.brand ? product.brand.name : 'No Brand'}</span>
@@ -101,11 +120,7 @@ function displayProducts(products) {
               <i class="fi fi-rs-star"></i>
             </div>
             <div class="product__price flex">
-              ${
-                product.hasOffer
-                  ? `<span class="new__price">&#8377;${Math.round(product.finalPrice)}</span><span class="old__price">&#8377;${Math.round(product.originalPrice)}</span>${product.isPercentageOffer ? `<span class="save__price">${product.discountPercentage}% Off</span>` : ''}`
-                  : `<span class="new__price">&#8377;${Math.round(product.originalPrice)}</span>`
-              }
+              ${priceHtml}
             </div>
             <a href="#" class="action__btn cart__btn" aria-label="Add To Cart">
               <i class="fi fi-rs-shopping-bag-add"></i>
@@ -151,11 +166,30 @@ async function loadMoreProducts() {
         const productContainer = document.querySelector(".products__container");
         const productItem = document.createElement("div");
         productItem.classList.add("product__item");
+        
+        // Determine badge type
+        const badgeHtml = product.isFestivalOffer ? 
+          `<div class="product__badge festival-badge">
+            <i class="fas fa-star"></i> Festival
+          </div>` : 
+          `<div class="product__badge light-pink">Hot</div>`;
+        
+        // Handle pricing with NaN protection
+        const originalPrice = product.originalPrice || product.basePrice || product.price || 0;
+        const finalPrice = product.finalPrice || originalPrice;
+        const hasValidOffer = product.hasOffer && finalPrice < originalPrice;
+        
+        const priceHtml = hasValidOffer
+          ? `<span class="new__price">&#8377;${Math.round(finalPrice)}</span>
+             <span class="old__price">&#8377;${Math.round(originalPrice)}</span>
+             ${product.isPercentageOffer ? `<span class="save__price">${product.discountPercentage}% Off</span>` : ''}`
+          : `<span class="new__price">&#8377;${Math.round(originalPrice)}</span>`;
+        
         productItem.innerHTML = `
           <div class="product__banner">
             <a href="/details/${product._id}" class="product__images">
               <img src="${product.images[0]}" alt="${product.name}" class="product__img default" />
-              <img src="${product.images[1]}" alt="${product.name}" class="product__img hover" />
+              <img src="${product.images[1] || product.images[0]}" alt="${product.name}" class="product__img hover" />
             </a>
             <div class="product__actions">
               <a href="#" class="action__btn" aria-label="Quick View">
@@ -165,7 +199,7 @@ async function loadMoreProducts() {
                 <i class="fi fi-rs-heart"></i>
               </a>
             </div>
-            <div class="product__badge light-pink">Hot</div>
+            ${badgeHtml}
           </div>
           <div class="product__content">
             <span class="product__category">${product.brand ? product.brand.name : 'No Brand'}</span>
@@ -178,11 +212,7 @@ async function loadMoreProducts() {
               <i class="fi fi-rs-star"></i>
             </div>
             <div class="product__price flex">
-              ${
-                product.hasOffer
-                  ? `<span class="new__price">&#8377;${Math.round(product.finalPrice)}</span><span class="old__price">&#8377;${Math.round(product.originalPrice)}</span>${product.isPercentageOffer ? `<span class="save__price">${product.discountPercentage}% Off</span>` : ''}`
-                  : `<span class="new__price">&#8377;${Math.round(product.originalPrice)}</span>`
-              }
+              ${priceHtml}
             </div>
             <a href="#" class="action__btn cart__btn" aria-label="Add To Cart">
               <i class="fi fi-rs-shopping-bag-add"></i>

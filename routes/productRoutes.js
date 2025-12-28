@@ -18,6 +18,10 @@ router.get('/shop', productController.shopLoad);
 // Response: Displays product details like description, price, etc.
 router.get('/details/:id', productController.productDetailesLoad);
 
+// ~~~ API Endpoints for Modal Selectors ~~~
+router.get('/api/categories', productController.getCategoriesAPI);
+router.get('/api/brands', productController.getBrandsAPI);
+
 // ~~~ Admin Products Page ~~~
 // Purpose: Load the admin page that lists all products.
 // Response: Renders the page showing all the products for the admin.

@@ -54,11 +54,15 @@ module.exports = {
             return res.status(404).json({ val: false, msg: "Product not found" });
         }
 
-        // Find Variant
+        // Find Variant using proper attributes map
+        const attributeQuery = {};
+        if (prod.size) attributeQuery['attributes.SIZE'] = prod.size.toUpperCase();
+        if (prod.color) attributeQuery['attributes.COLOR'] = prod.color.toUpperCase();
+        
         const variant = await Variant.findOne({ 
-            product: prod._id, 
-            'attributes.size': prod.size,
-            'attributes.color': prod.color 
+            product: prod._id,
+            ...attributeQuery,
+            isActive: true
         });
 
         if (!variant) {
@@ -66,11 +70,11 @@ module.exports = {
         }
 
         // Check Stock Availability
-        const stockStatus = await stockService.checkAvailability(variant._id, prod.quantity);
-        if (!stockStatus.available) {
+        const stockAvailable = await stockService.checkAvailability(variant._id, prod.quantity);
+        if (!stockAvailable) {
             return res.status(400).json({ 
                 val: false, 
-                msg: `Insufficient stock for ${prod.size}/${prod.color}. Available: ${stockStatus.stock}` 
+                msg: `Insufficient stock for ${prod.size}/${prod.color}. Please check availability.` 
             });
         }
 
@@ -81,26 +85,46 @@ module.exports = {
             product: new mongoose.Types.ObjectId(prod._id),
             variant: variant._id,
             quantity: Number(prod.quantity),
-            offerPrice: pricingResult.finalPrice / Number(prod.quantity), // Unit price after offers
-            originalPrice: pricingResult.originalPrice / Number(prod.quantity), // Original unit price
-            totalPrice: pricingResult.finalPrice, // Total price for this item
-            discount: pricingResult.discount, // Total discount for this item
+            offerPrice: Math.round(pricingResult.finalPrice / Number(prod.quantity) * 100) / 100, // Unit price after offers
+            originalPrice: Math.round(pricingResult.originalPrice / Number(prod.quantity) * 100) / 100, // Original unit price
+            totalPrice: Math.round(pricingResult.finalPrice * 100) / 100, // Total price for this item
+            discount: Math.round(pricingResult.discount * 100) / 100, // Total discount for this item
             size: prod.size,
             color: prod.color,
             appliedOffer: pricingResult.offer
         });
       }
 
-      // Calculate Total
-      const totalAmount = processedItems.reduce(
+      // Calculate Total with Shipping
+      let shippingCost = 0;
+      
+      // Calculate shipping for each product
+      for (const item of processedItems) {
+        const product = await productModel.findById(item.product);
+        if (product.hasCustomShipping) {
+          shippingCost += Math.round((product.shippingPrice || 0) * item.quantity * 100) / 100;
+        }
+      }
+      
+      // If no custom shipping, use default logic
+      if (shippingCost === 0) {
+        const subtotal = processedItems.reduce((sum, i) => sum + i.totalPrice, 0);
+        if (subtotal < 2000) {
+          shippingCost = 100;
+        }
+      }
+      
+      const totalAmount = Math.round((processedItems.reduce(
         (sum, i) => sum + i.totalPrice, 0
-      );
-      const originalTotal = processedItems.reduce(
+      ) + shippingCost) * 100) / 100;
+      
+      const originalTotal = Math.round((processedItems.reduce(
         (sum, i) => sum + (i.originalPrice * i.quantity), 0
-      );
-      const totalOfferDiscount = processedItems.reduce(
+      ) + shippingCost) * 100) / 100;
+      
+      const totalOfferDiscount = Math.round(processedItems.reduce(
         (sum, i) => sum + i.discount, 0
-      );
+      ) * 100) / 100;
 
       // Clear Cart (if from cart)
       if (Array.isArray(parsedItem)) {
@@ -123,8 +147,8 @@ module.exports = {
       if (isOfferApplied && code) {
         try {
             const couponResult = await pricingService.applyCoupon(code, totalAmount, userId, processedItems);
-            couponDiscount = couponResult.discount;
-            finalAmount = couponResult.finalAmount;
+            couponDiscount = Math.round(couponResult.discount * 100) / 100;
+            finalAmount = Math.round(couponResult.finalAmount * 100) / 100;
             if (couponDetails) {
                 couponDetails.discountApplied = couponDiscount;
                 couponDetails.couponId = couponResult.coupon._id;
@@ -134,7 +158,7 @@ module.exports = {
         }
       }
 
-      const amountToSend = finalAmount;
+      const amountToSend = Math.round(finalAmount * 100) / 100;
 
       // 3. Payment Processing
       if (selectedPayment === "cash_on_delivery") {
@@ -192,8 +216,11 @@ module.exports = {
           return res.status(200).json({ val: true, msg: "Order placed successfully" });
 
       } else if (selectedPayment === "razorpay") {
+          // Ensure amount is properly rounded to avoid floating point issues
+          const razorpayAmount = Math.round(amountToSend * 100); // Convert to paise and round
+          
           const razorpayOrder = await razorpay.orders.create({
-              amount: Math.round(amountToSend * 100),
+              amount: razorpayAmount,
               currency: "INR",
               receipt: `order_rcptid_${Date.now()}`,
               notes: { userId, addressId: selectedAddressId }
@@ -203,7 +230,7 @@ module.exports = {
               orderId: orderId++,
               user: userId,
               items: processedItems,
-              totalAmount: amountToSend,
+              totalAmount: Math.round(amountToSend * 100) / 100, // Store rounded amount
               paymentMethod: selectedPayment,
               shippingAddress: address,
               coupon: couponDetails,
@@ -231,7 +258,7 @@ module.exports = {
               return res.status(400).json({ val: false, msg: "Insufficient wallet balance" });
           }
 
-          wallet.balance -= amountToSend;
+          wallet.balance = Math.round((wallet.balance - amountToSend) * 100) / 100;
           wallet.transactionHistory.push({
               transactionType: "purchase",
               transactionAmount: amountToSend,
@@ -326,7 +353,7 @@ module.exports = {
             ],
           });
         } else {
-          wallet.balance += order.totalAmount;
+          wallet.balance = Math.round((wallet.balance + order.totalAmount) * 100) / 100;
           wallet.transactionHistory.push({
             transactionType: "refund",
             transactionAmount: order.totalAmount,
@@ -760,7 +787,7 @@ module.exports = {
             ],
           });
         } else {
-          wallet.balance += refundAmount;
+          wallet.balance = Math.round((wallet.balance + refundAmount) * 100) / 100;
           wallet.transactionHistory.push({
             transactionType: "refund",
             transactionAmount: refundAmount,
@@ -803,8 +830,11 @@ module.exports = {
 
       console.log(order);
 
+      // Ensure amount is properly rounded to avoid floating point issues
+      const razorpayAmount = Math.round(order.totalAmount * 100);
+      
       const razorpayOrder = await razorpay.orders.create({
-        amount: order.totalAmount * 100,
+        amount: razorpayAmount,
         currency: "INR",
         receipt: orderId.toString(),
         notes: {
@@ -852,28 +882,29 @@ module.exports = {
       }
 
       item.itemStatus = "cancelled";
-      order.totalAmount -= item.offerPrice * item.quantity;
+      const refundAmount = Math.round(item.offerPrice * item.quantity * 100) / 100;
+      order.totalAmount = Math.round((order.totalAmount - refundAmount) * 100) / 100;
 
       if (order.paymentMethod !== "COD") {
         let wallet = await walletModel.findOne({ userId: currentId });
         if (!wallet) {
           wallet = await walletModel.create({
             userId: currentId,
-            balance: item.offerPrice * item.quantity,
+            balance: refundAmount,
             transactionHistory: [
               {
                 transactionType: "refund",
-                transactionAmount: item.offerPrice * item.quantity,
+                transactionAmount: refundAmount,
                 transactionDate: new Date(),
                 description: `Refund for canceled item ${itemId} in order ${orderId}`,
               },
             ],
           });
         } else {
-          wallet.balance += item.offerPrice * item.quantity;
+          wallet.balance = Math.round((wallet.balance + refundAmount) * 100) / 100;
           wallet.transactionHistory.push({
             transactionType: "refund",
-            transactionAmount: item.offerPrice * item.quantity,
+            transactionAmount: refundAmount,
             transactionDate: new Date(),
             description: `Refund for canceled item ${itemId} in order ${orderId}`,
           });
@@ -990,7 +1021,7 @@ module.exports = {
             ],
           });
         } else {
-          wallet.balance += refundAmount;
+          wallet.balance = Math.round((wallet.balance + refundAmount) * 100) / 100;
           wallet.transactionHistory.push({
             transactionType: "refund",
             transactionAmount: refundAmount,

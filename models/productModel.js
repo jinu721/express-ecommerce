@@ -91,6 +91,17 @@ const productSchema = new mongoose.Schema({
     type: String 
   },
   
+  // Shipping Configuration
+  hasCustomShipping: {
+    type: Boolean,
+    default: false
+  },
+  shippingPrice: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  
   // Reviews and ratings
   rating: { 
     type: Number, 

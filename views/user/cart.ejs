@@ -79,7 +79,17 @@
                         </p>
                       </td>
                       <td>
-                        <span class="table__price">&#8377;<%= item.productId.offerPrice %></span>
+                        <% if (item.hasOffer) { %>
+                          <div class="price-container">
+                            <span class="table__price--original">&#8377;<%= Math.round(item.originalPrice) %></span>
+                            <span class="table__price">&#8377;<%= Math.round(item.finalPrice) %></span>
+                            <% if (item.isFestivalOffer) { %>
+                              <small class="festival-badge">🎄 Festival</small>
+                            <% } %>
+                          </div>
+                        <% } else { %>
+                          <span class="table__price">&#8377;<%= isNaN(item.price) ? Math.round(item.originalPrice || 0) : Math.round(item.price) %></span>
+                        <% } %>
                       </td>
                       <td>
                         <input 
@@ -92,8 +102,8 @@
                       </td>
                       <td>
                         <span>
-                          &#8377;<span  class="Total" data-id="<%= item._id %>">
-                            <%= item.quantity * item.productId.offerPrice %>
+                          &#8377;<span class="Total" data-id="<%= item._id %>">
+                            <%= item.hasOffer ? Math.round(item.totalFinalPrice) : (isNaN(item.total) ? '0' : Math.round(item.total)) %>
                           </span>
                         </span>
                       </td>
@@ -169,7 +179,7 @@
                 <table class="cart__total-table">
                     <tr>
                       <td><span class="cart__total-title">Cart Subtotal</span></td>
-                      <td><span class="cart__total-price">&#8377;<span class="cartTotalPrice"><%= cart.cartTotal %></span></span></td>
+                      <td><span class="cart__total-price">&#8377;<span class="cartTotalPrice"><%= isNaN(cart.cartTotal) ? '0' : Math.round(cart.cartTotal) %></span></span></td>
                     </tr>
                     <tr>
                       <td><span class="cart__total-title">Shipping</span></td>
@@ -181,7 +191,7 @@
                     </tr>
                     <tr>
                       <td><span class="cart__total-title">Total</span></td>
-                      <td><span class="cart__total-price">&#8377; <span class="cartTotalPrice"><%= cart.cartTotal+deliveryCharge %></span></span></td>
+                      <td><span class="cart__total-price">&#8377; <span class="cartTotalPrice"><%= isNaN(cart.cartTotal + deliveryCharge) ? '0' : Math.round(cart.cartTotal + deliveryCharge) %></span></span></td>
                     </tr>
                 </table>
                 <a href="/checkout" class="btn flex btn--md btnProceedToCheckout">

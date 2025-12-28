@@ -34,41 +34,104 @@ module.exports = {
       }
 
       // Populate variants if needed (though pricing service handles calculations)
-       // We might want to re-verify prices here to ensure display is accurate
+      // Populate variants if needed and recalculate pricing
       const populatedItems = await Promise.all(cart.items.map(async item => {
           const variant = item.variantId ? await Variant.findById(item.variantId) : null;
+          const product = await productModel.findById(item.productId);
+          
+          // Calculate current pricing for this item
+          const pricing = await pricingService.calculateBestOffer(product, item.quantity, req.session.currentId, variant);
+          
+          // Update item pricing if needed
+          const expectedPrice = pricing.finalPrice / item.quantity;
+          if (Math.abs(item.price - expectedPrice) > 0.01) {
+            item.price = expectedPrice;
+            item.total = expectedPrice * item.quantity;
+          }
+          
           return {
-              product: item.productId,
+              product: product,
               variant: variant,
               quantity: item.quantity,
-              // Legacy fallback
-              size: item.size,
-              color: item.color
+              productId: item.productId
           };
       }));
 
       // Recalculate Total on Load to ensure accuracy
-      const cartTotalInfo = await pricingService.calculateCartTotal(populatedItems, req.user);
+      const cartTotalInfo = await pricingService.calculateCartTotal(populatedItems, null, req.session.currentId);
+      const newTotal = cartTotalInfo.finalTotal || cartTotalInfo.total || 0;
       
       // Update cart total in DB if changed
-      if (cart.cartTotal !== cartTotalInfo.total) {
-          cart.cartTotal = cartTotalInfo.total;
+      if (Math.abs(cart.cartTotal - newTotal) > 0.01) {
+          cart.cartTotal = Math.round(newTotal * 100) / 100;
           await cart.save();
       }
 
       const productIds = cart.items.map((item) => item.productId._id);
       const products = await productModel.find({ _id: { $in: productIds } });
       
+      // Calculate offer prices for cart items
+      const cartItemsWithOffers = await Promise.all(cart.items.map(async (item) => {
+        const product = products.find(p => p._id.toString() === item.productId._id.toString());
+        if (!product) return item;
+        
+        const offerResult = await pricingService.calculateBestOffer(product, item.quantity, req.session.currentId);
+        
+        return {
+          ...item.toObject(),
+          originalPrice: offerResult.originalPrice / item.quantity, // Unit price
+          finalPrice: offerResult.finalPrice / item.quantity, // Unit price after offers
+          totalOriginalPrice: offerResult.originalPrice, // Total original price
+          totalFinalPrice: offerResult.finalPrice, // Total price after offers
+          discount: offerResult.discount,
+          hasOffer: offerResult.hasOffer,
+          isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
+        };
+      }));
+      
+      // Calculate shipping charges
       let deliveryCharge = 0;
-      if (cart.cartTotal < 2000) {
-        deliveryCharge = 100;
+      let shippingDetails = { hasCustomShipping: false, customShippingTotal: 0 };
+      
+      // Check if any products have custom shipping
+      const productsWithShipping = await Promise.all(cart.items.map(async (item) => {
+        const product = await productModel.findById(item.productId);
+        return {
+          productId: item.productId,
+          hasCustomShipping: product.hasCustomShipping,
+          shippingPrice: product.shippingPrice || 0,
+          quantity: item.quantity
+        };
+      }));
+      
+      // Calculate custom shipping total
+      const customShippingTotal = productsWithShipping.reduce((total, item) => {
+        if (item.hasCustomShipping) {
+          return total + (item.shippingPrice * item.quantity);
+        }
+        return total;
+      }, 0);
+      
+      if (customShippingTotal > 0) {
+        deliveryCharge = customShippingTotal;
+        shippingDetails.hasCustomShipping = true;
+        shippingDetails.customShippingTotal = customShippingTotal;
+      } else {
+        // Default shipping logic
+        if (cart.cartTotal < 2000) {
+          deliveryCharge = 100;
+        }
       }
 
       return res.status(200).render("cart", {
           isCartEmpty: false,
           msg: null,
-          cart,
+          cart: {
+            ...cart.toObject(),
+            items: cartItemsWithOffers
+          },
           deliveryCharge,
+          shippingDetails,
       });
     } catch (err) {
       console.log(err);
@@ -111,9 +174,15 @@ module.exports = {
         return res.status(400).json({ val: false, msg: stockCheck.reason });
       }
 
-      // 3. Calculate Price
-      const pricing = await pricingService.calculateBestOffer(product, quantity, req.session.currentId);
-      const pricePerItem = pricing.finalPrice;
+      // 3. Calculate Price using variant-aware pricing
+      const pricing = await pricingService.calculateBestOffer(product, quantity, req.session.currentId, variant);
+      const pricePerItem = pricing.finalPrice / quantity; // Get per-item price
+      
+      // Ensure valid pricing
+      if (isNaN(pricePerItem) || pricePerItem <= 0) {
+        console.error(`Invalid pricing calculation for product ${product.name}:`, pricing);
+        return res.status(400).json({ val: false, msg: "Pricing calculation error. Please try again." });
+      }
 
       // 4. Update Cart
       let cart = await cartModel.findOne({ userId: req.session.currentId });
@@ -177,15 +246,27 @@ module.exports = {
         }
       }
 
-      // Recalculate Cart Total
+      // Recalculate Cart Total using proper pricing service
       const populatedItems = await Promise.all(cart.items.map(async item => {
-        const v = item.variantId ? await Variant.findById(item.variantId) : null;
-        const p = await productModel.findById(item.productId);
-        return { product: p, variant: v, quantity: item.quantity };
+        const variant = item.variantId ? await Variant.findById(item.variantId) : null;
+        const product = await productModel.findById(item.productId);
+        return { 
+          product: product, 
+          variant: variant, 
+          quantity: item.quantity,
+          productId: item.productId // Add for compatibility
+        };
       }));
       
-      const cartTotalInfo = await pricingService.calculateCartTotal(populatedItems, req.user);
-      cart.cartTotal = cartTotalInfo.total;
+      const cartTotalInfo = await pricingService.calculateCartTotal(populatedItems, null, req.session.currentId);
+      cart.cartTotal = Math.round((cartTotalInfo.finalTotal || cartTotalInfo.total || 0) * 100) / 100;
+      
+      // Ensure cart total is a valid number
+      if (isNaN(cart.cartTotal)) {
+        cart.cartTotal = 0;
+      }
+      
+      await cart.save();
       
       await cart.save();
 
@@ -238,7 +319,7 @@ module.exports = {
       }));
       
       const cartTotalInfo = await pricingService.calculateCartTotal(populatedItems, req.user);
-      cart.cartTotal = cartTotalInfo.total;
+      cart.cartTotal = Math.round(cartTotalInfo.total * 100) / 100;
       await cart.save();
 
       const productIds = cart.items.map((item) => item.productId);
@@ -278,8 +359,11 @@ module.exports = {
 
       // Recalculate Price (Dynamic pricing might change with quantity e.g. bulk discount)
       const pricing = await pricingService.calculateBestOffer(product, qty, req.session.currentId);
-      item.price = pricing.finalPrice;
-      item.total = pricing.finalPrice * qty;
+      const unitPrice = Math.round(pricing.finalPrice / qty * 100) / 100; // Round to 2 decimal places
+      const totalPrice = Math.round(unitPrice * qty * 100) / 100; // Round to 2 decimal places
+      
+      item.price = unitPrice;
+      item.total = totalPrice;
 
       // Recalculate Total Cart
       const populatedItems = await Promise.all(cart.items.map(async i => {
@@ -292,14 +376,14 @@ module.exports = {
       }));
       
       const cartTotalInfo = await pricingService.calculateCartTotal(populatedItems, req.user);
-      cart.cartTotal = cartTotalInfo.total;
+      cart.cartTotal = Math.round(cartTotalInfo.total * 100) / 100; // Round to 2 decimal places
       
       await cart.save();
 
       res.status(200).json({
         val: true,
-        updatedTotal: item.total,
-        cartTotal: cart.cartTotal,
+        updatedTotal: Math.round(totalPrice),
+        cartTotal: Math.round(cart.cartTotal),
       });
 
     } catch (err) {

@@ -47,6 +47,10 @@ module.exports = {
         },
       ]);
 
+      // Get active festival offers for banner display
+      const festivalOffers = await pricingService.getActiveOffers('FESTIVAL');
+      const activeFestivalOffer = festivalOffers.length > 0 ? festivalOffers[0] : null;
+
       // Calculate offer prices for hot releases and deals
       const hotReleasesWithOffers = await Promise.all(products.slice(0, 5).map(async (product) => {
         const offerResult = await pricingService.calculateBestOffer(product, 1, req.session.currentId);
@@ -56,7 +60,9 @@ module.exports = {
           finalPrice: offerResult.finalPrice,
           discount: offerResult.discount,
           discountPercentage: offerResult.discount > 0 ? Math.round((offerResult.discount / offerResult.originalPrice) * 100) : 0,
-          hasOffer: offerResult.offer !== null
+          hasOffer: offerResult.offer !== null,
+          offer: offerResult.offer,
+          isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
         };
       }));
 
@@ -68,7 +74,9 @@ module.exports = {
           finalPrice: offerResult.finalPrice,
           discount: offerResult.discount,
           discountPercentage: offerResult.discount > 0 ? Math.round((offerResult.discount / offerResult.originalPrice) * 100) : 0,
-          hasOffer: offerResult.offer !== null
+          hasOffer: offerResult.offer !== null,
+          offer: offerResult.offer,
+          isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
         };
       }));
 
@@ -84,7 +92,8 @@ module.exports = {
               finalPrice: offerResult.finalPrice,
               discount: offerResult.discount,
               discountPercentage: offerResult.discount > 0 ? Math.round((offerResult.discount / offerResult.originalPrice) * 100) : 0,
-              hasOffer: offerResult.offer !== null
+              hasOffer: offerResult.offer !== null,
+              isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
             }
           };
         }
@@ -97,6 +106,7 @@ module.exports = {
         hotReleases: hotReleasesWithOffers,
         dealsAndOutfits: dealsAndOutfitsWithOffers,
         topSellingProducts: topSellingWithOffers,
+        activeFestivalOffer: activeFestivalOffer
       });
     } catch (err) {
       console.log(err);
@@ -174,7 +184,8 @@ module.exports = {
           discountPercentage: offerResult.discountPercentage,
           hasOffer: offerResult.hasOffer,
           offer: offerResult.offer,
-          isPercentageOffer: offerResult.isPercentageOffer
+          isPercentageOffer: offerResult.isPercentageOffer,
+          isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
         };
       }));
 
@@ -201,11 +212,19 @@ module.exports = {
         filteredProducts.sort((a, b) => b.name.localeCompare(a.name));
       }
 
+      // Get active festival offers for display
+      const festivalOffers = await pricingService.getActiveOffers('FESTIVAL');
+      const activeFestivalOffer = festivalOffers.length > 0 ? festivalOffers[0] : null;
+
       // Send active categories and filtered products
       if (req.query.api) {
         return res.status(200).json({ products: filteredProducts, category: activeCategories });
       } else {
-        res.status(200).render("shop", { products: filteredProducts, category: activeCategories });
+        res.status(200).render("shop", { 
+          products: filteredProducts, 
+          category: activeCategories,
+          activeFestivalOffer: activeFestivalOffer
+        });
       }
     } catch (err) {
       console.error(err);
@@ -259,7 +278,8 @@ module.exports = {
           discountPercentage: relatedOfferResult.discountPercentage,
           hasOffer: relatedOfferResult.hasOffer,
           offer: relatedOfferResult.offer,
-          isPercentageOffer: relatedOfferResult.isPercentageOffer
+          isPercentageOffer: relatedOfferResult.isPercentageOffer,
+          isFestivalOffer: relatedOfferResult.offer && relatedOfferResult.offer.offerType === 'FESTIVAL'
         };
       }));
 
@@ -306,6 +326,7 @@ module.exports = {
         bestOffer: offerResult.offer,
         hasOffer: offerResult.hasOffer,
         isPercentageOffer: offerResult.isPercentageOffer,
+        isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL',
         hasVariants: variants.length > 0,
         relatedProducts,
         category: product.category,
@@ -355,6 +376,33 @@ module.exports = {
         category: null,
         brands: [],
       });
+    }
+  },
+
+  // ~~~ API Endpoints for Modal Selectors ~~~
+  async getCategoriesAPI(req, res) {
+    try {
+      const categories = await categoryModel.find({ isDeleted: false })
+        .select('_id name description')
+        .sort({ name: 1 });
+      
+      res.json({ items: categories });
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      res.status(500).json({ error: 'Failed to fetch categories' });
+    }
+  },
+
+  async getBrandsAPI(req, res) {
+    try {
+      const brands = await Brand.find({ isDeleted: false })
+        .select('_id name description')
+        .sort({ name: 1 });
+      
+      res.json({ items: brands });
+    } catch (error) {
+      console.error('Error fetching brands:', error);
+      res.status(500).json({ error: 'Failed to fetch brands' });
     }
   },
   // ~~~ Add Product ~~~
@@ -603,12 +651,16 @@ module.exports = {
       cashOnDelivery,
       warranty,
       returnPolicy,
+      hasCustomShipping,
+      shippingPrice,
     } = req.body;
     
     const { productId } = req.params;
     try {
       const basePrice = Number(price);
       cashOnDelivery = cashOnDelivery === true || cashOnDelivery === "true";
+      hasCustomShipping = hasCustomShipping === true || hasCustomShipping === "true";
+      const customShippingPrice = hasCustomShipping && shippingPrice ? Number(shippingPrice) : null;
       
       const parsedTags = typeof tags === 'string' ? tags.split("#").filter((tag) => tag.trim() !== "") : tags;
       
@@ -635,47 +687,32 @@ module.exports = {
         }
       }
 
-      // Process Images
+      // Process Images - Handle partial updates
       let imagePaths = [...product.images]; // Start with existing images
       
-      // Handle new uploaded images
+      // Handle new uploaded images (only replace specific slots)
       if (req.files && Object.keys(req.files).length > 0) {
-        const newImagePaths = [];
         for (const key in req.files) {
           if (key.startsWith('productImage')) {
-            req.files[key].forEach((file) => {
-              newImagePaths.push(path.relative(path.join(__dirname, "..", "public"), file.path));
-            });
+            // Extract the image index (productImage1 -> index 0)
+            const imageIndex = parseInt(key.replace('productImage', '')) - 1;
+            if (imageIndex >= 0 && imageIndex < 4) {
+              const file = req.files[key][0]; // Get first file
+              const newImagePath = path.relative(path.join(__dirname, "..", "public"), file.path);
+              
+              // Replace only the specific image slot
+              imagePaths[imageIndex] = newImagePath;
+              console.log(`Updated image slot ${imageIndex + 1} with: ${newImagePath}`);
+            }
           }
-        }
-        
-        // If new images uploaded, replace all images
-        if (newImagePaths.length > 0) {
-          imagePaths = newImagePaths;
         }
       }
       
-      // Handle existing images (from form data)
-      const existingImages = [];
-      for (let i = 1; i <= 4; i++) {
-        const existingKey = `existingproductImage${i}`;
-        if (req.body[existingKey]) {
-          // Clean the URL path
-          let imagePath = req.body[existingKey];
-          if (imagePath.startsWith('/')) {
-            imagePath = imagePath.substring(1);
-          }
-          existingImages.push(imagePath);
-        }
-      }
-      
-      // If we have existing images from the form, use them (preserves order)
-      if (existingImages.length > 0) {
-        imagePaths = existingImages;
-      }
+      // Ensure we don't have more than 4 images and remove any null/undefined values
+      imagePaths = imagePaths.filter(img => img != null).slice(0, 4);
       
       // Update Product Fields
-      await product.updateOne({
+      const updateData = {
         name,
         description,
         category: catDoc ? catDoc._id : product.category,
@@ -687,7 +724,18 @@ module.exports = {
         cashOnDelivery,
         warranty,
         returnPolicy,
-      });
+        hasCustomShipping,
+      };
+      
+      // Add shipping price only if custom shipping is enabled
+      if (hasCustomShipping && customShippingPrice !== null) {
+        updateData.shippingPrice = customShippingPrice;
+      } else if (!hasCustomShipping) {
+        // Remove shipping price if custom shipping is disabled
+        updateData.$unset = { shippingPrice: 1 };
+      }
+      
+      await product.updateOne(updateData);
 
       return res.status(200).json({ 
         val: true, 
@@ -800,7 +848,8 @@ module.exports = {
           discountPercentage: offerResult.discountPercentage,
           hasOffer: offerResult.hasOffer,
           offer: offerResult.offer,
-          isPercentageOffer: offerResult.isPercentageOffer
+          isPercentageOffer: offerResult.isPercentageOffer,
+          isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
         };
       }));
       

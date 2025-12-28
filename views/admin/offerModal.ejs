@@ -26,6 +26,13 @@
               </select>
             </div>
           </div>
+          
+          <!-- Festival Offer Hint -->
+          <div id="festivalHint" class="alert alert-info" style="display: none;">
+            <i class="fas fa-info-circle"></i>
+            <strong>Festival Offer:</strong> This offer will automatically apply to ALL products in your store. 
+            No need to select specific products, categories, or brands.
+          </div>
 
           <!-- Dynamic Selection Section -->
           <div class="mb-3" id="selectionSection">
@@ -137,8 +144,18 @@ function handleOfferTypeChange() {
   
   if (offerType === 'FESTIVAL') {
     selectionSection.style.display = 'none';
+    // Show festival offer hint
+    const festivalHint = document.getElementById('festivalHint');
+    if (festivalHint) {
+      festivalHint.style.display = 'block';
+    }
   } else {
     selectionSection.style.display = 'block';
+    // Hide festival offer hint
+    const festivalHint = document.getElementById('festivalHint');
+    if (festivalHint) {
+      festivalHint.style.display = 'none';
+    }
     switch(offerType) {
       case 'PRODUCT':
         selectionLabel.textContent = 'Select Products';

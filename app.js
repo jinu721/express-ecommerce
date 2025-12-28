@@ -106,6 +106,31 @@ app.use('/', variantRoutes);
 app.use('/', offerRoutes);
 app.use('/', brandRoutes);
 
+// DEBUG ROUTE - Remove after testing
+app.get('/debug-festival-offer/:productId', async (req, res) => {
+  try {
+    const productModel = require('./models/productModel');
+    const pricingService = require('./services/pricingService');
+    
+    const product = await productModel.findById(req.params.productId);
+    if (!product) {
+      return res.json({ error: 'Product not found' });
+    }
+    
+    const result = await pricingService.calculateBestOffer(product, 1, req.session.currentId);
+    res.json({
+      product: {
+        name: product.name,
+        basePrice: product.basePrice,
+        price: product.price
+      },
+      result: result
+    });
+  } catch (error) {
+    res.json({ error: error.message });
+  }
+});
+
 
 app.get('/*', (req, res) => {
     res.render('404');  

@@ -401,17 +401,9 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
   
 
   if (!selectedAddressId) {
-    Swal.fire({
-      icon: "error",
-      title: "Oops...",
-      text: "Please select an address",
-    });
+    showToast("Please select an address", 'error');
   } else if (!selectedPayment) {
-    Swal.fire({
-      icon: "error",
-      title: "Oops...",
-      text: "Please select a payment option",
-    });
+    showToast("Please select a payment option", 'error');
   } else {
     try {
       const response = await fetch("/place-order", {
@@ -432,11 +424,7 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
 
       if (!data.val) {
         console.log("Error in response:", data);
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: data.msg || "Something went wrong",
-        });
+        showToast(data.msg || "Something went wrong", 'error');
       } else {
         if (selectedPayment === "razorpay") {
           let paymentSuccess = false;
@@ -470,34 +458,22 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
 
                 if (verifyData.val) {
                   paymentSuccess = true;
-                  Swal.fire({
-                    title: "Success",
-                    text: "Order placed successfully",
-                    icon: "success",
-                  }).then(() => {
+                  showToast("Order placed successfully!", 'success');
+                  setTimeout(() => {
                     sendNotification(
                       "Order Placed Successfully",
-                      'Your order #123 has been placed successfully! Thank you for shopping with us. You can track your order in the "My Orders" section. We hope you enjoy your purchase!',
+                      'Your order has been placed successfully! Thank you for shopping with us. You can track your order in the "My Orders" section.',
                       "order",
                       "success"
                     );
-                    console.log(verifyData);
                     window.location.href = "/success";
-                  });
+                  }, 2000);
                 } else {
-                  Swal.fire({
-                    icon: "error",
-                    title: "Payment Verification Failed",
-                    text: verifyData.msg || "Something went wrong",
-                  });
+                  showToast(verifyData.msg || "Payment verification failed", 'error');
                 }
               } catch (error) {
                 console.error("Verification error:", error);
-                Swal.fire({
-                  icon: "error",
-                  title: "Oops...",
-                  text: "Payment verification failed",
-                });
+                showToast("Payment verification failed", 'error');
               }
             },
             prefill: {
@@ -524,15 +500,10 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
               isPopupOpen = false;
               paymentInProgress = false;
               console.warn("Razorpay popup closed by user");
-              Swal.fire({
-                icon: "info",
-                title: "Payment Cancelled",
-                text: "You closed the payment window. The order has been placed, but payment was not successful. You can continue the payment from the account section.",
-              }).then((result) => {
-                if(result.isConfirmed || result.dismiss === Swal.DismissReason.close){
-                  window.location.href = '/account'
-                }
-              });
+              showToast("Payment cancelled. You can complete payment from your account section.", 'warning');
+              setTimeout(() => {
+                window.location.href = '/account';
+              }, 3000);
             } else if (paymentSuccess) {
               console.log("Payment was successful!");
             }
@@ -546,174 +517,225 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
             paymentInProgress = false;
             console.error("Payment failed:", response);
             rzp.close();
-            Swal.fire({
-              icon: "info",
-              title: "Payment Incomplete",
-              text:
-                "The payment could not be completed. The order has been placed but payment was not successful. Please try again.",
-            }).then((result) => {
-              if (result.isConfirmed || result.dismiss === Swal.DismissReason.close) {
-                window.location.href = "/account";
-              }
-            });
+            showToast("Payment failed. You can retry from your account section.", 'error');
+            setTimeout(() => {
+              window.location.href = "/account";
+            }, 3000);
           });
 
           rzp.open();
         } else {
-          Swal.fire({
-            title: "Success",
-            text: "Order placed successfully",
-            icon: "success",
-          }).then((result) => {
-            if (result.isConfirmed || result.isDismissed) {
-              sendNotification(
-                "Order Placed Successfully",
-                'Your order #123 has been placed successfully! Thank you for shopping with us. You can track your order in the "My Orders" section. We hope you enjoy your purchase!',
-                "order",
-                "success"
-              );
-              window.location.href = "/success";
-            }
-          });
+          showToast("Order placed successfully!", 'success');
+          setTimeout(() => {
+            sendNotification(
+              "Order Placed Successfully",
+              'Your order has been placed successfully! Thank you for shopping with us. You can track your order in the "My Orders" section.',
+              "order",
+              "success"
+            );
+            window.location.href = "/success";
+          }, 2000);
         }
       }
     } catch (err) {
       console.error("Fetch error:", err);
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: "Something went wrong while placing your order",
-      });
+      showToast("Something went wrong while placing your order", 'error');
     }
   }
 });
 
 
 
-document.querySelector(".btncouponAplly").addEventListener("click", (e) => {
+document.querySelector(".btncouponAplly").addEventListener("click", async (e) => {
   e.preventDefault();
   const couponInput = document.querySelector(".couponInput");
-  console.log("3883");
+  const applyCouponBtn = document.querySelector(".btncouponAplly");
+  const deleteCouponBtn = document.querySelector(".btncouponDelete");
 
-  if (!couponInput.value) {
-    Swal.fire({
-      icon: "error",
-      title: "Oops...",
-      text: "Please enter a coupon code.",
+  if (!couponInput.value.trim()) {
+    showToast("Please enter a coupon code.", 'error');
+    return;
+  }
+
+  // Get current total from the page
+  const totalElement = document.querySelector(".order__grand-total");
+  const currentTotal = parseInt(totalElement.textContent.replace(/[^\d]/g, ''));
+
+  // Disable input and button during processing
+  couponInput.setAttribute("readonly", "true");
+  applyCouponBtn.disabled = true;
+  applyCouponBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+
+  try {
+    const response = await fetch("/coupon/apply", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        couponCode: couponInput.value.trim(),
+        totalPrice: currentTotal,
+      }),
     });
-  } else {
-    const oldPriceTag = document.querySelector(".oldPriceTag");
-    const oldPriceTagValue = document.querySelector(".oldPriceTagValue");
-    const offerAppliedPriceTag = document.querySelector(
-      ".offerAppliedPriceTag"
-    );
-    const offerAppliedPriceTagValue = document.querySelector(
-      ".offerAppliedPriceTagValue"
-    );
-    couponInput.setAttribute("readonly", "true");
-    document.querySelector(".btncouponAplly").disabled = true;
 
-    async function applycoupon() {
-      try {
-        const response = await fetch("/coupon/apply", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            couponCode: couponInput.value,
-            totalPrice: parseInt(oldPriceTagValue.textContent),
-          }),
-        });
+    const data = await response.json();
+    console.log("Coupon response:", data);
 
-        const data = await response.json();
-
-        console.log(data)
-        if (!data.val) {
-          Swal.fire({
-            icon: "error",
-            title: "Oops...",
-            text: data.msg,
-          });
-          couponInput.removeAttribute("readonly");
-          document.querySelector(".btncouponAplly").disabled = false;
-        } else {
-          Swal.fire({
-            title: "Success",
-            text: data.msg,
-            icon: "success",
-          });
-
-          console.log(data);
-
-          oldPriceTag.style.display = "block";
-          oldPriceTagValue.textContent = data.originalPrice;
-          offerAppliedPriceTag.style.display = "block";
-          offerAppliedPriceTagValue.textContent = data.discountedPrice;
-          couponInput.value = couponInput.value;
-          couponInput.setAttribute("readonly", "true");
-          document.querySelector(".btncouponAplly").disabled = true;
-          deleteCouponBtn.style.display = "block";
-          isOfferApplied = true;
-        }
-      } catch (err) {
-        console.log(err);
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: "Something went wrong. Please try again.",
-        });
-      }
+    if (!data.val) {
+      showToast(data.msg, 'error');
+      // Re-enable input and button
+      couponInput.removeAttribute("readonly");
+      applyCouponBtn.disabled = false;
+      applyCouponBtn.innerHTML = '<i class="fas fa-tag"></i> Apply';
+    } else {
+      showToast(data.msg, 'success');
+      
+      // Update the order table with discount
+      updateOrderTableWithDiscount(data.originalPrice, data.discountedPrice, data.discount);
+      
+      // Show delete button
+      deleteCouponBtn.style.display = "block";
+      applyCouponBtn.style.display = "none";
+      
+      // Set global variables
+      isOfferApplied = true;
+      code = couponInput.value.trim();
     }
-
-    applycoupon();
+  } catch (err) {
+    console.error("Coupon application error:", err);
+    showToast("Something went wrong. Please try again.", 'error');
+    // Re-enable input and button
+    couponInput.removeAttribute("readonly");
+    applyCouponBtn.disabled = false;
+    applyCouponBtn.innerHTML = '<i class="fas fa-tag"></i> Apply';
   }
 });
 
-document.querySelector(".btncouponDelete").addEventListener("click", async (e) => {
-    e.preventDefault();
-    const couponInput = document.querySelector(".couponInput");
-    const deleteCouponBtn = document.querySelector(".btncouponDelete");
-    const offerAppliedPriceTagValue = document.querySelector(
-      ".offerAppliedPriceTagValue"
-    );
-    const oldPriceTagValue = document.querySelector(".oldPriceTagValue");
+function updateOrderTableWithDiscount(originalPrice, discountedPrice, discount) {
+  const orderTable = document.querySelector(".order__table tbody");
+  const totalRow = orderTable.querySelector("tr:last-child");
+  
+  // Check if discount row already exists
+  let discountRow = orderTable.querySelector(".discount-row");
+  if (!discountRow) {
+    // Create discount row
+    discountRow = document.createElement("tr");
+    discountRow.className = "discount-row";
+    discountRow.innerHTML = `
+      <td><span class="order__subtitle" style="color: #28a745;">Coupon Discount</span></td>
+      <td colspan="2"><span class="table__price" style="color: #28a745;">-&#8377;<span class="discount-amount">${discount}</span></span></td>
+    `;
+    
+    // Insert before the total row
+    orderTable.insertBefore(discountRow, totalRow);
+  } else {
+    // Update existing discount row
+    discountRow.querySelector(".discount-amount").textContent = discount;
+  }
+  
+  // Update total
+  const totalElement = totalRow.querySelector(".order__grand-total");
+  totalElement.innerHTML = `&#8377;${discountedPrice}`;
+}
 
-    const couponCode = couponInput.value;
+document.querySelector(".btncouponDelete").addEventListener("click", async (e) => {
+  e.preventDefault();
+  const couponInput = document.querySelector(".couponInput");
+  const deleteCouponBtn = document.querySelector(".btncouponDelete");
+  const applyCouponBtn = document.querySelector(".btncouponAplly");
+
+  try {
     const response = await fetch("/coupon/remove", {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        couponCode: couponCode,
-        totalPrice: parseInt(offerAppliedPriceTagValue.textContent),
+        couponCode: couponInput.value,
       }),
     });
 
     const data = await response.json();
-    console.log(data);
+    console.log("Remove coupon response:", data);
+    
     if (data.val) {
-      document.querySelector(".oldPriceTag").style.display = "none";
-      offerAppliedPriceTagValue.textContent = oldPriceTagValue.textContent;
-      Swal.fire({
-        title: "Coupon Removed",
-        text: "Your coupon has been removed successfully.",
-        icon: "success",
-      });
+      // Remove discount row from table
+      const discountRow = document.querySelector(".discount-row");
+      if (discountRow) {
+        discountRow.remove();
+      }
+      
+      // Recalculate and update total (you might need to reload or recalculate)
+      location.reload(); // Simple solution - reload the page
+      
+      showToast("Coupon removed successfully", 'success');
+      
+      // Reset form
       couponInput.value = "";
       couponInput.removeAttribute("readonly");
-      document.querySelector(".btncouponAplly").disabled = false;
+      applyCouponBtn.disabled = false;
+      applyCouponBtn.style.display = "block";
       deleteCouponBtn.style.display = "none";
+      
+      // Reset global variables
       isOfferApplied = false;
+      code = null;
     } else {
-      Swal.fire({
-        icon: "error",
-        title: "Oops...",
-        text: data.msg,
-      });
+      showToast(data.msg, 'error');
     }
+  } catch (err) {
+    console.error("Remove coupon error:", err);
+    showToast("Something went wrong. Please try again.", 'error');
+  }
 });
+
+// Toast function
+function showToast(message, type = 'info') {
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  `;
+  
+  // Set background color based on type
+  const colors = {
+    success: '#28a745',
+    error: '#dc3545',
+    info: '#17a2b8',
+    warning: '#ffc107'
+  };
+  
+  toast.style.backgroundColor = colors[type] || colors.info;
+  toast.textContent = message;
+  
+  // Add to page
+  document.body.appendChild(toast);
+  
+  // Show toast
+  setTimeout(() => {
+    toast.style.opacity = '1';
+  }, 100);
+  
+  // Hide and remove toast
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
+  }, 3000);
+}
 
 async function sendNotification(title, message, type, status) {
   try {

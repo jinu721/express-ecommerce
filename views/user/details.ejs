@@ -79,13 +79,18 @@
             
             <div class="details__price flex">
               <% if(hasOffer) { %>
-                <span class="new__price offerPriceProduct">&#8377;<%= Math.round(discountedPrice) %></span>
-                <span class="old__price">&#8377;<%= Math.round(displayPrice) %></span>
+                <span class="new__price offerPriceProduct">&#8377;<%= isNaN(discountedPrice) ? '0' : Math.round(discountedPrice) %></span>
+                <span class="old__price">&#8377;<%= isNaN(displayPrice) ? '0' : Math.round(displayPrice) %></span>
                 <% if(isPercentageOffer) { %>
                   <span class="save__price"><%= discountPercentage %>% Off</span>
                 <% } %>
+                <% if(typeof isFestivalOffer !== 'undefined' && isFestivalOffer) { %>
+                  <span class="festival-offer-tag">
+                    <i class="fas fa-star"></i> Festival Offer
+                  </span>
+                <% } %>
               <% } else { %>
-                <span class="new__price">&#8377;<%= Math.round(displayPrice) %></span>
+                <span class="new__price">&#8377;<%= isNaN(displayPrice) ? '0' : Math.round(displayPrice) %></span>
               <% } %>
             </div>
             
@@ -105,7 +110,6 @@
               </li>
             </ul>
 
-            <!-- Dynamic Variant Selector -->
             <div id="variant-selector" class="variant-selector-container">
               <!-- This will be populated by JavaScript -->
             </div>

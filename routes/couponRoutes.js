@@ -37,6 +37,16 @@ router.post('/admin/coupons/:id/toggle', couponController.toggleCouponStatus);
 // Response: Returns analytics data
 router.get('/admin/coupons/:id/analytics', couponController.getCouponAnalytics);
 
+// ~~~ Apply Coupon (Legacy Endpoint) ~~~
+// Purpose: Apply coupon with legacy response format for frontend compatibility
+// Response: Returns legacy format { val, msg, originalPrice, discountedPrice }
+router.post('/coupon/apply', couponController.applyCoupon);
+
+// ~~~ Remove Coupon (Legacy Endpoint) ~~~
+// Purpose: Remove applied coupon
+// Response: Returns success or error message
+router.delete('/coupon/remove', couponController.removeCoupon);
+
 // ~~~ Validate Coupon (Public API) ~~~
 // Purpose: Validates a coupon code for frontend use
 // Response: Returns validation result and discount details

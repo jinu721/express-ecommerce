@@ -21,8 +21,39 @@ class PricingService {
     try {
       const currentDate = new Date();
       
-      // Calculate the base price considering variant
-      let basePrice = product.basePrice || product.price;
+      console.log('=== DEBUGGING FESTIVAL OFFER ===');
+      console.log('Product:', product.name);
+      console.log('Current Date:', currentDate);
+      
+      // Calculate the base price considering variant - FIX NaN ISSUE
+      let basePrice = 0;
+      
+      // Try multiple price sources with validation
+      if (product.basePrice && !isNaN(product.basePrice) && product.basePrice > 0) {
+        basePrice = product.basePrice;
+      } else if (product.price && !isNaN(product.price) && product.price > 0) {
+        basePrice = product.price;
+      } else if (product.sizes && product.sizes.price && !isNaN(product.sizes.price) && product.sizes.price > 0) {
+        basePrice = product.sizes.price;
+      } else {
+        console.error(`No valid price found for product ${product.name || product._id}:`, {
+          basePrice: product.basePrice,
+          price: product.price,
+          sizesPrice: product.sizes?.price
+        });
+        // Return safe fallback
+        return {
+          originalPrice: 0,
+          finalPrice: 0,
+          discount: 0,
+          discountPercentage: 0,
+          offer: null,
+          hasOffer: false,
+          error: 'No valid price found'
+        };
+      }
+      
+      console.log('Base Price:', basePrice);
       
       if (variant) {
         // Apply variant price logic
@@ -31,19 +62,47 @@ class PricingService {
           basePrice = variant.specialPrice;
         } else {
           // Apply price adjustment (increment/decrement)
-          basePrice = basePrice + (variant.priceAdjustment || 0);
+          const adjustment = variant.priceAdjustment || 0;
+          basePrice = basePrice + adjustment;
+        }
+        
+        // Ensure variant price is valid
+        if (isNaN(basePrice) || basePrice < 0) {
+          console.warn(`Invalid variant price for ${variant.sku}: ${basePrice}`);
+          basePrice = product.basePrice || product.price || 0;
         }
       }
       
       const totalBasePrice = basePrice * quantity;
       
+      // Ensure total price is valid
+      if (isNaN(totalBasePrice) || totalBasePrice < 0) {
+        console.error(`Invalid total price calculation: ${basePrice} * ${quantity} = ${totalBasePrice}`);
+        const fallbackPrice = 0;
+        return {
+          originalPrice: fallbackPrice,
+          finalPrice: fallbackPrice,
+          discount: 0,
+          discountPercentage: 0,
+          offer: null,
+          hasOffer: false,
+          error: 'Invalid pricing data'
+        };
+      }
+      
       // Get all applicable offers
       const offers = await this.getApplicableOffers(product, currentDate);
       
+      console.log('Found Offers:', offers.length);
+      offers.forEach(offer => {
+        console.log('- Offer:', offer.name, 'Type:', offer.offerType, 'Discount:', offer.discountValue + (offer.discountType === 'PERCENTAGE' ? '%' : '₹'));
+      });
+      
       if (offers.length === 0) {
+        console.log('No offers found, returning original price');
         return {
-          originalPrice: totalBasePrice,
-          finalPrice: totalBasePrice,
+          originalPrice: Math.round(totalBasePrice * 100) / 100,
+          finalPrice: Math.round(totalBasePrice * 100) / 100,
           discount: 0,
           discountPercentage: 0,
           offer: null,
@@ -52,9 +111,14 @@ class PricingService {
       }
       
       // Sort offers by priority (highest first), then by creation date (latest first)
+      // Give festival offers extra priority boost
       offers.sort((a, b) => {
-        if (b.priority !== a.priority) {
-          return b.priority - a.priority; // Higher priority first
+        // Festival offers get priority boost
+        const aPriority = a.offerType === 'FESTIVAL' ? a.priority + 1000 : a.priority;
+        const bPriority = b.offerType === 'FESTIVAL' ? b.priority + 1000 : b.priority;
+        
+        if (bPriority !== aPriority) {
+          return bPriority - aPriority; // Higher priority first
         }
         return new Date(b.createdAt) - new Date(a.createdAt); // Latest first for same priority
       });
@@ -62,36 +126,39 @@ class PricingService {
       // Apply the best offer (first in sorted list)
       const bestOffer = offers[0];
       const discount = this.calculateOfferDiscount(bestOffer, totalBasePrice);
-      const finalPrice = Math.max(0, totalBasePrice - discount);
+      const finalPrice = Math.max(0, Math.round((totalBasePrice - discount) * 100) / 100);
       
       // Calculate discount percentage for display
       let discountPercentage = 0;
       if (bestOffer.discountType === 'PERCENTAGE') {
         discountPercentage = bestOffer.discountValue;
-      } else if (discount > 0) {
+      } else if (discount > 0 && totalBasePrice > 0) {
         discountPercentage = Math.round((discount / totalBasePrice) * 100);
       }
       
+      // Ensure all values are valid numbers and properly rounded
       return {
-        originalPrice: totalBasePrice,
-        finalPrice: finalPrice,
-        discount: discount,
-        discountPercentage: discountPercentage,
+        originalPrice: Math.round(totalBasePrice * 100) / 100,
+        finalPrice: Math.round(finalPrice * 100) / 100,
+        discount: Math.round(discount * 100) / 100,
+        discountPercentage: isNaN(discountPercentage) ? 0 : discountPercentage,
         offer: bestOffer,
         hasOffer: discount > 0,
         isPercentageOffer: bestOffer.discountType === 'PERCENTAGE'
       };
     } catch (error) {
       console.error('Error calculating best offer:', error);
-      const fallbackPrice = (product.basePrice || product.price) * quantity;
+      const fallbackPrice = (product.basePrice || product.price || 0) * quantity;
+      const safeFallbackPrice = isNaN(fallbackPrice) ? 0 : fallbackPrice;
       return {
-        originalPrice: fallbackPrice,
-        finalPrice: fallbackPrice,
+        originalPrice: safeFallbackPrice,
+        finalPrice: safeFallbackPrice,
         discount: 0,
         discountPercentage: 0,
         offer: null,
         hasOffer: false,
-        isPercentageOffer: false
+        isPercentageOffer: false,
+        error: error.message
       };
     }
   }
@@ -172,6 +239,25 @@ class PricingService {
    */
   async getApplicableOffers(product, currentDate) {
     try {
+      console.log('=== GET APPLICABLE OFFERS DEBUG ===');
+      console.log('Product ID:', product._id);
+      console.log('Current Date:', currentDate);
+      
+      // First, let's check if there are ANY festival offers at all
+      const allFestivalOffers = await offerModel.find({ offerType: 'FESTIVAL' });
+      console.log('ALL Festival offers in DB:', allFestivalOffers.length);
+      allFestivalOffers.forEach(offer => {
+        console.log('- Festival Offer:', {
+          name: offer.name,
+          isActive: offer.isActive,
+          startDate: offer.startDate,
+          endDate: offer.endDate,
+          discountValue: offer.discountValue,
+          discountType: offer.discountType,
+          isDateValid: offer.startDate <= currentDate && offer.endDate >= currentDate
+        });
+      });
+      
       const query = {
         isActive: true,
         startDate: { $lte: currentDate },
@@ -201,10 +287,13 @@ class PricingService {
         });
       }
       
-      // Festival offers (apply to all products)
+      // Festival offers (apply to all products when no specific targeting)
+      // Simplified approach: Festival offers apply to all products regardless of arrays
       query.$or.push({
         offerType: 'FESTIVAL'
       });
+      
+      console.log('Query:', JSON.stringify(query, null, 2));
       
       // Check usage limits
       const usageLimitQuery = {
@@ -222,7 +311,18 @@ class PricingService {
       const offers = await offerModel.find(finalQuery)
         .sort({ priority: -1, createdAt: -1 });
       
-      console.log(`Found ${offers.length} applicable offers for product ${product.name}`);
+      console.log('Raw offers found:', offers.length);
+      offers.forEach(offer => {
+        console.log('- Raw Offer:', {
+          name: offer.name,
+          type: offer.offerType,
+          isActive: offer.isActive,
+          startDate: offer.startDate,
+          endDate: offer.endDate,
+          discountValue: offer.discountValue,
+          discountType: offer.discountType
+        });
+      });
       
       return offers;
     } catch (error) {
@@ -256,8 +356,9 @@ class PricingService {
       discount = offer.discountValue;
     }
     
-    // Ensure discount doesn't exceed order value
-    return Math.min(discount, orderValue);
+    // Ensure discount doesn't exceed order value and round to 2 decimal places
+    const finalDiscount = Math.min(discount, orderValue);
+    return Math.round(finalDiscount * 100) / 100;
   }
   
   /**
@@ -518,7 +619,7 @@ class PricingService {
   
   /**
    * Calculate total cart value with offers and coupons
-   * @param {Array} cartItems - Cart items
+   * @param {Array} cartItems - Cart items with product, variant, quantity
    * @param {String} couponCode - Optional coupon code
    * @param {String} userId - User ID
    * @returns {Object} Complete pricing breakdown
@@ -531,25 +632,34 @@ class PricingService {
       
       // Calculate offers for each item
       for (const item of cartItems) {
-        const product = await productModel.findById(item.productId);
+        const product = item.product || await productModel.findById(item.productId);
         if (!product) continue;
         
-        const offerResult = await this.calculateBestOffer(product, item.quantity, userId);
+        const offerResult = await this.calculateBestOffer(product, item.quantity, userId, item.variant);
         
-        subtotal += offerResult.originalPrice;
-        totalOfferDiscount += offerResult.discount;
+        // Ensure valid pricing with proper rounding
+        const originalPrice = Math.round((isNaN(offerResult.originalPrice) ? 0 : offerResult.originalPrice) * 100) / 100;
+        const finalPrice = Math.round((isNaN(offerResult.finalPrice) ? 0 : offerResult.finalPrice) * 100) / 100;
+        const discount = Math.round((isNaN(offerResult.discount) ? 0 : offerResult.discount) * 100) / 100;
+        
+        subtotal += originalPrice;
+        totalOfferDiscount += discount;
         
         itemBreakdown.push({
           product: product,
           quantity: item.quantity,
-          originalPrice: offerResult.originalPrice,
-          finalPrice: offerResult.finalPrice,
-          discount: offerResult.discount,
+          originalPrice: originalPrice,
+          finalPrice: finalPrice,
+          discount: discount,
           offer: offerResult.offer
         });
       }
       
-      const afterOffers = subtotal - totalOfferDiscount;
+      // Round intermediate calculations
+      subtotal = Math.round(subtotal * 100) / 100;
+      totalOfferDiscount = Math.round(totalOfferDiscount * 100) / 100;
+      const afterOffers = Math.round(Math.max(0, subtotal - totalOfferDiscount) * 100) / 100;
+      
       let couponDiscount = 0;
       let coupon = null;
       
@@ -557,7 +667,7 @@ class PricingService {
       if (couponCode) {
         try {
           const couponResult = await this.applyCoupon(couponCode, afterOffers, userId, cartItems);
-          couponDiscount = couponResult.discount;
+          couponDiscount = Math.round((couponResult.discount || 0) * 100) / 100;
           coupon = couponResult.coupon;
         } catch (error) {
           // Coupon application failed, continue without it
@@ -565,7 +675,8 @@ class PricingService {
         }
       }
       
-      const finalTotal = Math.max(0, afterOffers - couponDiscount);
+      const finalTotal = Math.round(Math.max(0, afterOffers - couponDiscount) * 100) / 100;
+      const totalSavings = Math.round((totalOfferDiscount + couponDiscount) * 100) / 100;
       
       return {
         subtotal: subtotal,
@@ -573,13 +684,26 @@ class PricingService {
         afterOffers: afterOffers,
         couponDiscount: couponDiscount,
         finalTotal: finalTotal,
-        totalSavings: totalOfferDiscount + couponDiscount,
+        total: finalTotal, // For backward compatibility
+        totalSavings: totalSavings,
         itemBreakdown: itemBreakdown,
         appliedCoupon: coupon
       };
     } catch (error) {
       console.error('Error calculating cart total:', error);
-      throw error;
+      // Return safe fallback
+      return {
+        subtotal: 0,
+        offerDiscount: 0,
+        afterOffers: 0,
+        couponDiscount: 0,
+        finalTotal: 0,
+        total: 0,
+        totalSavings: 0,
+        itemBreakdown: [],
+        appliedCoupon: null,
+        error: error.message
+      };
     }
   }
 }

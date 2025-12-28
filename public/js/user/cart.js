@@ -2,45 +2,86 @@ const deleteIconCart = document.querySelectorAll('.deleteIconCart');
 
 deleteIconCart.forEach(elem => {
     elem.addEventListener('click',(e) => {
-      Swal.fire({
-        title: "Are you sure?",
-        text: "You won't be able to revert this!",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#3085d6",
-        cancelButtonColor: "#d33",
-        confirmButtonText: "Yes, delete it!"
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          const cartItemId = e.target.getAttribute('data-id');
-          try {
-              const response = await fetch(`/delete-from-cart/${cartItemId}`, {
-                  method: 'DELETE',
-              });
-              const data = await response.json();
-  
-              if (!data.val) {
-                  Swal.fire({
-                      icon: "error",
-                      title: "Oops...",
-                      text: data.msg,
-                  });
-              } else {
-                Swal.fire({
-                  title: "Deleted!",
-                  text: "Item has been deleted.",
-                  icon: "success"
-                }).then(()=>{
-                  window.location.href = '/cart';
-                });
-              }
-          } catch (err) {
-              console.log(err);
-          }
-        }
-      });
+      const cartItemId = e.target.getAttribute('data-id');
+      showDeleteConfirmation(cartItemId);
     });
 });
+
+// Create confirmation modal for cart delete
+function showDeleteConfirmation(cartItemId) {
+  // Create modal HTML
+  const modalHTML = `
+    <div class="modal fade" id="deleteCartModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Confirm Delete</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p>Are you sure you want to remove this item from your cart?</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Remove Item</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Remove existing modal if any
+  const existingModal = document.getElementById('deleteCartModal');
+  if (existingModal) {
+    existingModal.remove();
+  }
+  
+  // Add modal to page
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  
+  // Show modal
+  const modal = new bootstrap.Modal(document.getElementById('deleteCartModal'));
+  modal.show();
+  
+  // Handle confirm delete
+  document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    const originalText = confirmBtn.textContent;
+    
+    // Show loading state
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Removing...';
+    
+    try {
+      const response = await fetch(`/delete-from-cart/${cartItemId}`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+
+      if (!data.val) {
+        showToast(data.msg, 'error');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = originalText;
+      } else {
+        showToast('Item removed from cart', 'success');
+        modal.hide();
+        setTimeout(() => {
+          window.location.href = '/cart';
+        }, 1000);
+      }
+    } catch (err) {
+      console.error('Delete cart item error:', err);
+      showToast('Failed to remove item', 'error');
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = originalText;
+    }
+  });
+  
+  // Clean up modal when hidden
+  document.getElementById('deleteCartModal').addEventListener('hidden.bs.modal', function() {
+    this.remove();
+  });
+}
 // function renderCart(cart, products) {
 //     const cartContainer = document.querySelector('.cart.section--lg.container');
 
@@ -151,9 +192,22 @@ deleteIconCart.forEach(elem => {
 // }
 document.querySelectorAll('.quantity').forEach(input => {
   input.addEventListener('change', async (e) => {
-    const newQuantity = e.target.value;
+    const newQuantity = parseInt(e.target.value);
     const itemId = e.target.getAttribute('data-id');
-    const previousQuantity = e.target.getAttribute('data-prev-quantity') || input.defaultValue;
+    const previousQuantity = parseInt(e.target.getAttribute('data-prev-quantity') || input.defaultValue);
+
+    // Validate quantity
+    if (newQuantity < 1 || isNaN(newQuantity)) {
+      e.target.value = previousQuantity;
+      showToast('Quantity must be at least 1', 'error');
+      return;
+    }
+
+    // Show loading state
+    e.target.disabled = true;
+    const totalElement = document.querySelector(`.Total[data-id="${itemId}"]`);
+    const originalTotal = totalElement.textContent;
+    totalElement.textContent = 'Updating...';
 
     try {
       const response = await fetch(`/update-cart-item/${itemId}`, {
@@ -164,27 +218,74 @@ document.querySelectorAll('.quantity').forEach(input => {
         body: JSON.stringify({ quantity: newQuantity }),
       });
       const data = await response.json();
-      console.log(data)
+      console.log('Cart update response:', data);
+      
       if (data.val) {
         e.target.setAttribute('data-prev-quantity', newQuantity);
-        document.querySelector(`.Total[data-id="${itemId}"]`).textContent = data.updatedTotal;
+        // Round the values to avoid floating point issues
+        totalElement.textContent = Math.round(data.updatedTotal);
         document.querySelectorAll('.cartTotalPrice').forEach(elem => {
-          elem.textContent = data.cartTotal;
+          elem.textContent = Math.round(data.cartTotal);
         });
+        showToast('Cart updated successfully', 'success');
       } else {
         e.target.value = previousQuantity;
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: data.msg,
-        });
+        totalElement.textContent = originalTotal;
+        showToast(data.msg, 'error');
       }
     } catch (err) {
-      console.log(err);
+      console.error('Cart update error:', err);
       e.target.value = previousQuantity;
+      totalElement.textContent = originalTotal;
+      showToast('Failed to update cart', 'error');
+    } finally {
+      e.target.disabled = false;
     }
   });
 });
+
+// Toast function for cart
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  `;
+  
+  const colors = {
+    success: '#28a745',
+    error: '#dc3545',
+    info: '#17a2b8',
+    warning: '#ffc107'
+  };
+  
+  toast.style.backgroundColor = colors[type] || colors.info;
+  toast.textContent = message;
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = '1';
+  }, 100);
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
+  }, 3000);
+}
 
 
 

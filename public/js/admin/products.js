@@ -5,22 +5,45 @@ let editImageSelector;
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  console.log("Initializing image selectors...");
+  console.log("DOM loaded, initializing products.js...");
+  
+  // Check if we're on the products management page
+  const productModal = document.getElementById('productUploadModal');
+  const editModal = document.getElementById('productUpdateModal');
+  
+  if (!productModal || !editModal) {
+    console.log("Product modals not found, skipping initialization");
+    return;
+  }
+  
+  console.log("Product modals found, proceeding with initialization...");
   
   // Initialize image selectors
-  imageSelector = new ImageSelector('imageSelector', {
-    maxImages: 4,
-    minImages: 1,
-    allowCrop: true,
-    aspectRatio: 1
-  });
+  console.log("Initializing image selectors...");
+  
+  try {
+    imageSelector = new ImageSelector('imageSelector', {
+      maxImages: 4,
+      minImages: 1,
+      allowCrop: true,
+      aspectRatio: 1
+    });
+    console.log("Main image selector initialized successfully");
+  } catch (error) {
+    console.error("Error initializing main image selector:", error);
+  }
 
-  editImageSelector = new ImageSelector('editImageSelector', {
-    maxImages: 4,
-    minImages: 1,
-    allowCrop: true,
-    aspectRatio: 1
-  });
+  try {
+    editImageSelector = new ImageSelector('editImageSelector', {
+      maxImages: 4,
+      minImages: 1,
+      allowCrop: true,
+      aspectRatio: 1
+    });
+    console.log("Edit image selector initialized successfully");
+  } catch (error) {
+    console.error("Error initializing edit image selector:", error);
+  }
   
   console.log("Image selectors initialized:", {
     imageSelector: !!imageSelector,
@@ -30,13 +53,13 @@ document.addEventListener('DOMContentLoaded', function() {
   // Make them globally available for debugging
   window.imageSelector = imageSelector;
   window.editImageSelector = editImageSelector;
+  
+  console.log("Products.js initialization completed");
 });
 
 // Add Product Form Elements
 const name = document.getElementById("productName");
 const description = document.getElementById("productDescription");
-const categorySelect = document.getElementById("productCategory");
-const brand = document.getElementById("productBrand");
 const ogPrice = document.getElementById("productOgPrice");
 const tags = document.getElementById("productTags");
 const warranty = document.getElementById("productWarranty");
@@ -53,11 +76,11 @@ document.querySelector(".btn-CreateProduct").addEventListener("click", (event) =
     Toast.error("Validation Error", "Product name must be at least 3 characters long");
     return; 
   }
-  if (!categorySelect.value) { 
+  if (!document.getElementById('productCategory').value) { 
     Toast.error("Validation Error", "Please select a category");
     return; 
   }
-  if (!brand.value) { 
+  if (!document.getElementById('productBrand').value) { 
     Toast.error("Validation Error", "Please select a brand");
     return; 
   }
@@ -74,8 +97,8 @@ document.querySelector(".btn-CreateProduct").addEventListener("click", (event) =
   const formData = new FormData();
   formData.append("name", name.value);
   formData.append("description", description.value);
-  formData.append("category", categorySelect.value); 
-  formData.append("brand", brand.value);
+  formData.append("category", document.getElementById('productCategory').value); 
+  formData.append("brand", document.getElementById('productBrand').value);
   formData.append("price", parseFloat(ogPrice.value));
   formData.append("tags", tags.value);
   formData.append("cashOnDelivery", cashOnDelivery.checked);
@@ -115,8 +138,154 @@ document.querySelector(".btn-CreateProduct").addEventListener("click", (event) =
 
 // ~~~~~~~~~~~~~~~~ Edit Product Modal ~~~~~~~~~~~~~~~~
 
+// Simple image update function for edit modal
+let updatedImages = {};
+let currentEditingIndex = -1;
+let cropperInstance = null;
+
+function updateProductImage(index, input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    console.log(`Updating image ${index + 1}:`, file.name);
+    
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+        Toast.error('Invalid File', 'Please select an image file');
+        return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        Toast.error('File Too Large', 'Please select an image smaller than 5MB');
+        return;
+    }
+    
+    currentEditingIndex = index;
+    
+    // Show cropper modal
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        showCropperModal(e.target.result, file);
+    };
+    reader.readAsDataURL(file);
+}
+
+function showCropperModal(imageSrc, file) {
+    // Create cropper modal if it doesn't exist
+    let cropperModal = document.getElementById('editCropperModal');
+    if (!cropperModal) {
+        const modalHTML = `
+            <div class="modal fade" id="editCropperModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Crop Image</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="crop-container" style="max-height: 400px; overflow: hidden;">
+                                <img id="editCropImage" style="max-width: 100%;">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="saveCroppedImage()">Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        cropperModal = document.getElementById('editCropperModal');
+    }
+    
+    const cropImage = document.getElementById('editCropImage');
+    cropImage.src = imageSrc;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(cropperModal);
+    modal.show();
+    
+    // Initialize cropper after modal is shown
+    cropperModal.addEventListener('shown.bs.modal', function() {
+        if (cropperInstance) {
+            cropperInstance.destroy();
+        }
+        
+        cropperInstance = new Cropper(cropImage, {
+            aspectRatio: 1,
+            viewMode: 2,
+            autoCropArea: 0.8,
+            responsive: true,
+            background: false,
+            guides: true,
+            center: true,
+            highlight: false,
+            cropBoxMovable: true,
+            cropBoxResizable: true,
+            toggleDragModeOnDblclick: false
+        });
+    }, { once: true });
+    
+    // Clean up cropper when modal is hidden
+    cropperModal.addEventListener('hidden.bs.modal', function() {
+        if (cropperInstance) {
+            cropperInstance.destroy();
+            cropperInstance = null;
+        }
+    });
+}
+
+function saveCroppedImage() {
+    if (!cropperInstance || currentEditingIndex === -1) return;
+    
+    const canvas = cropperInstance.getCroppedCanvas({
+        width: 800,
+        height: 800,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high'
+    });
+    
+    canvas.toBlob((blob) => {
+        const croppedFile = new File([blob], `cropped-image-${currentEditingIndex + 1}.jpg`, {
+            type: 'image/jpeg',
+            lastModified: Date.now()
+        });
+        
+        // Store the cropped file
+        updatedImages[currentEditingIndex] = croppedFile;
+        
+        // Show preview in the image slot
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const imageSlots = document.querySelectorAll('.image-slot');
+            const imageSlot = imageSlots[currentEditingIndex];
+            if (imageSlot) {
+                imageSlot.innerHTML = `
+                    <img src="${e.target.result}" alt="Product Image ${currentEditingIndex + 1}" style="max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 6px;">
+                    <input type="file" accept="image/*" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" onchange="updateProductImage(${currentEditingIndex}, this)">
+                `;
+            }
+        };
+        reader.readAsDataURL(croppedFile);
+        
+        // Hide cropper modal
+        const cropperModal = document.getElementById('editCropperModal');
+        const modal = bootstrap.Modal.getInstance(cropperModal);
+        modal.hide();
+        
+        Toast.success('Image Cropped', 'Image has been cropped successfully');
+        currentEditingIndex = -1;
+    }, 'image/jpeg', 0.8);
+}
+
+// Make functions global
+window.updateProductImage = updateProductImage;
+window.saveCroppedImage = saveCroppedImage;
+
 async function openEditModal(productId) {
     try {
+        console.log('Opening edit modal for product:', productId);
         const loadingToast = Toast.info("Loading", "Fetching product details...", { duration: 0 });
         
         const response = await fetch(`/admin/products/${productId}/details`);
@@ -131,6 +300,8 @@ async function openEditModal(productId) {
 
         const { product } = result;
         const p = product;
+        
+        console.log('Product data loaded:', p);
 
         // Populate Form
         document.getElementById('updateProductId').value = p._id;
@@ -178,6 +349,21 @@ async function openEditModal(productId) {
             returnPolicyDiv.style.display = 'none';
         }
         
+        // Populate Shipping Configuration
+        const shippingCheckbox = document.getElementById('updateHasCustomShipping');
+        const shippingInput = document.getElementById('updateShippingPrice');
+        const shippingDiv = document.getElementById('updateShippingDiv');
+        
+        if (p.hasCustomShipping && p.shippingPrice !== undefined) {
+            shippingCheckbox.checked = true;
+            shippingInput.value = p.shippingPrice;
+            shippingDiv.style.display = 'block';
+        } else {
+            shippingCheckbox.checked = false;
+            shippingInput.value = '';
+            shippingDiv.style.display = 'none';
+        }
+        
         // Populate Category
         const catSelect = document.getElementById('updateProductCategory');
         if (typeof p.category === 'object') {
@@ -194,159 +380,53 @@ async function openEditModal(productId) {
             brandSelect.value = p.brand;
         }
 
-        // Show Modal first
+        // Show Modal
+        console.log('Showing modal...');
         const modal = new bootstrap.Modal(document.getElementById('productUpdateModal'));
         modal.show();
 
-        // Wait for modal to be fully shown, then load images with simple approach
+        // Simple image display after modal is shown
         document.getElementById('productUpdateModal').addEventListener('shown.bs.modal', function() {
-            console.log("Modal shown, loading images with enhanced selector...");
+            console.log("Edit modal shown, setting up simple image display...");
             
-            // Simple approach - just show the images directly
             const imageContainer = document.getElementById('editImageSelector');
             if (!imageContainer) {
-                console.error("editImageSelector container not found!");
+                console.error("Image container not found!");
                 return;
             }
             
-            // Create 4-slot image selector
-            let currentImages = ['', '', '', '']; // Initialize 4 empty slots
+            // Create simple 4-slot image display
+            let imageHTML = `
+                <div class="simple-image-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 15px 0;">
+            `;
             
-            // Fill existing images
-            if (p.images && p.images.length > 0) {
-                p.images.forEach((img, index) => {
-                    if (index < 4) {
-                        const cleanImg = img.replace(/\\/g, '/');
-                        currentImages[index] = cleanImg.startsWith('/') ? cleanImg : `/${cleanImg}`;
-                    }
-                });
-            }
-            
-            function renderImageSelector() {
-                const slotsHTML = currentImages.map((imageUrl, index) => {
-                    const isEmpty = !imageUrl;
-                    const isPrimary = index === 0;
-                    
-                    return `
-                        <div class="image-slot" data-index="${index}" 
-                             style="position: relative; aspect-ratio: 1; border: 2px dashed ${isEmpty ? '#d1d5db' : '#10b981'}; 
-                                    border-radius: 12px; overflow: hidden; cursor: pointer; background: ${isEmpty ? '#f9fafb' : 'white'};"
-                             onclick="selectImageForSlot(${index})">
-                            ${isEmpty ? `
-                                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #6b7280;">
-                                    <svg style="width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.5;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                    </svg>
-                                    <div style="font-size: 14px; font-weight: 500;">${isPrimary ? 'Primary Image' : `Image ${index + 1}`}</div>
-                                    <div style="font-size: 12px; opacity: 0.7;">Click to upload${isPrimary ? ' (Required)' : ''}</div>
-                                </div>
-                            ` : `
-                                <img src="${imageUrl}" alt="Product Image ${index + 1}" 
-                                     style="width: 100%; height: 100%; object-fit: cover;"
-                                     onload="console.log('Image loaded: ${imageUrl}')"
-                                     onerror="console.error('Image failed: ${imageUrl}')">
-                                <div style="position: absolute; top: 8px; right: 8px; display: flex; gap: 4px;">
-                                    <button type="button" onclick="event.stopPropagation(); removeImageFromSlot(${index})" 
-                                            style="width: 28px; height: 28px; border-radius: 50%; border: none; background: rgba(239, 68, 68, 0.9); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                                        <i class="fas fa-trash" style="font-size: 12px;"></i>
-                                    </button>
-                                </div>
-                                <div style="position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px;">
-                                    ${index + 1}
-                                </div>
-                                ${isPrimary ? '<div style="position: absolute; top: 8px; left: 8px; background: #10b981; color: white; padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;">PRIMARY</div>' : ''}
-                            `}
-                        </div>
-                    `;
-                }).join('');
+            for (let i = 0; i < 4; i++) {
+                const image = p.images && p.images[i] ? p.images[i] : null;
+                const imageUrl = image ? (image.startsWith('/') ? image : `/${image}`) : null;
                 
-                imageContainer.innerHTML = `
-                    <div class="enhanced-image-selector">
-                        <label class="form-label">Product Images (Up to 4 images)</label>
-                        <div class="image-slots-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin: 16px 0;">
-                            ${slotsHTML}
-                        </div>
-                        <input type="file" id="hiddenImageInput" accept="image/*" style="display: none;" onchange="handleImageSelection(event)">
-                        <div style="margin-top: 16px;">
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle"></i> 
-                                Click on any slot to add/replace an image. The first slot is the primary image.
-                            </small>
-                        </div>
+                imageHTML += `
+                    <div class="image-slot" style="border: 2px dashed #ddd; border-radius: 8px; height: 150px; display: flex; align-items: center; justify-content: center; position: relative; background: #f9f9f9;">
+                        ${imageUrl ? 
+                            `<img src="${imageUrl}" alt="Product Image ${i+1}" style="max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 6px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                             <div style="display: none; color: #999; text-align: center;">
+                                <i class="fas fa-image" style="font-size: 24px; margin-bottom: 5px;"></i><br>
+                                Image ${i+1}<br>Failed to load
+                             </div>` 
+                            : 
+                            `<div style="color: #999; text-align: center;">
+                                <i class="fas fa-image" style="font-size: 24px; margin-bottom: 5px;"></i><br>
+                                Image ${i+1}<br>No image
+                             </div>`
+                        }
+                        <input type="file" accept="image/*" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" onchange="updateProductImage(${i}, this)">
                     </div>
                 `;
             }
             
-            // Global functions for image handling
-            window.selectImageForSlot = function(index) {
-                window.currentSlotIndex = index;
-                document.getElementById('hiddenImageInput').click();
-            };
+            imageHTML += `</div>`;
+            imageContainer.innerHTML = imageHTML;
             
-            window.removeImageFromSlot = function(index) {
-                currentImages[index] = '';
-                renderImageSelector();
-                console.log(`Removed image from slot ${index + 1}`);
-            };
-            
-            window.handleImageSelection = function(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-                
-                // Validate file
-                if (!file.type.startsWith('image/')) {
-                    Toast.error('Invalid File', 'Please select an image file');
-                    return;
-                }
-                
-                if (file.size > 5 * 1024 * 1024) { // 5MB limit
-                    Toast.error('File Too Large', 'Please select an image smaller than 5MB');
-                    return;
-                }
-                
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    currentImages[window.currentSlotIndex] = e.target.result;
-                    renderImageSelector();
-                    console.log(`Added image to slot ${window.currentSlotIndex + 1}`);
-                    
-                    // Store the file for form submission
-                    if (!window.selectedFiles) window.selectedFiles = {};
-                    window.selectedFiles[window.currentSlotIndex] = file;
-                };
-                reader.readAsDataURL(file);
-                
-                // Clear the input
-                event.target.value = '';
-            };
-            
-            // Get images for form submission
-            window.getSelectedImages = function() {
-                const formData = new FormData();
-                let hasNewImages = false;
-                
-                // Add new files
-                if (window.selectedFiles) {
-                    Object.keys(window.selectedFiles).forEach(index => {
-                        formData.append(`productImage${parseInt(index) + 1}`, window.selectedFiles[index]);
-                        hasNewImages = true;
-                    });
-                }
-                
-                // Add existing images that weren't replaced
-                currentImages.forEach((imageUrl, index) => {
-                    if (imageUrl && !imageUrl.startsWith('data:') && !(window.selectedFiles && window.selectedFiles[index])) {
-                        // This is an existing image that wasn't replaced
-                        formData.append(`existingproductImage${index + 1}`, imageUrl);
-                    }
-                });
-                
-                return { formData, hasChanges: hasNewImages || currentImages.some((img, i) => !img && p.images && p.images[i]) };
-            };
-            
-            // Initial render
-            renderImageSelector();
-            console.log("Enhanced image selector created");
+            console.log("Simple image display created");
         }, { once: true });
 
     } catch (error) {
@@ -357,6 +437,8 @@ async function openEditModal(productId) {
 
 document.querySelector(".btn-UpdateProduct").addEventListener("click", (event) => {
     event.preventDefault();
+    
+    console.log("Update product button clicked");
     
     const id = document.getElementById('updateProductId').value;
     const nameVal = document.getElementById('updateProductName').value;
@@ -370,6 +452,14 @@ document.querySelector(".btn-UpdateProduct").addEventListener("click", (event) =
                        document.getElementById('updateProductWarranty').value : '';
     const returnPolicyVal = document.getElementById('updateShowReturnPolicy').checked ? 
                            document.getElementById('updateProductReturnPolicy').value : '';
+    
+    // Get shipping values
+    const hasCustomShipping = document.getElementById('updateHasCustomShipping').checked;
+    const shippingPrice = hasCustomShipping ? document.getElementById('updateShippingPrice').value : '';
+
+    console.log("Form values:", {
+        id, nameVal, descVal, catVal, brandVal, priceVal, tagsVal, cashOnDeliveryVal, warrantyVal, returnPolicyVal, hasCustomShipping, shippingPrice
+    });
 
     // Basic validation
     if (nameVal.length < 3) {
@@ -388,31 +478,33 @@ document.querySelector(".btn-UpdateProduct").addEventListener("click", (event) =
     formData.append('cashOnDelivery', cashOnDeliveryVal);
     formData.append('warranty', warrantyVal);
     formData.append('returnPolicy', returnPolicyVal);
-
-    // Add images using the enhanced selector
-    if (window.getSelectedImages) {
-        const imageData = window.getSelectedImages();
-        console.log("Image data:", imageData);
-        
-        // Add all image data to form
-        for (let [key, value] of imageData.formData.entries()) {
-            formData.append(key, value);
-        }
-    } else {
-        console.log("No image selector found, keeping existing images");
+    formData.append('hasCustomShipping', hasCustomShipping);
+    if (hasCustomShipping && shippingPrice) {
+        formData.append('shippingPrice', shippingPrice);
     }
+
+    // Add updated images (only the ones that were changed)
+    console.log("Updated images:", updatedImages);
+    Object.keys(updatedImages).forEach(index => {
+        const imageIndex = parseInt(index) + 1;
+        formData.append(`productImage${imageIndex}`, updatedImages[index]);
+        console.log(`Added new image ${imageIndex}:`, updatedImages[index].name);
+    });
 
     const loadingToast = Toast.info("Updating", "Saving product changes...", { duration: 0 });
     
     fetch(`/admin/products/update/${id}`, {
         method: "POST",
-        body: formData // Send as FormData instead of JSON
+        body: formData
     })
     .then(res => res.json())
     .then(data => {
         Toast.hide(loadingToast);
+        console.log("Update response:", data);
         if (data.val) {
              Toast.success("Updated", data.msg);
+             // Clear updated images
+             updatedImages = {};
              setTimeout(() => window.location.reload(), 2000);
         } else {
              Toast.error("Update Failed", data.msg);
@@ -421,7 +513,7 @@ document.querySelector(".btn-UpdateProduct").addEventListener("click", (event) =
     .catch(err => {
         Toast.hide(loadingToast);
         Toast.error("Error", "Failed to update product");
-        console.error(err);
+        console.error("Update error:", err);
     });
 });
 

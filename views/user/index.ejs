@@ -32,13 +32,23 @@
       <section class="home section--lg">
         <div class="home__container container grid">
           <div class="home__content">
-            <span class="home__subtitle">Hot Promotions</span>
+            <% if (activeFestivalOffer) { %>
+              <span class="home__subtitle"><%= activeFestivalOffer.name %> - <%= activeFestivalOffer.discountValue %><%= activeFestivalOffer.discountType === 'PERCENTAGE' ? '% OFF' : '₹ OFF' %></span>
+            <% } else { %>
+              <span class="home__subtitle">Hot Promotions</span>
+            <% } %>
             <h1 class="home__title">
               Fashion Trending <span>Great Collection</span>
             </h1>
-            <p class="home__description">
-              Save more with coupons & up tp 20% off
-            </p>
+            <% if (activeFestivalOffer) { %>
+              <p class="home__description">
+                <%= activeFestivalOffer.description || 'Special festival discount on all products' %>
+              </p>
+            <% } else { %>
+              <p class="home__description">
+                Save more with coupons & up tp 20% off
+              </p>
+            <% } %>
             <a href="/shop" class="btn">Shop Now</a>
           </div>
         </div>
