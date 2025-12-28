@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Order #<%= order.orderId %></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .tracking-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .order-header {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .tracking-timeline {
+            position: relative;
+            padding: 2rem 0;
+        }
+        
+        .tracking-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+        
+        .step-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            margin-right: 1rem;
+            z-index: 2;
+        }
+        
+        .step-completed {
+            background: #28a745;
+            color: white;
+        }
+        
+        .step-current {
+            background: #007bff;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        .step-pending {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+        
+        .step-content {
+            flex: 1;
+        }
+        
+        .step-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .step-time {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .tracking-line {
+            position: absolute;
+            left: 25px;
+            top: 50px;
+            bottom: 0;
+            width: 2px;
+            background: #e9ecef;
+        }
+        
+        .tracking-step:last-child .tracking-line {
+            display: none;
+        }
+        
+        .order-details {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 2px solid #f0f0f0;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding: 0.5rem 0;
+        }
+        
+        .items-list {
+            margin-top: 1rem;
+        }
+        
+        .item-card {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .item-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-right: 1rem;
+        }
+        
+        .item-details {
+            flex: 1;
+        }
+        
+        .item-name {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .item-variant {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .item-price {
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .cancelled-banner {
+            background: #dc3545;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .delivered-banner {
+            background: #28a745;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <%- include('../layouts/header.ejs') %>
+    
+    <main class="main">
+        <%- include('../layouts/breadcrumbs.ejs') %>
+        
+        <div class="tracking-container">
+            <div class="order-header">
+                <h1>Track Order #<%= order.orderId %></h1>
+                <p>Ordered on <%= new Date(order.orderedAt).toLocaleDateString() %></p>
+                
+                <% if (isCancelled) { %>
+                    <div class="cancelled-banner">
+                        <i class="fas fa-times-circle"></i>
+                        <strong>Order Cancelled</strong>
+                        <p>This order has been cancelled</p>
+                    </div>
+                <% } else if (isDelivered) { %>
+                    <div class="delivered-banner">
+                        <i class="fas fa-check-circle"></i>
+                        <strong>Order Delivered!</strong>
+                        <p>Your order was delivered on <%= new Date(order.deliveredAt).toLocaleDateString() %></p>
+                    </div>
+                <% } %>
+            </div>
+            
+            <% if (!isCancelled) { %>
+                <div class="tracking-timeline">
+                    <% trackingSteps.forEach((step, index) => { %>
+                        <div class="tracking-step">
+                            <div class="step-icon <%= step.completed ? 'step-completed' : (step.current ? 'step-current' : 'step-pending') %>">
+                                <i class="<%= step.icon %>"></i>
+                            </div>
+                            <div class="step-content">
+                                <div class="step-title"><%= step.label %></div>
+                                <% if (step.timestamp) { %>
+                                    <div class="step-time">
+                                        <%= new Date(step.timestamp).toLocaleString() %>
+                                    </div>
+                                <% } %>
+                            </div>
+                            <% if (index < trackingSteps.length - 1) { %>
+                                <div class="tracking-line"></div>
+                            <% } %>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } %>
+            
+            <div class="order-details">
+                <h3>Order Details</h3>
+                
+                <div class="detail-row">
+                    <span><strong>Payment Method:</strong></span>
+                    <span><%= order.paymentMethod.replace('_', ' ').toUpperCase() %></span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Payment Status:</strong></span>
+                    <span class="<%= order.paymentStatus === 'paid' ? 'text-success' : 'text-warning' %>">
+                        <%= order.paymentStatus.toUpperCase() %>
+                    </span>
+                </div>
+                
+                <div class="detail-row">
+                    <span><strong>Subtotal:</strong></span>
+                    <span>₹<%= order.subtotal || order.totalAmount %></span>
+                </div>
+                
+                <% if (order.shippingCost > 0) { %>
+                    <div class="detail-row">
+                        <span><strong>Shipping:</strong></span>
+                        <span>₹<%= order.shippingCost %></span>
+                    </div>
+                <% } %>
+                
+                <% if (order.coupon && order.coupon.discountApplied > 0) { %>
+                    <div class="detail-row">
+                        <span><strong>Coupon (<%= order.coupon.code %>):</strong></span>
+                        <span class="text-success">-₹<%= order.coupon.discountApplied %></span>
+                    </div>
+                <% } %>
+                
+                <div class="detail-row" style="border-top: 1px solid #e9ecef; padding-top: 1rem; font-size: 1.2rem;">
+                    <span><strong>Total Amount:</strong></span>
+                    <span><strong>₹<%= order.totalAmount %></strong></span>
+                </div>
+                
+                <h4 style="margin-top: 2rem;">Items Ordered</h4>
+                <div class="items-list">
+                    <% order.items.forEach(item => { %>
+                        <div class="item-card">
+                            <img src="<%= item.product.imageUrl && item.product.imageUrl[0] ? item.product.imageUrl[0] : '/img/default-product.jpg' %>" 
+                                 alt="<%= item.product.name %>" class="item-image">
+                            <div class="item-details">
+                                <div class="item-name"><%= item.product.name %></div>
+                                <div class="item-variant">
+                                    Size: <%= item.size %> | Color: <%= item.color %> | Qty: <%= item.quantity %>
+                                </div>
+                                <% if (item.appliedOffer) { %>
+                                    <div class="item-variant text-success">
+                                        <i class="fas fa-tag"></i> <%= item.appliedOffer.name %>
+                                    </div>
+                                <% } %>
+                            </div>
+                            <div class="item-price">
+                                <% if (item.discount > 0) { %>
+                                    <span style="text-decoration: line-through; color: #6c757d;">₹<%= item.originalPrice * item.quantity %></span><br>
+                                <% } %>
+                                ₹<%= item.totalPrice %>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+                
+                <div style="text-align: center; margin-top: 2rem;">
+                    <a href="/account" class="btn btn-primary">Back to Orders</a>
+                    <a href="/download-invoice/<%= order._id %>" class="btn btn-secondary">Download Invoice</a>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <%- include('../layouts/footer.ejs') %>
+</body>
+</html>

@@ -19,7 +19,6 @@ const breadcrumbLabels = {
     '/success': 'Order Success',
     '/forgot': 'Forgot Password',
     '/wishlist': 'Wishlist',
-    '/notifications': 'Notifications',
     '/product/search': 'Search Results',
     '/product/reviews': 'Product Reviews',
     '/register': 'Register',

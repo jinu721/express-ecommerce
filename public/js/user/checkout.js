@@ -460,12 +460,6 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
                   paymentSuccess = true;
                   showToast("Order placed successfully!", 'success');
                   setTimeout(() => {
-                    sendNotification(
-                      "Order Placed Successfully",
-                      'Your order has been placed successfully! Thank you for shopping with us. You can track your order in the "My Orders" section.',
-                      "order",
-                      "success"
-                    );
                     window.location.href = "/success";
                   }, 2000);
                 } else {
@@ -527,12 +521,6 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
         } else {
           showToast("Order placed successfully!", 'success');
           setTimeout(() => {
-            sendNotification(
-              "Order Placed Successfully",
-              'Your order has been placed successfully! Thank you for shopping with us. You can track your order in the "My Orders" section.',
-              "order",
-              "success"
-            );
             window.location.href = "/success";
           }, 2000);
         }
@@ -735,29 +723,4 @@ function showToast(message, type = 'info') {
       }
     }, 300);
   }, 3000);
-}
-
-async function sendNotification(title, message, type, status) {
-  try {
-    const response = await fetch("/notifications", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title,
-        message,
-        type,
-        status,
-      }),
-    });
-    const data = await response.json();
-    if (data.val) {
-      console.log("Notification sended successfully");
-    } else {
-      console.log(data.msg);
-    }
-  } catch (err) {
-    console.log(`Sending notification error :- ${err}`);
-  }
 }

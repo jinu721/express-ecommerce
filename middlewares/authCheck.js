@@ -9,7 +9,7 @@
 let authCheck = (req, res, next) => {
     console.log("authCheck Middleware: ", req.url);
     
-    if (['/account', '/wishlist', '/cart','/notifications'].includes(req.url)) {
+    if (['/account', '/wishlist', '/cart'].includes(req.url)) {
         if (!req.session.loggedIn) {
             console.log("Redirecting to /register from authCheck");
             return res.redirect('/register');

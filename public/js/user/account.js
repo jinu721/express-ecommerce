@@ -385,16 +385,16 @@ tabs.forEach((tab) => {
             const response = await fetch("/logout", { method: "POST" });
             const data = await response.json();
             if (!data.val) {
-              Swal.fire({
-                icon: "error",
-                title: "Oops...",
-                text: data.msg,
-              });
+              showToast(data.msg || 'Logout failed', 'error');
             } else {
-              window.location.href = "/";
+              showToast('Logged out successfully', 'success');
+              setTimeout(() => {
+                window.location.href = "/";
+              }, 1000);
             }
           } catch (err) {
             console.log(err);
+            showToast('An error occurred during logout', 'error');
           }
         }
         fetchData();
@@ -706,7 +706,7 @@ async function fetchOrders(page = 1) {
         orderRow.innerHTML = `
           <td>#${order.orderId}</td> 
           <td>${formattedDate}</td>
-          <td>${order.orderStatus}</td>
+          <td>${order.orderStatus.replace('_', ' ').toUpperCase()}</td>
           <td>
             ${order.paymentStatus}
             ${
@@ -737,10 +737,14 @@ async function fetchOrders(page = 1) {
             </a>
           </td>
           <td>
-            <a  onclick="downloadInvoice(event)" class="view__order btnDownloadInvoice" data-id="${
+            <a href="/track-order/${order._id}" class="view__order" style="color: #007bff;">
+               <i class="fas fa-truck"></i> Track Order
+            </a>
+            <br>
+            <a onclick="downloadInvoice(event)" class="view__order btnDownloadInvoice" data-id="${
               order._id
-            }">
-               Download invoice
+            }" style="font-size: 0.9rem; color: #6c757d;">
+               <i class="fas fa-download"></i> Invoice
             </a>
           </td>
         `;
@@ -752,17 +756,9 @@ async function fetchOrders(page = 1) {
             if (order.orderStatus === "delivered") {
               requestReturn(event);
             } else if (order.orderStatus === "returned") {
-              Swal.fire({
-                icon: "info",
-                title: "Order Returned",
-                text: "This order has already been returned.",
-              });
+              showToast('This order has already been returned', 'info');
             } else if (order.orderStatus === "cancelled") {
-              Swal.fire({
-                icon: "info",
-                title: "Order Canceled",
-                text: "This order has already been canceled.",
-              });
+              showToast('This order has already been cancelled', 'info');
             } else {
               cancelOrders(event);
             }
@@ -816,233 +812,292 @@ function renderPagination(currentPage, totalPages) {
 
 function cancelOrders(e) {
   e.target.addEventListener("click", (e) => {
-    Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, Cancel",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        const orderId = e.target.getAttribute("data-id");
-        try {
-          const response = await fetch(`/cancel-order/${orderId}`, {
-            method: "DELETE",
-          });
-          const data = await response.json();
-          if (data.val) {
-            fetchOrders();
-            sendNotification(
-              "Order Canceled",
-              "We’ve processed the cancellation of your order #123 as requested. If this was done in error or you need assistance with placing a new order, please don’t hesitate to contact our support team. Thank you for shopping with us, and we hope to serve you again soon!",
-              "order",
-              "failed"
-            );
-          } else {
-            console.log(data.msg);
-          }
-        } catch (err) {
-          console.log(err);
-        }
-        Swal.fire({
-          title: "Canceled!",
-          text: "Your order has been canceled.",
-          icon: "success",
+    // Create Bootstrap modal for confirmation
+    const confirmModal = document.createElement('div');
+    confirmModal.className = 'modal fade';
+    confirmModal.innerHTML = `
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Cancel Order</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p>Are you sure you want to cancel this order? This action cannot be undone.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Keep Order</button>
+            <button type="button" class="btn btn-danger" id="confirmCancel">Yes, Cancel Order</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(confirmModal);
+    const modal = new bootstrap.Modal(confirmModal);
+    modal.show();
+    
+    confirmModal.querySelector('#confirmCancel').addEventListener('click', async () => {
+      const orderId = e.target.getAttribute("data-id");
+      try {
+        const response = await fetch(`/cancel-order/${orderId}`, {
+          method: "DELETE",
         });
+        const data = await response.json();
+        if (data.val) {
+          showToast('Order cancelled successfully', 'success');
+          fetchOrders();
+        } else {
+          showToast(data.msg || 'Failed to cancel order', 'error');
+        }
+      } catch (err) {
+        console.log(err);
+        showToast('An error occurred while cancelling the order', 'error');
+      }
+      modal.hide();
+      document.body.removeChild(confirmModal);
+    });
+    
+    // Clean up modal when hidden
+    confirmModal.addEventListener('hidden.bs.modal', () => {
+      if (document.body.contains(confirmModal)) {
+        document.body.removeChild(confirmModal);
       }
     });
   });
 }
 function requestReturn(event) {
   const orderId = event.target.getAttribute("data-id");
-  Swal.fire({
-    title: "Request Return",
-    html: `
-      <div class="swalInput">
-        <textarea id="returnReason" class="returnReason" placeholder="Enter your reason"></textarea>
+  
+  // Create Bootstrap modal for return request
+  const returnModal = document.createElement('div');
+  returnModal.className = 'modal fade';
+  returnModal.innerHTML = `
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Request Return</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="returnReason" class="form-label">Reason for Return</label>
+            <textarea id="returnReason" class="form-control" rows="3" placeholder="Please explain why you want to return this order..."></textarea>
+            <div class="invalid-feedback" id="reasonError" style="display: none;">
+              Please enter a reason for the return
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="submitReturn">Submit Request</button>
+        </div>
       </div>
-    `,
-    showCancelButton: true,
-    confirmButtonText: "Submit",
-    cancelButtonText: "Close",
-    focusConfirm: false,
-    customClass: {
-      title: "custom-title",
-      popup: "swalPopupCustom",
-    },
-    preConfirm: () => {
-      const reason = document.getElementById("returnReason").value.trim();
-      if (!reason) {
-        Swal.showValidationMessage("Please enter a reason for the return");
-        return false;
+    </div>
+  `;
+  
+  document.body.appendChild(returnModal);
+  const modal = new bootstrap.Modal(returnModal);
+  modal.show();
+  
+  returnModal.querySelector('#submitReturn').addEventListener('click', async () => {
+    const reason = returnModal.querySelector('#returnReason').value.trim();
+    const reasonError = returnModal.querySelector('#reasonError');
+    const reasonInput = returnModal.querySelector('#returnReason');
+    
+    if (!reason) {
+      reasonInput.classList.add('is-invalid');
+      reasonError.style.display = 'block';
+      return;
+    }
+    
+    reasonInput.classList.remove('is-invalid');
+    reasonError.style.display = 'none';
+    
+    try {
+      const response = await fetch(`/orders/request-return/${orderId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reasonMsg: reason,
+        }),
+      });
+      const data = await response.json();
+      if (data.val) {
+        showToast('Return request submitted successfully', 'success');
+        fetchOrders();
+      } else {
+        showToast(data.msg || 'Failed to submit return request', 'error');
       }
-      return { reason };
-    },
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const reason = result.value.reason;
-      async function requestReturn() {
-        try {
-          const response = await fetch(`/orders/request-return/${orderId}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              reasonMsg: reason,
-            }),
-          });
-          const data = await response.json();
-          if (!data.val) {
-            Swal.fire({
-              icon: "error",
-              title: "Oops...",
-              text: data.msg,
-            });
-          } else {
-            Swal.fire({
-              icon: "success",
-              title: "Submitted!",
-              text: "Your return request has been sent.",
-              confirmButtonText: "OK",
-              customClass: {
-                title: "custom-title",
-              },
-            });
-          }
-        } catch (err) {
-          console.log(err);
-        }
-      }
-      requestReturn();
-    } else if (result.dismiss === Swal.DismissReason.cancel) {
-      console.log("Return request canceled");
+    } catch (err) {
+      console.log(err);
+      showToast('An error occurred while submitting the request', 'error');
+    }
+    
+    modal.hide();
+    document.body.removeChild(returnModal);
+  });
+  
+  // Clean up modal when hidden
+  returnModal.addEventListener('hidden.bs.modal', () => {
+    if (document.body.contains(returnModal)) {
+      document.body.removeChild(returnModal);
     }
   });
 }
 
 async function retryPayment(event) {
   const orderId = event.target.getAttribute("data-id");
-  Swal.fire({
-    title: "Retry Payment",
-    text: "Do you want to retry the payment for this order?",
-    icon: "question",
-    showCancelButton: true,
-    confirmButtonText: "Retry Payment",
-    cancelButtonText: "Cancel",
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      try {
-        const response = await fetch(`/retry-payment`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ orderId }),
-        });
+  
+  // Create Bootstrap modal for retry payment confirmation
+  const retryModal = document.createElement('div');
+  retryModal.className = 'modal fade';
+  retryModal.innerHTML = `
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Retry Payment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Do you want to retry the payment for this order?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirmRetry">Retry Payment</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(retryModal);
+  const modal = new bootstrap.Modal(retryModal);
+  modal.show();
+  
+  retryModal.querySelector('#confirmRetry').addEventListener('click', async () => {
+    try {
+      const response = await fetch(`/retry-payment`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ orderId }),
+      });
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (data.val) {
-          const options = {
-            key: data.key,
-            amount: data.amount,
-            currency: "INR",
-            order_id: data.orderId,
-            handler: async function (paymentResponse) {
-              try {
-                const verifyResponse = await fetch(`/verify-payment`, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    paymentId: paymentResponse.razorpay_payment_id,
-                    orderId: paymentResponse.razorpay_order_id,
-                    signature: paymentResponse.razorpay_signature,
-                    retryOrderId: orderId,
-                  }),
-                });
+      if (data.val) {
+        const options = {
+          key: data.key,
+          amount: data.amount,
+          currency: "INR",
+          order_id: data.orderId,
+          handler: async function (paymentResponse) {
+            try {
+              const verifyResponse = await fetch(`/verify-payment`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  paymentId: paymentResponse.razorpay_payment_id,
+                  orderId: paymentResponse.razorpay_order_id,
+                  signature: paymentResponse.razorpay_signature,
+                  retryOrderId: orderId,
+                }),
+              });
 
-                const verifyData = await verifyResponse.json();
-                if (verifyData.val) {
-                  Swal.fire({
-                    icon: "success",
-                    title: "Payment Successful",
-                    text: "Your payment has been verified.",
-                  });
-                  fetchOrders();
-                } else {
-                  Swal.fire({
-                    icon: "error",
-                    title: "Verification Failed",
-                    text: verifyData.msg || "Payment could not be verified.",
-                  });
-                }
-              } catch (err) {
-                console.error("Error verifying payment:", err);
-                Swal.fire({
-                  icon: "error",
-                  title: "Verification Error",
-                  text: "An error occurred during verification.",
-                });
+              const verifyData = await verifyResponse.json();
+              if (verifyData.val) {
+                showToast('Payment successful and verified', 'success');
+                fetchOrders();
+              } else {
+                showToast(verifyData.msg || 'Payment could not be verified', 'error');
               }
-            },
-            prefill: {
-              name: "User Name",
-              email: "user@example.com",
-              contact: "1234567890",
-            },
-            theme: {
-              color: "#3399cc",
-            },
-          };
+            } catch (err) {
+              console.error("Error verifying payment:", err);
+              showToast('An error occurred during verification', 'error');
+            }
+          },
+          prefill: {
+            name: "User Name",
+            email: "user@example.com",
+            contact: "1234567890",
+          },
+          theme: {
+            color: "#3399cc",
+          },
+        };
 
-          const rzp = new Razorpay(options);
-          rzp.open();
-        } else {
-          Swal.fire({
-            icon: "error",
-            title: "Payment Retry Failed",
-            text: data.msg || "Something went wrong.",
-          });
-        }
-      } catch (err) {
-        console.error("Error retrying payment:", err);
-        Swal.fire({
-          icon: "error",
-          title: "Payment Retry Failed",
-          text: "Error retrying the payment.",
-        });
+        const rzp = new Razorpay(options);
+        rzp.open();
+      } else {
+        showToast(data.msg || 'Payment retry failed', 'error');
       }
+    } catch (err) {
+      console.error("Error retrying payment:", err);
+      showToast('Error retrying the payment', 'error');
+    }
+    
+    modal.hide();
+    document.body.removeChild(retryModal);
+  });
+  
+  // Clean up modal when hidden
+  retryModal.addEventListener('hidden.bs.modal', () => {
+    if (document.body.contains(retryModal)) {
+      document.body.removeChild(retryModal);
     }
   });
 }
 
 async function downloadInvoice(e) {
   const orderId = e.target.getAttribute("data-id");
-  Swal.fire({
-    title: "Are you sure?",
-    text: "You want to download invoice now!",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#3085d6",
-    cancelButtonColor: "#d33",
-    confirmButtonText: "Yes, Download",
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      try {
-        window.location.href = `/orders/download/invoice/${orderId}`;
-      } catch (err) {
-        console.log(err);
-        Swal.fire({
-          icon: "error",
-          title: "Oops...",
-          text: err,
-        });
-      }
+  
+  // Create Bootstrap modal for download confirmation
+  const downloadModal = document.createElement('div');
+  downloadModal.className = 'modal fade';
+  downloadModal.innerHTML = `
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Download Invoice</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Do you want to download the invoice for this order?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirmDownload">Yes, Download</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(downloadModal);
+  const modal = new bootstrap.Modal(downloadModal);
+  modal.show();
+  
+  downloadModal.querySelector('#confirmDownload').addEventListener('click', async () => {
+    try {
+      window.location.href = `/orders/download/invoice/${orderId}`;
+      showToast('Invoice download started', 'success');
+    } catch (err) {
+      console.log(err);
+      showToast('Failed to download invoice', 'error');
+    }
+    
+    modal.hide();
+    document.body.removeChild(downloadModal);
+  });
+  
+  // Clean up modal when hidden
+  downloadModal.addEventListener('hidden.bs.modal', () => {
+    if (document.body.contains(downloadModal)) {
+      document.body.removeChild(downloadModal);
     }
   });
 }
@@ -1114,17 +1169,9 @@ async function viewOrderedProduct(e) {
             if (x.itemStatus === "delivered") {
               requestIndividualReturn(event);
             } else if (x.itemStatus === "returned") {
-              Swal.fire({
-                icon: "info",
-                title: "Order Returned",
-                text: "This order has already been returned.",
-              });
+              showToast('This item has already been returned', 'info');
             } else if (x.itemStatus === "cancelled") {
-              Swal.fire({
-                icon: "info",
-                title: "Order Canceled",
-                text: "This order has already been canceled.",
-              });
+              showToast('This item has already been cancelled', 'info');
             } else {
               cancelIndividualOrders(event);
             }
@@ -1138,113 +1185,141 @@ async function viewOrderedProduct(e) {
 
 async function cancelIndividualOrders(e) {
   e.target.addEventListener("click", (e) => {
-    Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes, Cancel",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        const orderId = e.target.getAttribute("data-orderId");
-        const itemId = e.target.getAttribute("data-itemId");
-        try {
-          const response = await fetch(`/item/cancel-order/${orderId}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ itemId }),
-          });
-          const data = await response.json();
-          if (data.val) {
-            fetchOrders();
-            sendNotification(
-              "Order Canceled",
-              "We’ve processed the cancellation of your order #123 as requested. If this was done in error or you need assistance with placing a new order, please don’t hesitate to contact our support team. Thank you for shopping with us, and we hope to serve you again soon!",
-              "order",
-              "failed"
-            );
-          } else {
-            console.log(data.msg);
-          }
-        } catch (err) {
-          console.log(err);
-        }
-        Swal.fire({
-          title: "Canceled!",
-          text: "Your order has been canceled.",
-          icon: "success",
+    // Create Bootstrap modal for confirmation
+    const confirmModal = document.createElement('div');
+    confirmModal.className = 'modal fade';
+    confirmModal.innerHTML = `
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Cancel Item</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p>Are you sure you want to cancel this item? This action cannot be undone.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Keep Item</button>
+            <button type="button" class="btn btn-danger" id="confirmCancel">Yes, Cancel Item</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(confirmModal);
+    const modal = new bootstrap.Modal(confirmModal);
+    modal.show();
+    
+    confirmModal.querySelector('#confirmCancel').addEventListener('click', async () => {
+      const orderId = e.target.getAttribute("data-orderId");
+      const itemId = e.target.getAttribute("data-itemId");
+      try {
+        const response = await fetch(`/item/cancel-order/${orderId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ itemId }),
         });
+        const data = await response.json();
+        if (data.val) {
+          showToast('Item cancelled successfully', 'success');
+          fetchOrders();
+        } else {
+          showToast(data.msg || 'Failed to cancel item', 'error');
+        }
+      } catch (err) {
+        console.log(err);
+        showToast('An error occurred while cancelling the item', 'error');
+      }
+      modal.hide();
+      document.body.removeChild(confirmModal);
+    });
+    
+    // Clean up modal when hidden
+    confirmModal.addEventListener('hidden.bs.modal', () => {
+      if (document.body.contains(confirmModal)) {
+        document.body.removeChild(confirmModal);
       }
     });
   });
 }
 async function requestIndividualReturn(e) {
-  Swal.fire({
-    title: "Request Return",
-    html: `
-      <div class="swalInput">
-        <textarea id="returnReason" class="returnReason" placeholder="Enter your reason"></textarea>
+  // Create Bootstrap modal for individual return request
+  const returnModal = document.createElement('div');
+  returnModal.className = 'modal fade';
+  returnModal.innerHTML = `
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Request Item Return</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="returnReason" class="form-label">Reason for Return</label>
+            <textarea id="returnReason" class="form-control" rows="3" placeholder="Please explain why you want to return this item..."></textarea>
+            <div class="invalid-feedback" id="reasonError" style="display: none;">
+              Please enter a reason for the return
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="submitReturn">Submit Request</button>
+        </div>
       </div>
-    `,
-    showCancelButton: true,
-    confirmButtonText: "Submit",
-    cancelButtonText: "Close",
-    focusConfirm: false,
-    customClass: {
-      title: "custom-title",
-      popup: "swalPopupCustom",
-    },
-    preConfirm: () => {
-      const reason = document.getElementById("returnReason").value.trim();
-      if (!reason) {
-        Swal.showValidationMessage("Please enter a reason for the return");
-        return false;
+    </div>
+  `;
+  
+  document.body.appendChild(returnModal);
+  const modal = new bootstrap.Modal(returnModal);
+  modal.show();
+  
+  returnModal.querySelector('#submitReturn').addEventListener('click', async () => {
+    const reason = returnModal.querySelector('#returnReason').value.trim();
+    const reasonError = returnModal.querySelector('#reasonError');
+    const reasonInput = returnModal.querySelector('#returnReason');
+    
+    if (!reason) {
+      reasonInput.classList.add('is-invalid');
+      reasonError.style.display = 'block';
+      return;
+    }
+    
+    reasonInput.classList.remove('is-invalid');
+    reasonError.style.display = 'none';
+    
+    try {
+      const orderId = e.target.getAttribute("data-orderId");
+      const itemId = e.target.getAttribute("data-itemId");
+      const response = await fetch(`/item/return-order/${orderId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ itemId, reason }),
+      });
+      const data = await response.json();
+      if (data.val) {
+        showToast('Return request submitted successfully', 'success');
+        fetchOrders();
+      } else {
+        showToast(data.msg || 'Failed to submit return request', 'error');
       }
-      return { reason };
-    },
-  }).then((result) => {
-    if (result.isConfirmed) {
-      const reason = result.value.reason;
-      async function requestReturn() {
-        try {
-          const orderId = e.target.getAttribute("data-orderId");
-          const itemId = e.target.getAttribute("data-itemId");
-          const response = await fetch(`/item/return-order/${orderId}`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ itemId,reason }),
-          });
-          const data = await response.json();
-          if (!data.val) {
-            Swal.fire({
-              icon: "error",
-              title: "Oops...",
-              text: data.msg,
-            });
-          } else {
-            Swal.fire({
-              icon: "success",
-              title: "Submitted!",
-              text: "Your return request has been sent.",
-              confirmButtonText: "OK",
-              customClass: {
-                title: "custom-title",
-              },
-            });
-          }
-        } catch (err) {
-          console.log(err);
-        }
-      }
-      requestReturn();
-    } else if (result.dismiss === Swal.DismissReason.cancel) {
-      console.log("Return request canceled");
+    } catch (err) {
+      console.log(err);
+      showToast('An error occurred while submitting the request', 'error');
+    }
+    
+    modal.hide();
+    document.body.removeChild(returnModal);
+  });
+  
+  // Clean up modal when hidden
+  returnModal.addEventListener('hidden.bs.modal', () => {
+    if (document.body.contains(returnModal)) {
+      document.body.removeChild(returnModal);
     }
   });
 }
@@ -1257,27 +1332,46 @@ function toggleEye(inputId, iconElement) {
   iconElement.classList.toggle("fa-eye-slash");
 }
 
-async function sendNotification(title, message, type, status) {
-  try {
-    const response = await fetch("/notifications", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title,
-        message,
-        type,
-        status,
-      }),
-    });
-    const data = await response.json();
-    if (data.val) {
-      console.log("Notification sended successfully");
-    } else {
-      console.log(data.msg);
-    }
-  } catch (err) {
-    console.log(`Sending notification error :- ${err}`);
-  }
+// Toast function for user notifications
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    max-width: 300px;
+  `;
+  
+  const colors = {
+    success: '#28a745',
+    error: '#dc3545',
+    info: '#17a2b8',
+    warning: '#ffc107'
+  };
+  
+  toast.style.backgroundColor = colors[type] || colors.info;
+  toast.textContent = message;
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = '1';
+  }, 100);
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
+  }, 3000);
 }

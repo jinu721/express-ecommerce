@@ -14,7 +14,6 @@ const PDFDocument = require('pdfkit');
 const Variant = require("../models/variantModel");
 const stockService = require("../services/stockService");
 const pricingService = require("../services/pricingService");
-const notificationService = require("../services/notificationService");
 
 let orderId = 100;
 
@@ -85,13 +84,13 @@ module.exports = {
             product: new mongoose.Types.ObjectId(prod._id),
             variant: variant._id,
             quantity: Number(prod.quantity),
-            offerPrice: Math.round(pricingResult.finalPrice / Number(prod.quantity) * 100) / 100, // Unit price after offers
             originalPrice: Math.round(pricingResult.originalPrice / Number(prod.quantity) * 100) / 100, // Original unit price
+            offerPrice: Math.round(pricingResult.finalPrice / Number(prod.quantity) * 100) / 100, // Unit price after offers
             totalPrice: Math.round(pricingResult.finalPrice * 100) / 100, // Total price for this item
             discount: Math.round(pricingResult.discount * 100) / 100, // Total discount for this item
+            appliedOffer: pricingResult.offer ? pricingResult.offer._id : null,
             size: prod.size,
             color: prod.color,
-            appliedOffer: pricingResult.offer
         });
       }
 
@@ -170,14 +169,21 @@ module.exports = {
               orderId: orderId++,
               user: userId,
               items: processedItems,
+              subtotal: Math.round(processedItems.reduce((sum, i) => sum + i.totalPrice, 0) * 100) / 100,
+              shippingCost: Math.round(shippingCost * 100) / 100,
+              totalDiscount: Math.round(totalOfferDiscount * 100) / 100,
               totalAmount: amountToSend,
               paymentMethod: selectedPayment,
               shippingAddress: address,
               coupon: couponDetails,
               orderedAt: new Date(),
               paymentStatus: "pending",
-              orderStatus: "processing",
-              statusHistory: [{ status: "processing", updatedAt: new Date() }]
+              orderStatus: "order_placed",
+              statusHistory: [{ 
+                status: "order_placed", 
+                message: "Order has been placed successfully",
+                updatedAt: new Date() 
+              }]
           });
 
           // Track offer usage
@@ -204,15 +210,6 @@ module.exports = {
           }
           
 
-          // Notify
-          notificationService.notifyNewOrder(order);
-          notificationService.notifyUser(userId, {
-              type: 'order_placed',
-              title: 'Order Placed',
-              message: `Your order #${order.orderId} has been placed successfully.`,
-              data: { orderId: order._id, status: 'processing' }
-          });
-
           return res.status(200).json({ val: true, msg: "Order placed successfully" });
 
       } else if (selectedPayment === "razorpay") {
@@ -230,6 +227,9 @@ module.exports = {
               orderId: orderId++,
               user: userId,
               items: processedItems,
+              subtotal: Math.round(processedItems.reduce((sum, i) => sum + i.totalPrice, 0) * 100) / 100,
+              shippingCost: Math.round(shippingCost * 100) / 100,
+              totalDiscount: Math.round(totalOfferDiscount * 100) / 100,
               totalAmount: Math.round(amountToSend * 100) / 100, // Store rounded amount
               paymentMethod: selectedPayment,
               shippingAddress: address,
@@ -237,8 +237,12 @@ module.exports = {
               razorpayOrderId: razorpayOrder.id,
               orderedAt: new Date(),
               paymentStatus: "pending",
-              orderStatus: "processing",
-              statusHistory: [{ status: "processing", updatedAt: new Date() }]
+              orderStatus: "order_placed",
+              statusHistory: [{ 
+                status: "order_placed", 
+                message: "Order has been placed successfully",
+                updatedAt: new Date() 
+              }]
           });
 
           // Note: For Razorpay, we'll track usage after payment verification
@@ -271,14 +275,21 @@ module.exports = {
               orderId: orderId++,
               user: userId,
               items: processedItems,
+              subtotal: Math.round(processedItems.reduce((sum, i) => sum + i.totalPrice, 0) * 100) / 100,
+              shippingCost: Math.round(shippingCost * 100) / 100,
+              totalDiscount: Math.round(totalOfferDiscount * 100) / 100,
               totalAmount: amountToSend,
               paymentMethod: selectedPayment,
               shippingAddress: address,
               coupon: couponDetails,
               orderedAt: new Date(),
               paymentStatus: "paid",
-              orderStatus: "processing",
-              statusHistory: [{ status: "processing", updatedAt: new Date() }]
+              orderStatus: "order_placed",
+              statusHistory: [{ 
+                status: "order_placed", 
+                message: "Order has been placed successfully",
+                updatedAt: new Date() 
+              }]
           });
 
           // Track offer usage
@@ -303,9 +314,6 @@ module.exports = {
           for (const item of processedItems) {
               await stockService.deductStock(item.variant, item.quantity);
           }
-
-          // Notify
-          notificationService.notifyNewOrder(order);
 
           return res.status(200).json({ val: true, msg: "Order placed successfully with Wallet" });
       } else {
@@ -491,38 +499,32 @@ module.exports = {
   // Response: Returns a success or failure message based on the status update.
   async adminOrdersStatusUpdate(req, res) {
     const { orderId } = req.params;
-    const { newStatus } = req.body;
+    const { newStatus, location, message } = req.body;
     try {
-      if (
-        !["processing", "shipped", "delivered", "cancelled"].includes(newStatus)
-      ) {
+      const validStatuses = ["order_placed", "confirmed", "packed", "shipped", "out_for_delivery", "delivered", "cancelled"];
+      if (!validStatuses.includes(newStatus)) {
         return res.status(400).json({ message: "Invalid status" });
       }
+      
       const order = await orderModel.findOne({ _id: orderId });
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
-      if (
-        order.paymentMethod === "cash_on_delivery" &&
-        newStatus === "delivered"
-      ) {
+      
+      // Handle COD payment status update
+      if (order.paymentMethod === "cash_on_delivery" && newStatus === "delivered") {
         order.paymentStatus = "paid";
       }
-      order.orderStatus = newStatus;
-      order.items.forEach((item) => {
-        item.itemStatus = newStatus;
-      });
-      order.statusHistory.push({ status: newStatus, updatedAt: new Date() });
-      await order.save();
       
-      // Notify User
-      notificationService.notifyOrderStatusChange(order.user, order, newStatus);
+      // Use the new updateStatus method
+      order.updateStatus(newStatus, location || '', message || `Order status updated to ${newStatus}`, 'admin');
+      
+      await order.save();
 
       return res.json({
         val: true,
         status: newStatus,
-        updatedAt:
-          order.statusHistory[order.statusHistory.length - 1].updatedAt,
+        updatedAt: order.statusHistory[order.statusHistory.length - 1].updatedAt,
       });
     } catch (error) {
       console.error("Error updating order status:", error);
@@ -626,15 +628,6 @@ module.exports = {
           }
       }
 
-      // Notifications
-      notificationService.notifyNewOrder(order);
-      notificationService.notifyUser(userId, {
-          type: 'order_paid',
-          title: 'Payment Received',
-          message: `Payment for order #${order.orderId} was successful.`,
-          data: { orderId: order._id, status: 'paid' }
-      });
-
       res.status(200).json({
         val: true,
         msg: "Payment verified and order confirmed",
@@ -687,56 +680,126 @@ module.exports = {
     try {
       const order = await orderModel
         .findOne({ _id: orderId })
-        .sort({ orderedAt: -1 })
         .populate("items.product")
+        .populate("items.appliedOffer")
         .lean();
-      console.log(order);
+      
+      if (!order) {
+        return res.status(404).json("Order not found");
+      }
 
-      res.setHeader('Content-Disposition', `attachment; filename=invoice-${orderId}.pdf`);
+      res.setHeader('Content-Disposition', `attachment; filename=invoice-${order.orderId}.pdf`);
       res.setHeader('Content-Type', 'application/pdf');
   
-      const pdfDoc = new PDFDocument({ margin: 30 });
+      const pdfDoc = new PDFDocument({ margin: 40 });
       pdfDoc.pipe(res);
   
-      pdfDoc.fontSize(20).text('Invoice', { align: 'center' }).moveDown();
-      pdfDoc.fontSize(14).text('Pay To: Male Fashion').moveDown();
-  
-      pdfDoc.fontSize(12).text('Items:', { underline: true }).moveDown(0.5);
+      // Header
+      pdfDoc.fontSize(24).text('INVOICE', { align: 'center' }).moveDown();
+      pdfDoc.fontSize(12).text(`Invoice #: ${order.orderId}`, { align: 'right' });
+      pdfDoc.text(`Date: ${new Date(order.orderedAt).toLocaleDateString()}`, { align: 'right' });
+      pdfDoc.moveDown();
+      
+      // Company Info
+      pdfDoc.fontSize(16).text('Male Fashion', { align: 'left' });
+      pdfDoc.fontSize(10).text('Your trusted fashion partner');
+      pdfDoc.moveDown();
+      
+      // Shipping Address
+      pdfDoc.fontSize(12).text('Ship To:', { underline: true });
+      const addr = order.shippingAddress;
+      pdfDoc.fontSize(10).text(`${addr.houseNumber}, ${addr.street}`);
+      pdfDoc.text(`${addr.city}, ${addr.district}, ${addr.state}`);
+      pdfDoc.text(`${addr.country} - ${addr.pinCode}`);
+      pdfDoc.moveDown();
+      
+      // Order Summary
+      pdfDoc.fontSize(12).text('Order Summary:', { underline: true }).moveDown(0.5);
+      
+      // Table Header
+      const tableTop = pdfDoc.y;
       pdfDoc.fontSize(10);
-      pdfDoc.text(`Item Name`.padEnd(20) + `Qty`.padEnd(10) + `Unit Price`.padEnd(15) + `Offer Price`.padEnd(15) + `Total`, {
-        align: 'left',
-      });
-  
-      pdfDoc.moveDown(0.5);
+      pdfDoc.text('Item', 40, tableTop);
+      pdfDoc.text('Qty', 200, tableTop);
+      pdfDoc.text('Original Price', 250, tableTop);
+      pdfDoc.text('Final Price', 320, tableTop);
+      pdfDoc.text('Offer', 380, tableTop);
+      pdfDoc.text('Total', 450, tableTop);
+      
+      // Draw line
+      pdfDoc.moveTo(40, tableTop + 15).lineTo(550, tableTop + 15).stroke();
+      
+      let yPosition = tableTop + 25;
+      let subtotal = 0;
+      let totalDiscount = 0;
+      
+      // Items
       order.items.forEach((item) => {
-        const productName = item.product.name.padEnd(20);
-        const quantity = String(item.quantity).padEnd(10);
-        const unitPrice = `₹${item.product.price}`.padEnd(15);
-        const offerPrice = `₹${item.offerPrice}`.padEnd(15);
-        const total = `₹${item.quantity * item.offerPrice}`;
-  
-        pdfDoc.text(`${productName}${quantity}${unitPrice}${offerPrice}${total}`);
+        const itemTotal = item.totalPrice;
+        const itemDiscount = item.discount;
+        subtotal += item.originalPrice * item.quantity;
+        totalDiscount += itemDiscount;
+        
+        pdfDoc.text(item.product.name.substring(0, 25), 40, yPosition);
+        pdfDoc.text(item.quantity.toString(), 200, yPosition);
+        pdfDoc.text(`₹${item.originalPrice}`, 250, yPosition);
+        pdfDoc.text(`₹${item.offerPrice}`, 320, yPosition);
+        pdfDoc.text(item.appliedOffer ? item.appliedOffer.name.substring(0, 10) : 'None', 380, yPosition);
+        pdfDoc.text(`₹${itemTotal}`, 450, yPosition);
+        
+        yPosition += 20;
       });
-  
-      pdfDoc.moveDown();
-  
-      pdfDoc.fontSize(12);
-      if (order.coupon && order.coupon.discountApplied) {
-        pdfDoc.text(`Coupon Applied: ${order.coupon.code || 'N/A'} - Discount: ₹${order.coupon.discountApplied}`, {
-          align: 'right',
-        });
-      } else {
-        pdfDoc.text('No coupon applied', { align: 'right' });
+      
+      // Summary section
+      yPosition += 10;
+      pdfDoc.moveTo(40, yPosition).lineTo(550, yPosition).stroke();
+      yPosition += 15;
+      
+      pdfDoc.text('Subtotal:', 350, yPosition);
+      pdfDoc.text(`₹${order.subtotal || subtotal}`, 450, yPosition);
+      yPosition += 15;
+      
+      if (totalDiscount > 0) {
+        pdfDoc.text('Offer Discount:', 350, yPosition);
+        pdfDoc.text(`-₹${totalDiscount}`, 450, yPosition);
+        yPosition += 15;
       }
-      pdfDoc.text(`Total Amount: ₹${order.totalAmount}`, { align: 'right', underline: true });
-  
-      pdfDoc.moveDown();
-      pdfDoc.text('Payment Information:', { underline: true }).moveDown(0.5);
-      pdfDoc.text(`Method: ${order.paymentMethod}`);
-      pdfDoc.text(`Status: ${order.paymentStatus}`);
-      pdfDoc.text(`Order Date: ${new Date(order.orderedAt).toLocaleString()}`).moveDown();
-      pdfDoc.moveDown();
-      pdfDoc.fontSize(14).text('Thank you for your purchase!', { align: 'center' });
+      
+      if (order.coupon && order.coupon.discountApplied > 0) {
+        pdfDoc.text(`Coupon (${order.coupon.code}):`, 350, yPosition);
+        pdfDoc.text(`-₹${order.coupon.discountApplied}`, 450, yPosition);
+        yPosition += 15;
+      }
+      
+      if (order.shippingCost > 0) {
+        pdfDoc.text('Shipping:', 350, yPosition);
+        pdfDoc.text(`₹${order.shippingCost}`, 450, yPosition);
+        yPosition += 15;
+      }
+      
+      // Total
+      pdfDoc.fontSize(12).text('Total Amount:', 350, yPosition);
+      pdfDoc.text(`₹${order.totalAmount}`, 450, yPosition, { underline: true });
+      
+      // Savings Summary
+      if (totalDiscount > 0 || (order.coupon && order.coupon.discountApplied > 0)) {
+        yPosition += 30;
+        const totalSavings = totalDiscount + (order.coupon?.discountApplied || 0);
+        pdfDoc.fontSize(14).fillColor('green').text(`🎉 You Saved: ₹${totalSavings}!`, 40, yPosition);
+        pdfDoc.fillColor('black');
+      }
+      
+      // Payment Info
+      yPosition += 40;
+      pdfDoc.fontSize(12).text('Payment Information:', { underline: true });
+      pdfDoc.fontSize(10).text(`Method: ${order.paymentMethod.toUpperCase()}`);
+      pdfDoc.text(`Status: ${order.paymentStatus.toUpperCase()}`);
+      pdfDoc.text(`Order Status: ${order.orderStatus.toUpperCase()}`);
+      
+      // Footer
+      pdfDoc.moveDown(2);
+      pdfDoc.fontSize(14).text('Thank you for shopping with Male Fashion!', { align: 'center' });
+      pdfDoc.fontSize(10).text('For support, contact us at support@malefashion.com', { align: 'center' });
   
       pdfDoc.end();
     } catch (err) {
@@ -1059,6 +1122,55 @@ module.exports = {
     } catch (error) {
       console.error(error);
       res.status(500).json({ val: false, msg: "Something went wrong" });
+    }
+  },
+
+  // ~~~ User Order Tracking ~~~
+  async trackOrder(req, res) {
+    const { orderId } = req.params;
+    const userId = req.session.currentId;
+    
+    try {
+      const order = await orderModel
+        .findOne({ _id: orderId, user: userId })
+        .populate('items.product')
+        .populate('items.appliedOffer')
+        .lean();
+      
+      if (!order) {
+        return res.status(404).render('404');
+      }
+      
+      // Define status progression for tracking
+      const statusFlow = [
+        { key: 'order_placed', label: 'Order Placed', icon: 'fas fa-shopping-cart' },
+        { key: 'confirmed', label: 'Confirmed', icon: 'fas fa-check-circle' },
+        { key: 'packed', label: 'Packed', icon: 'fas fa-box' },
+        { key: 'shipped', label: 'Shipped', icon: 'fas fa-truck' },
+        { key: 'out_for_delivery', label: 'Out for Delivery', icon: 'fas fa-shipping-fast' },
+        { key: 'delivered', label: 'Delivered', icon: 'fas fa-home' }
+      ];
+      
+      // Find current status index
+      const currentStatusIndex = statusFlow.findIndex(s => s.key === order.orderStatus);
+      
+      // Mark completed statuses
+      const trackingSteps = statusFlow.map((step, index) => ({
+        ...step,
+        completed: index <= currentStatusIndex,
+        current: index === currentStatusIndex,
+        timestamp: order.statusHistory.find(h => h.status === step.key)?.updatedAt
+      }));
+      
+      res.render('orderTracking', {
+        order,
+        trackingSteps,
+        isDelivered: order.orderStatus === 'delivered',
+        isCancelled: order.orderStatus === 'cancelled'
+      });
+    } catch (error) {
+      console.error('Error loading order tracking:', error);
+      res.status(500).render('404');
     }
   },
 };

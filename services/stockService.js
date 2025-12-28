@@ -1,6 +1,5 @@
 const Variant = require('../models/variantModel');
 const InventoryMovement = require('../models/inventoryModel');
-const notificationService = require('./notificationService');
 
 /**
  * Stock Service (REDESIGNED)
@@ -288,25 +287,6 @@ class StockService {
   /**
    * Helper to emit stock update
    */
-  emitStockUpdate(variant) {
-    if (!variant) return;
-    notificationService.broadcastToAll({
-      type: 'stock_update',
-      title: 'Stock Update', 
-      message: 'Stock updated',
-      data: { 
-        variantId: variant._id, 
-        productId: variant.product,
-        newStock: variant.availableStock,
-        attributes: variant.attributes
-      }
-    });
-  }
-
-  emitLowStockAlert(variant) {
-    notificationService.notifyLowStock(variant);
-  }
-  
   async checkAvailability(variantId, quantity = 1) {
     try {
       const variant = await Variant.findById(variantId);

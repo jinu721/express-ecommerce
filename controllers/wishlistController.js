@@ -28,11 +28,11 @@ module.exports = {
         const offerResult = await pricingService.calculateBestOffer(product, 1, currentId);
         return {
           ...product.toObject(),
-          originalPrice: offerResult.originalPrice,
-          finalPrice: offerResult.finalPrice,
-          discount: offerResult.discount,
+          originalPrice: Math.round(offerResult.originalPrice * 100) / 100,
+          finalPrice: Math.round(offerResult.finalPrice * 100) / 100,
+          discount: Math.round(offerResult.discount * 100) / 100,
           discountPercentage: offerResult.discount > 0 ? Math.round((offerResult.discount / offerResult.originalPrice) * 100) : 0,
-          hasOffer: offerResult.offer !== null,
+          hasOffer: offerResult.hasOffer,
           offer: offerResult.offer
         };
       }));

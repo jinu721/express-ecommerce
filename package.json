@@ -20,7 +20,6 @@
     "pdfkit": "^0.15.1",
     "puppeteer": "^23.8.0",
     "razorpay": "^2.9.5",
-    "socket.io": "^4.8.1",
     "sweetalert2": "^11.14.5"
   },
   "name": "my-ecommerce",

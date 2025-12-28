@@ -37,16 +37,6 @@
         color: white;
         border-color: var(--primary-color);
       }
-      .notification-badge {
-        position: relative;
-      }
-      .notification-badge .fa-bell {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        font-size: 10px;
-        color: var(--danger-color);
-      }
     </style>
   </head>
   <body>
@@ -103,7 +93,7 @@
                         <td><%= data.paymentMethod %></td>
                         <td>
                           <a href="/admin/orders/view/<%= data._id %>">
-                            <span class="badge badge-outline-warning notification-badge">
+                            <span class="badge badge-outline-warning">
                               <i class="fas fa-eye"></i> View
                               <% if (data.returnRequest.requestStatus === true && data.returnRequest.adminStatus !== 'approved') { %>
                                 <i class="fas fa-bell"></i>

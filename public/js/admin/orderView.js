@@ -1,43 +1,24 @@
 
 const updateStatusBtn = document.querySelector(".update-status-btn");
 const orderStatusDropdown = document.getElementById("order-status");
-const statusLog = document.querySelector(".status-log ul");
+const statusLocationInput = document.getElementById("status-location");
+const statusMessageInput = document.getElementById("status-message");
 const orderId = document.querySelector("#orderId").value;
 const userId = document.querySelector("#userId").value;
 const currentOrderStatus = document.querySelector("#currentOrderStatus").value;
-const orderStatusSection = document.querySelector(".status-container");
-const processingSt = document.querySelector(".processingSt");
-const shippedSt = document.querySelector(".shippedSt");
-const deliveredSt = document.querySelector(".deliveredSt");
-const cancelledSt = document.querySelector(".cancelledSt");
 
-// console.log(shippedSt);
-// console.log(processingSt);
-// console.log(deliveredSt);
-// console.log(cancelledSt);
-
-// if (currentOrderStatus === "processing") {
-//   processingSt.style.display = "none";
-//   shippedSt.style.display = "block";
-//   deliveredSt.style.display = "block";
-//   cancelledSt.style.display = "block";
-// } else if (currentOrderStatus === "shipped") {
-//   processingSt.style.display = "none";
-//   shippedSt.style.display = "none";
-//   deliveredSt.style.display = "block";
-//   cancelledSt.style.display = "block";
-// } else if (currentOrderStatus === "delivered") {
-//   orderStatusSection.style.display = "none";
-// } else if (currentOrderStatus === "cancelled") {
-//   orderStatusSection.style.display = "none";
-// }
-
-// console.log(orderStatusSection);
-// console.log(currentOrderStatus);
+// Set current status as selected
+orderStatusDropdown.value = currentOrderStatus;
 
 updateStatusBtn.addEventListener("click", async () => {
   const newStatus = orderStatusDropdown.value;
-  console.log(orderId);
+  const location = statusLocationInput.value.trim();
+  const message = statusMessageInput.value.trim();
+  
+  if (!newStatus) {
+    showToast('Please select a status', 'error');
+    return;
+  }
 
   try {
     const response = await fetch(`/admin/order/status/${orderId}`, {
@@ -45,249 +26,183 @@ updateStatusBtn.addEventListener("click", async () => {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ newStatus }),
+      body: JSON.stringify({ 
+        newStatus, 
+        location: location || '',
+        message: message || `Order status updated to ${newStatus.replace('_', ' ')}`
+      }),
     });
 
     const data = await response.json();
-    console.log(data);
 
     if (data.val) {
-      const date = new Date(data.updatedAt).toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      });
-      const statusEntry = document.createElement("li");
-      statusEntry.innerHTML = `<strong>${data.status}</strong> - ${date}`;
-      statusLog.prepend(statusEntry);
-      if (data.status === "shipped") {
-        await sendNotification(
-            "You order shiped",
-            "Your order #123 has been shipped successfully! Thank you for shopping with us. You can track your order in the My Orders section. We hope you enjoy your purchase!",
-            "order",
-            "success"
-          );
-        }else if(data.status==='delivered'){
-            await sendNotification(
-                "You order delivered",
-                "Your order #123 has been delivered successfully! Thank you for shopping with us. We hope you enjoy your purchase!",
-                "order",
-                "success"
-            );
-        }else if(data.status==='cancelled'){
-          await sendNotification(
-              "You order canceled",
-              "Your order #123 has been canceled by the admin. Thank you for shopping with us. You can contact the admin team for more information.",
-              "order",
-              "failed"
-            );
-      }
+      showToast('Order status updated successfully', 'success');
+      // Clear inputs
+      statusLocationInput.value = '';
+      statusMessageInput.value = '';
+      // Reload page to show updated status
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } else {
-      console.log(data.msg);
+      showToast(data.msg || 'Failed to update status', 'error');
     }
   } catch (error) {
     console.error("Error updating status:", error);
-    Swal.fire("Error", "An unexpected error occurred", "error");
+    showToast('An unexpected error occurred', 'error');
   }
 });
 
+// Handle order return request approval/rejection
+const btnRequestApproved = document.querySelector(".btn-requestApproved");
+const btnRequestCancel = document.querySelector(".btn-requestCancel");
 
-
-
-document.querySelector(".btn-requestApproved").addEventListener("click", async () => {
-  try {
-    const response = await fetch(`/orders/admin/return-request/${orderId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status: "approved" }),
-    });
-
-    const data = await response.json();
-    console.log(data)
-    if (data.val) {
-      Swal.fire({
-        title: "Approved",
-        text: "The request has been approved successfully.",
-        icon: "success",
-        confirmButtonText: "OK",
+if (btnRequestApproved) {
+  btnRequestApproved.addEventListener("click", async () => {
+    try {
+      const response = await fetch(`/orders/admin/return-request/${orderId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "approved" }),
       });
-      await sendNotification(
-        "Request Approved",
-        "Your return request of the order #262 has been approved by the admin.",
-        "order",
-        "success"
-      );
-      window.location.href = `/admin/orders/view/${orderId}`;
-    } else {
-      Swal.fire("Error", data.message || "Something went wrong!", "error");
-    }
-  } catch (error) {
-    console.error("Error approving request:", error);
-    Swal.fire("Error", "An unexpected error occurred.", "error");
-  }
-});
 
-document.querySelector(".btn-requestCancel").addEventListener("click", async () => {
-  try {
-    const response = await fetch(`/orders/admin/return-request/${orderId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status: "cancelled" }),
-    });
-
-    const data = await response.json();
-    if (data.val) {
-      Swal.fire({
-        title: "Cancelled",
-        text: "The request has been cancelled.",
-        icon: "info",
-        confirmButtonText: "OK",
-      });
-      await sendNotification(
-        "Request Cancelled",
-        "Your return request has been cancelled by the admin.",
-        "order",
-        "failed"
-      );
-      window.location.href = `/admin/orders/view/${orderId}`;
-    } else {
-      Swal.fire(
-        "Error",
-        data.msg || "Failed to cancel the request.",
-        "error"
-      );
+      const data = await response.json();
+      if (data.val) {
+        showToast('Return request approved successfully', 'success');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        showToast(data.msg || 'Failed to approve request', 'error');
+      }
+    } catch (error) {
+      console.error("Error approving request:", error);
+      showToast('An unexpected error occurred', 'error');
     }
-  } catch (error) {
-    console.error("Error cancelling request:", error);
-    Swal.fire("Error", "An unexpected error occurred.", "error");
-  }
-});
-
-// Consolidated notification function
-async function sendNotification(title, message, type, status) {
-  try {
-    const response = await fetch("/notifications", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title,
-        message,
-        type,
-        status,
-        userId: document.querySelector("#userId").value,
-      }),
-    });
-    const data = await response.json();
-    if (data.val) {
-      console.log("Notification sent successfully");
-    } else {
-      console.log(data.msg);
-    }
-  } catch (err) {
-    console.log(`Sending notification error :- ${err}`);
-  }
+  });
 }
 
+if (btnRequestCancel) {
+  btnRequestCancel.addEventListener("click", async () => {
+    try {
+      const response = await fetch(`/orders/admin/return-request/${orderId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: "cancelled" }),
+      });
 
+      const data = await response.json();
+      if (data.val) {
+        showToast('Return request rejected successfully', 'success');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        showToast(data.msg || 'Failed to reject request', 'error');
+      }
+    } catch (error) {
+      console.error("Error rejecting request:", error);
+      showToast('An unexpected error occurred', 'error');
+    }
+  });
+}
 
+// Global variables for modal handling
+let currentItemId = null;
 
-function viewModal(event){
-  const returnReason = event.target.getAttribute('data-return-reason');
-  const itemId = event.target.getAttribute('data-item-id');
-  
-  console.log(returnReason)
-  console.log(itemId)
-  console.log(document.querySelector('.btn-approve-return'))
-  console.log(document.querySelector('.btn-cancel-return'))
-  
-  document.getElementById('return-reason').innerText = `Reason: ${returnReason}`;
-  document.querySelector('.btn-cancel-return').setAttribute('data-item-id', itemId);
-  document.querySelector('.btn-approve-return').setAttribute('data-item-id', itemId);
+// Function to view return request modal
+function viewReturnRequest(itemId, returnReason) {
+  currentItemId = itemId;
+  document.getElementById('return-reason').textContent = returnReason;
   const modal = new bootstrap.Modal(document.getElementById('returnModal'));
   modal.show();
 }
 
-
-
-
-
-// document.querySelectorAll('.btn-notify').forEach((button) => {
-//   button.addEventListener('click', () => {
-//     const returnReason = button.getAttribute('data-return-reason');
-//     const itemId = button.getAttribute('data-item-id');
-
-//     document.getElementById('return-reason').innerText = `Reason: ${returnReason}`;
-//     document.querySelector('.btn-cancel-return').setAttribute('data-item-id', itemId);
-//     document.querySelector('.btn-approve-return').setAttribute('data-item-id', itemId);
-//   });
-// });
-
-
-async function btnIndividualApprove(){
-  const itemId = event.target.getAttribute('data-item-id');
-  try {
-    const response = await fetch(`/order/${orderId}/return/${itemId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ status: 'approved' }),
-    });
-
-    const data = await response.json();
-    if (data.val) {
-      Swal.fire('Approved', 'The return request has been approved.', 'success');
-      await sendNotification(
-        'Return Request Approved',
-        `Your return request for item #${itemId} in order #${orderId} has been approved.`,
-        'order',
-        'success'
-      );
-      // location.reload();
-    } else {
-      Swal.fire('Error', data.msg || 'Failed to approve request.', 'error');
-    }
-  } catch (error) {
-    console.error(error);
-    Swal.fire('Error', 'An unexpected error occurred.', 'error');
+// Function to handle item return approval/rejection
+async function handleItemReturn(action) {
+  if (!currentItemId) {
+    showToast('No item selected', 'error');
+    return;
   }
-}
 
-
-
-async function btnIndividualCancel(){
-  const itemId = event.target.getAttribute('data-item-id');
-  try {
-    const response = await fetch(`/order/${orderId}/return/${itemId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ status: 'cancelled' }),
-    });
+  const status = action === 'approve' ? 'approved' : 'cancelled';
   
+  try {
+    const response = await fetch(`/order/${orderId}/return/${currentItemId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status }),
+    });
+
     const data = await response.json();
     if (data.val) {
-      Swal.fire('Cancelled', 'The return request has been cancelled.', 'info');
-      await sendNotification(
-        'Return Request Cancelled',
-        `Your return request for item #${itemId} in order #${orderId} has been cancelled.`,
-        'order',
-        'failed'
-      );
-      // location.reload();
+      const message = action === 'approve' ? 'Return request approved successfully' : 'Return request rejected successfully';
+      showToast(message, 'success');
+      
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('returnModal'));
+      modal.hide();
+      
+      // Reload page to show updated status
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } else {
-      Swal.fire('Error', data.msg || 'Failed to cancel request.', 'error');
+      showToast(data.msg || `Failed to ${action} request`, 'error');
     }
   } catch (error) {
-    console.error(error);
-    Swal.fire('Error', 'An unexpected error occurred.', 'error');
+    console.error(`Error ${action}ing request:`, error);
+    showToast('An unexpected error occurred', 'error');
   }
 }
 
+
+// Toast function for admin
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    max-width: 300px;
+  `;
+  
+  const colors = {
+    success: '#28a745',
+    error: '#dc3545',
+    info: '#17a2b8',
+    warning: '#ffc107'
+  };
+  
+  toast.style.backgroundColor = colors[type] || colors.info;
+  toast.textContent = message;
+  
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = '1';
+  }, 100);
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
+  }, 3000);
+}

@@ -77,4 +77,8 @@ router.post("/item/return-order/:orderId", orderController.requestIndividualRetu
 // Response: Admin processes the return request for the item and returns confirmation.
 router.post('/order/:orderId/return/:itemId', orderController.requestIndividualReturnAdmin);
 
+// ~~~ User Order Tracking ~~~
+// Purpose: Load order tracking page for users
+router.get('/track-order/:orderId', orderController.trackOrder);
+
 module.exports = router;

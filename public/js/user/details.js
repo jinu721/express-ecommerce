@@ -434,7 +434,7 @@ if (form) {
   });
 }
 
-// ~~~~~~~~~~~~~~~~~~~ Real-time Socket Listener ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~ Stock Update Listener ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 window.addEventListener('productStockUpdate', (e) => {
   const data = e.detail;

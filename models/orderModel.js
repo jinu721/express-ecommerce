@@ -1,22 +1,6 @@
 const mongoose = require('mongoose');
 
-// ~~~ Order Schema ~~~
-// Purpose: Defines the structure for storing and managing customer order data in the database.
-// Fields:
-// - `user`: Links the order to the customer using `ObjectId` referencing the `Users` collection.
-// - `items`: Stores details of the products in the order, including quantity, price, size, and status.
-// - `totalAmount`: Total cost of the order, required.
-// - `paymentMethod`: Specifies how the order was paid (e.g., card, wallet, COD).
-// - `paymentStatus`: Tracks the payment state (e.g., pending, paid, failed).
-// - `orderStatus`: Tracks the current status of the order (e.g., processing, shipped).
-// - `shippingAddress`: Stores details of where the order is shipped.
-// - `coupon`: Tracks coupon details and discounts applied.
-// - `statusHistory`: Keeps a history of status changes for auditing.
-// Features:
-// - Includes support for return requests at both item and order level.
-// - Timestamp fields automatically track creation and update times for each order.
-// - Utilizes enumerated fields for consistent status and payment values.
-
+// ~~~ Enhanced Order Schema with Advanced Tracking ~~~
 const orderSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -39,9 +23,25 @@ const orderSchema = new mongoose.Schema({
         required: true,
         min: 1,
       },
+      originalPrice: {
+        type: Number,
+        required: true,
+      },
       offerPrice: {
         type: Number,
         required: true,
+      },
+      totalPrice: {
+        type: Number,
+        required: true,
+      },
+      discount: {
+        type: Number,
+        default: 0,
+      },
+      appliedOffer: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Offer',
       },
       size: {
         type: String,
@@ -52,23 +52,45 @@ const orderSchema = new mongoose.Schema({
       },
       itemStatus: {
         type: String,
-        enum: ['processing', 'shipped', 'delivered', 'cancelled','returned'],
-        default: 'processing',
+        enum: ['order_placed', 'confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'],
+        default: 'order_placed',
+      },
+      trackingInfo: {
+        trackingNumber: String,
+        carrier: String,
+        estimatedDelivery: Date,
+        currentLocation: String,
+        lastUpdated: Date,
       },
       returnRequest: {
         requestStatus: { type: Boolean, default: false },
         requestMessage: { type: String },
+        requestDate: { type: Date },
         adminStatus: {
           type: String,
           enum: ['approved', 'cancelled', 'pending'],
           default: 'pending',
         },
+        refundAmount: { type: Number },
+        refundDate: { type: Date },
       },
     },
   ],
   totalAmount: {
     type: Number,
     required: true,
+  },
+  subtotal: {
+    type: Number,
+    required: true,
+  },
+  shippingCost: {
+    type: Number,
+    default: 0,
+  },
+  totalDiscount: {
+    type: Number,
+    default: 0,
   },
   paymentMethod: {
     type: String,
@@ -77,24 +99,25 @@ const orderSchema = new mongoose.Schema({
   },
   paymentStatus: {
     type: String,
-    enum: ['pending', 'paid', 'failed', 'refunded'],
+    enum: ['pending', 'paid', 'failed', 'refunded', 'partially_refunded'],
     default: 'pending',
   },
   orderStatus: {
     type: String,
-    enum: ['processing', 'shipped', 'delivered', 'cancelled','returned'],
-    default: 'processing',
+    enum: ['order_placed', 'confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'],
+    default: 'order_placed',
   },
   orderId:{
     type:Number,
     required:true,
   },
   razorpayOrderId: {
-    type: String, // Store Razorpay Order ID for verification
+    type: String,
   },
   coupon: {
     code: { type: String },
-    discountApplied: { type: Number }
+    couponId: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon' },
+    discountApplied: { type: Number, default: 0 }
   },
   shippingAddress: {
     street: { type: String },
@@ -106,37 +129,109 @@ const orderSchema = new mongoose.Schema({
     landMark: { type: String },
     pinCode: { type: String, required: true },
   },
+  // Enhanced tracking information
+  trackingInfo: {
+    trackingNumber: String,
+    carrier: String,
+    estimatedDelivery: Date,
+    currentLocation: String,
+    lastUpdated: Date,
+  },
   orderedAt: {
     type: Date,
     default: Date.now,
   },
-  deliveredAt: {
-    type: Date,
-  },
+  confirmedAt: Date,
+  packedAt: Date,
+  shippedAt: Date,
+  outForDeliveryAt: Date,
+  deliveredAt: Date,
+  cancelledAt: Date,
   returnRequest: {
     requestStatus:{type:Boolean,default:false},
     requestMessage:{type:String},
+    requestDate: { type: Date },
     adminStatus: {
       type:String,
       enum: ['approved', 'cancelled', 'pending'],
       default: 'pending',
     },
+    refundAmount: { type: Number },
+    refundDate: { type: Date },
   },
+  // Enhanced status history with location tracking
   statusHistory: [
     {
       status: {
         type: String,
-        enum: ['processing', 'shipped', 'delivered', 'cancelled','returned'],
+        enum: ['order_placed', 'confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'],
         required: true,
       },
+      location: String,
+      message: String,
       updatedAt: {
         type: Date,
         default: Date.now,
       },
+      updatedBy: {
+        type: String,
+        enum: ['system', 'admin', 'carrier'],
+        default: 'system',
+      },
     },
   ],
+  // Additional fields for better order management
+  expectedDeliveryDate: Date,
+  actualDeliveryDate: Date,
+  deliveryInstructions: String,
+  notes: String, // Admin notes
 }, {
   timestamps: true,
 });
+
+// Add methods for status updates
+orderSchema.methods.updateStatus = function(newStatus, location = '', message = '', updatedBy = 'system') {
+  this.orderStatus = newStatus;
+  
+  // Update timestamp fields
+  const now = new Date();
+  switch(newStatus) {
+    case 'confirmed':
+      this.confirmedAt = now;
+      break;
+    case 'packed':
+      this.packedAt = now;
+      break;
+    case 'shipped':
+      this.shippedAt = now;
+      break;
+    case 'out_for_delivery':
+      this.outForDeliveryAt = now;
+      break;
+    case 'delivered':
+      this.deliveredAt = now;
+      this.actualDeliveryDate = now;
+      break;
+    case 'cancelled':
+      this.cancelledAt = now;
+      break;
+  }
+  
+  // Add to status history
+  this.statusHistory.push({
+    status: newStatus,
+    location,
+    message,
+    updatedAt: now,
+    updatedBy
+  });
+  
+  // Update item statuses
+  this.items.forEach(item => {
+    if (item.itemStatus !== 'cancelled' && item.itemStatus !== 'returned') {
+      item.itemStatus = newStatus;
+    }
+  });
+};
 
 module.exports = mongoose.model('Orders', orderSchema);
