@@ -309,7 +309,7 @@
                     <tr>
                       <td>
                         <div class="d-flex align-items-center">
-                          <img src="<%= item.product.imageUrl && item.product.imageUrl[0] ? item.product.imageUrl[0] : '/img/default-product.jpg' %>" 
+                          <img src="<%= item.product.images && item.product.images[0] ? '/' + item.product.images[0] : '/img/default-product.jpg' %>" 
                                alt="<%= item.product.name %>" 
                                class="product-image">
                           <div>

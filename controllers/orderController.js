@@ -1344,15 +1344,18 @@ module.exports = {
       const currentStatusIndex = statusFlow.findIndex(s => s.key === order.orderStatus);
       
       // Mark completed statuses and include status history data
+      // Only show steps up to current status, and only show location/message for steps that actually happened
       const trackingSteps = statusFlow.map((step, index) => {
         const statusEntry = order.statusHistory.find(h => h.status === step.key);
+        const hasActuallyHappened = statusEntry !== undefined;
+        
         return {
           ...step,
-          completed: index <= currentStatusIndex,
+          completed: index <= currentStatusIndex && hasActuallyHappened,
           current: index === currentStatusIndex,
-          timestamp: statusEntry?.updatedAt,
-          location: statusEntry?.location,
-          message: statusEntry?.message
+          timestamp: hasActuallyHappened ? statusEntry.updatedAt : null,
+          location: hasActuallyHappened ? statusEntry.location : null,
+          message: hasActuallyHappened ? statusEntry.message : null
         };
       });
       

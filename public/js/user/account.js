@@ -1,10 +1,28 @@
 // ~~~~~~~~~~~~~~~~~~ update profile section ~~~~~~~~~~~~~~~~~~
 
-console.log("shui");
+console.log("Account page script loaded");
+
+// Simple DOM ready check
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeAccountPage);
+} else {
+  initializeAccountPage();
+}
+
+function initializeAccountPage() {
+  console.log("Initializing account page");
 
 const profileInfo = document.querySelector(".profile-info");
 const updateForm = document.querySelector(".updateform");
 const editButton = document.querySelector(".edit-profile");
+
+// Check if elements exist before proceeding
+if (!profileInfo || !updateForm || !editButton) {
+  console.error("Required elements not found on page");
+  console.log("profileInfo:", !!profileInfo, "updateForm:", !!updateForm, "editButton:", !!editButton);
+  return;
+}
+
 const updateButton = updateForm.querySelector(".updatebtn");
 
 const usernameField = updateForm.querySelector(".usernameUpdate");
@@ -374,41 +392,70 @@ editAddressButton.addEventListener("click", (e) => {
 const tabs = document.querySelectorAll(".account__tab");
 const tabsContents = document.querySelectorAll(".tab__content");
 
-tabs.forEach((tab) => {
-  tab.addEventListener("click", async () => {
-    const targetSelector = tab.dataset.target;
-    const targetContent = document.querySelector(targetSelector);
-    if (!targetContent) {
-      if (targetSelector === "#logout") {
-        async function fetchData() {
-          try {
-            const response = await fetch("/logout", { method: "POST" });
-            const data = await response.json();
-            if (!data.val) {
-              showToast(data.msg || 'Logout failed', 'error');
-            } else {
-              showToast('Logged out successfully', 'success');
-              setTimeout(() => {
-                window.location.href = "/";
-              }, 1000);
-            }
-          } catch (err) {
-            console.log(err);
-            showToast('An error occurred during logout', 'error');
-          }
-        }
-        fetchData();
-      }
-      return;
+// Check if tab elements exist
+if (tabs.length === 0 || tabsContents.length === 0) {
+  console.error("Tab elements not found on page");
+  return;
+}
+
+console.log("Found", tabs.length, "tabs and", tabsContents.length, "tab contents");
+
+// Simple and robust tab handling
+function handleTabClick(clickedTab) {
+  const targetSelector = clickedTab.dataset.target;
+  console.log("Handling tab click for:", targetSelector);
+  
+  if (!targetSelector) {
+    console.error("No target selector found for tab");
+    return;
+  }
+
+  // Handle logout separately
+  if (targetSelector === "#logout") {
+    handleLogout();
+    return;
+  }
+
+  const targetContent = document.querySelector(targetSelector);
+  if (!targetContent) {
+    console.error("Target content not found:", targetSelector);
+    return;
+  }
+
+  // Remove active class from all tabs and contents
+  tabs.forEach(tab => tab.classList.remove("active-tab"));
+  tabsContents.forEach(content => content.classList.remove("active-tab"));
+
+  // Add active class to clicked tab and its content
+  clickedTab.classList.add("active-tab");
+  targetContent.classList.add("active-tab");
+
+  // Load content based on tab
+  loadTabContent(targetSelector);
+}
+
+// Handle logout
+async function handleLogout() {
+  try {
+    const response = await fetch("/logout", { method: "POST" });
+    const data = await response.json();
+    if (!data.val) {
+      showToast(data.msg || 'Logout failed', 'error');
+    } else {
+      showToast('Logged out successfully', 'success');
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1000);
     }
-    tabsContents.forEach((tabsContent) => {
-      tabsContent.classList.remove("active-tab");
-    });
-    tabs.forEach((tab) => {
-      tab.classList.remove("active-tab");
-    });
-    tab.classList.add("active-tab");
-    targetContent.classList.add("active-tab");
+  } catch (err) {
+    console.log(err);
+    showToast('An error occurred during logout', 'error');
+  }
+}
+
+// Load content for specific tabs
+async function loadTabContent(targetSelector) {
+  try {
     switch (targetSelector) {
       case "#orders":
         await fetchOrders();
@@ -423,9 +470,37 @@ tabs.forEach((tab) => {
         await showChangePassword();
         break;
       default:
-        console.log("Switching to tab:", targetSelector);
+        console.log("No special loading needed for:", targetSelector);
+    }
+  } catch (error) {
+    console.error("Error loading tab content:", error);
+    showToast('Error loading content', 'error');
+  }
+}
+
+// Add click event listeners to all tabs
+tabs.forEach((tab, index) => {
+  console.log(`Setting up tab ${index}:`, tab.textContent.trim(), "target:", tab.dataset.target);
+  
+  tab.addEventListener("click", function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log("Tab clicked:", tab.dataset.target);
+    handleTabClick(tab);
+  });
+  
+  // Also add keyboard support
+  tab.addEventListener("keydown", function(e) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleTabClick(tab);
     }
   });
+  
+  // Make tabs focusable
+  if (!tab.hasAttribute('tabindex')) {
+    tab.setAttribute('tabindex', '0');
+  }
 });
 
 let currentPage = 1;
@@ -442,57 +517,90 @@ async function fetchWallet(page = 1) {
     const data = await response.json();
 
     if (data.val) {
+      // Calculate total received and spent amounts
+      const totalReceived = data.wallet.transactionHistory
+        ? data.wallet.transactionHistory
+            .filter(t => t.transactionType === "refund")
+            .reduce((sum, t) => sum + (t.transactionAmount || 0), 0)
+        : 0;
+      
+      const totalSpent = data.wallet.transactionHistory
+        ? data.wallet.transactionHistory
+            .filter(t => t.transactionType === "purchase")
+            .reduce((sum, t) => sum + (t.transactionAmount || 0), 0)
+        : 0;
+
       balanceSection.innerHTML = `
         <div class="card">
           <div class="balance-header">
-            <span>Balance</span>
-            <div class="currency-toggle">R/ &#8377;</div>
+            <span>Wallet Balance</span>
+            <div class="currency-toggle">₹</div>
           </div>
-          <div class="balance-amount">&#8377;${data.wallet.balance}</div>
+          <div class="balance-amount">₹${data.wallet.balance || 0}</div>
           <div class="transactions">
-            <span>↗ +&#8377; ${data.wallet.balance}</span>
-            <span>↙ -&#8377; ${0}</span>
+            <span style="color: #28a745;">↗ +₹${totalReceived}</span>
+            <span style="color: #dc3545;">↙ -₹${totalSpent}</span>
           </div>
           <div class="info-section">
             <div class="info-item">
-              <span class="label">Wallet ID:</span>
-              <span>${data.wallet._id}</span>
+              <span class="label">Total Transactions:</span>
+              <span>${data.totalTransactions || 0}</span>
             </div>
           </div>
         </div>
       `;
 
-      data.wallet.transactionHistory.forEach((x) => {
-        const div = document.createElement("div");
-        div.classList.add("transactionItem");
-        div.innerHTML = `
-          <div class="transaction-item">
-            <div class="transaction-info">
-              <div class="transaction-icon ${
-                x.transactionType === "refund" ? "icon-receive" : "icon-send"
-              }">${x.transactionType === "refund" ? "↓" : "↑"}</div>
-              <div class="transaction-details">
-                <span class="transaction-title">${x.transactionType}</span>
-                <span class="transaction-date">${x.transactionDate}</span>
+      // Handle transaction history
+      if (data.wallet.transactionHistory && data.wallet.transactionHistory.length > 0) {
+        data.wallet.transactionHistory.forEach((x) => {
+          const div = document.createElement("div");
+          div.classList.add("transactionItem");
+          div.innerHTML = `
+            <div class="transaction-item">
+              <div class="transaction-info">
+                <div class="transaction-icon ${
+                  x.transactionType === "refund" ? "icon-receive" : "icon-send"
+                }">${x.transactionType === "refund" ? "↓" : "↑"}</div>
+                <div class="transaction-details">
+                  <span class="transaction-title">${x.transactionType.charAt(0).toUpperCase() + x.transactionType.slice(1)}</span>
+                  <span class="transaction-date">${new Date(x.transactionDate).toLocaleDateString('en-IN')}</span>
+                  <span class="transaction-description">${x.description || 'Transaction'}</span>
+                </div>
+              </div>
+              <div class="transaction-details" style="text-align: right">
+                <span class="transaction-amount ${x.transactionType === "refund" ? "amount-received" : "amount-sent"}">${
+                  x.transactionType === "refund" ? "+" : "-"
+                }₹${x.transactionAmount}</span>
+                <span class="transaction-status status-completed">Completed</span>
               </div>
             </div>
-            <div class="transaction-details" style="text-align: right">
-              <span class="transaction-amount amount-received">${
-                x.transactionType === "refund" ? "+" : "-"
-              }&#8377;${x.transactionAmount}</span>
-              <span class="transaction-status status-completed">Completed</span>
+          `;
+          transactionHistorySection.append(div);
+        });
+      } else {
+        // Show empty state for transactions
+        transactionHistorySection.innerHTML = `
+          <div style="text-align: center; padding: 3rem 1rem; color: #6c757d;">
+            <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">
+              <i class="fas fa-wallet"></i>
             </div>
+            <h5 style="color: #495057; margin-bottom: 0.5rem;">No Transactions Yet</h5>
+            <p style="margin-bottom: 0;">Your transaction history will appear here once you make your first purchase or receive a refund.</p>
           </div>
         `;
-        transactionHistorySection.append(div);
-      });
+      }
 
+      // Update pagination
       document.getElementById("pageNumber").innerText = `Page ${page}`;
       document.getElementById("prevPage").disabled = page === 1;
       document.getElementById("nextPage").disabled = page === data.totalPages;
+    } else {
+      // Handle error case
+      showToast(data.msg || 'Failed to load wallet information', 'error');
     }
   } catch (err) {
     console.error(err);
+    showToast('An error occurred while loading wallet information', 'error');
   }
 }
 
@@ -810,108 +918,290 @@ function renderPagination(currentPage, totalPages) {
   }
 }
 
-function cancelOrders(e) {
-  e.target.addEventListener("click", (e) => {
-    // Create Bootstrap modal for confirmation
-    const confirmModal = document.createElement('div');
-    confirmModal.className = 'modal fade';
-    confirmModal.innerHTML = `
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Cancel Order</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <p>Are you sure you want to cancel this order? This action cannot be undone.</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Keep Order</button>
-            <button type="button" class="btn btn-danger" id="confirmCancel">Yes, Cancel Order</button>
-          </div>
-        </div>
+function cancelOrders(event) {
+  const orderId = event.target.getAttribute("data-id");
+  
+  // Create a simple confirmation dialog that works without Bootstrap
+  const confirmModal = document.createElement('div');
+  confirmModal.className = 'custom-modal-overlay';
+  confirmModal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  `;
+  
+  confirmModal.innerHTML = `
+    <div class="custom-modal-content" style="
+      background: white;
+      border-radius: 15px;
+      padding: 0;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+      animation: modalSlideIn 0.3s ease;
+    ">
+      <div style="
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 1.5rem;
+        text-align: center;
+      ">
+        <h5 style="margin: 0; font-weight: 700; font-size: 1.2rem;">
+          <i class="fas fa-exclamation-triangle" style="margin-right: 0.5rem;"></i>
+          Cancel Order Confirmation
+        </h5>
       </div>
-    `;
-    
-    document.body.appendChild(confirmModal);
-    const modal = new bootstrap.Modal(confirmModal);
-    modal.show();
-    
-    confirmModal.querySelector('#confirmCancel').addEventListener('click', async () => {
-      const orderId = e.target.getAttribute("data-id");
-      try {
-        const response = await fetch(`/cancel-order/${orderId}`, {
-          method: "DELETE",
-        });
-        const data = await response.json();
-        if (data.val) {
-          showToast('Order cancelled successfully', 'success');
-          fetchOrders();
-        } else {
-          showToast(data.msg || 'Failed to cancel order', 'error');
-        }
-      } catch (err) {
-        console.log(err);
-        showToast('An error occurred while cancelling the order', 'error');
+      <div style="padding: 2rem; text-align: center;">
+        <div style="margin-bottom: 1.5rem;">
+          <i class="fas fa-times-circle" style="font-size: 3rem; color: #dc3545; margin-bottom: 1rem;"></i>
+        </div>
+        <h6 style="font-weight: 600; margin-bottom: 1rem; color: #333;">
+          Are you sure you want to cancel this order?
+        </h6>
+        <p style="color: #6c757d; margin-bottom: 0;">
+          This action cannot be undone. Any payments made will be refunded to your wallet.
+        </p>
+      </div>
+      <div style="
+        padding: 1rem 2rem 2rem;
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+      ">
+        <button type="button" class="btn-keep-order" style="
+          background: #6c757d;
+          color: white;
+          border: none;
+          border-radius: 25px;
+          padding: 0.75rem 2rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.3s;
+        ">
+          <i class="fas fa-arrow-left" style="margin-right: 0.5rem;"></i>
+          Keep Order
+        </button>
+        <button type="button" class="btn-confirm-cancel" style="
+          background: linear-gradient(135deg, #dc3545, #c82333);
+          color: white;
+          border: none;
+          border-radius: 25px;
+          padding: 0.75rem 2rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.2s;
+        ">
+          <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
+          Yes, Cancel Order
+        </button>
+      </div>
+    </div>
+  `;
+  
+  // Add animation styles
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.9);
       }
-      modal.hide();
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .btn-keep-order:hover {
+      background: #5a6268 !important;
+    }
+    .btn-confirm-cancel:hover {
+      transform: scale(1.05);
+    }
+  `;
+  document.head.appendChild(style);
+  
+  document.body.appendChild(confirmModal);
+  
+  // Handle keep order
+  confirmModal.querySelector('.btn-keep-order').addEventListener('click', () => {
+    document.body.removeChild(confirmModal);
+    document.head.removeChild(style);
+  });
+  
+  // Handle confirm cancel
+  confirmModal.querySelector('.btn-confirm-cancel').addEventListener('click', async () => {
+    try {
+      const response = await fetch(`/cancel-order/${orderId}`, {
+        method: "DELETE",
+      });
+      const data = await response.json();
+      if (data.val) {
+        showToast('Order cancelled successfully! Refund will be processed to your wallet.', 'success');
+        fetchOrders();
+      } else {
+        showToast(data.msg || 'Failed to cancel order', 'error');
+      }
+    } catch (err) {
+      console.log(err);
+      showToast('An error occurred while cancelling the order', 'error');
+    }
+    document.body.removeChild(confirmModal);
+    document.head.removeChild(style);
+  });
+  
+  // Handle click outside modal
+  confirmModal.addEventListener('click', (e) => {
+    if (e.target === confirmModal) {
       document.body.removeChild(confirmModal);
-    });
-    
-    // Clean up modal when hidden
-    confirmModal.addEventListener('hidden.bs.modal', () => {
-      if (document.body.contains(confirmModal)) {
-        document.body.removeChild(confirmModal);
-      }
-    });
+      document.head.removeChild(style);
+    }
   });
 }
 function requestReturn(event) {
   const orderId = event.target.getAttribute("data-id");
   
-  // Create Bootstrap modal for return request
+  // Create a custom modal for return request
   const returnModal = document.createElement('div');
-  returnModal.className = 'modal fade';
+  returnModal.className = 'custom-modal-overlay';
+  returnModal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  `;
+  
   returnModal.innerHTML = `
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Request Return</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="custom-modal-content" style="
+      background: white;
+      border-radius: 15px;
+      padding: 0;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+      animation: modalSlideIn 0.3s ease;
+    ">
+      <div style="
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 1.5rem;
+        text-align: center;
+      ">
+        <h5 style="margin: 0; font-weight: 700; font-size: 1.2rem;">
+          <i class="fas fa-undo" style="margin-right: 0.5rem;"></i>
+          Request Return
+        </h5>
+      </div>
+      <div style="padding: 2rem;">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+          <i class="fas fa-box-open" style="font-size: 2.5rem; color: #28a745; margin-bottom: 1rem;"></i>
+          <h6 style="font-weight: 600; color: #333;">Tell us why you want to return this order</h6>
         </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="returnReason" class="form-label">Reason for Return</label>
-            <textarea id="returnReason" class="form-control" rows="3" placeholder="Please explain why you want to return this order..."></textarea>
-            <div class="invalid-feedback" id="reasonError" style="display: none;">
-              Please enter a reason for the return
-            </div>
+        <div style="margin-bottom: 1rem;">
+          <label style="font-weight: 600; color: #495057; display: block; margin-bottom: 0.5rem;">
+            Reason for Return
+          </label>
+          <textarea id="returnReason" rows="4" placeholder="Please explain why you want to return this order..." style="
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            resize: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+          "></textarea>
+          <div id="reasonError" style="
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: none;
+          ">
+            Please enter a reason for the return
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="submitReturn">Submit Request</button>
+        <div style="
+          background: #f8f9fa;
+          padding: 1rem;
+          border-radius: 10px;
+          border-left: 4px solid #28a745;
+          margin-bottom: 1.5rem;
+        ">
+          <small style="color: #6c757d;">
+            <i class="fas fa-info-circle" style="margin-right: 0.25rem;"></i>
+            Your return request will be reviewed by our team. You'll receive a confirmation once approved.
+          </small>
         </div>
+      </div>
+      <div style="
+        padding: 1rem 2rem 2rem;
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+      ">
+        <button type="button" class="btn-cancel-return" style="
+          background: #6c757d;
+          color: white;
+          border: none;
+          border-radius: 25px;
+          padding: 0.75rem 2rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.3s;
+        ">
+          <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
+          Cancel
+        </button>
+        <button type="button" class="btn-submit-return" style="
+          background: linear-gradient(135deg, #28a745, #20c997);
+          color: white;
+          border: none;
+          border-radius: 25px;
+          padding: 0.75rem 2rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.2s;
+        ">
+          <i class="fas fa-paper-plane" style="margin-right: 0.5rem;"></i>
+          Submit Request
+        </button>
       </div>
     </div>
   `;
   
   document.body.appendChild(returnModal);
-  const modal = new bootstrap.Modal(returnModal);
-  modal.show();
   
-  returnModal.querySelector('#submitReturn').addEventListener('click', async () => {
+  // Handle cancel
+  returnModal.querySelector('.btn-cancel-return').addEventListener('click', () => {
+    document.body.removeChild(returnModal);
+  });
+  
+  // Handle submit
+  returnModal.querySelector('.btn-submit-return').addEventListener('click', async () => {
     const reason = returnModal.querySelector('#returnReason').value.trim();
     const reasonError = returnModal.querySelector('#reasonError');
     const reasonInput = returnModal.querySelector('#returnReason');
     
     if (!reason) {
-      reasonInput.classList.add('is-invalid');
+      reasonInput.style.borderColor = '#dc3545';
       reasonError.style.display = 'block';
       return;
     }
     
-    reasonInput.classList.remove('is-invalid');
+    reasonInput.style.borderColor = '#e9ecef';
     reasonError.style.display = 'none';
     
     try {
@@ -926,7 +1216,7 @@ function requestReturn(event) {
       });
       const data = await response.json();
       if (data.val) {
-        showToast('Return request submitted successfully', 'success');
+        showToast('Return request submitted successfully! We will review your request and get back to you soon.', 'success');
         fetchOrders();
       } else {
         showToast(data.msg || 'Failed to submit return request', 'error');
@@ -936,13 +1226,12 @@ function requestReturn(event) {
       showToast('An error occurred while submitting the request', 'error');
     }
     
-    modal.hide();
     document.body.removeChild(returnModal);
   });
   
-  // Clean up modal when hidden
-  returnModal.addEventListener('hidden.bs.modal', () => {
-    if (document.body.contains(returnModal)) {
+  // Handle click outside modal
+  returnModal.addEventListener('click', (e) => {
+    if (e.target === returnModal) {
       document.body.removeChild(returnModal);
     }
   });
@@ -951,32 +1240,100 @@ function requestReturn(event) {
 async function retryPayment(event) {
   const orderId = event.target.getAttribute("data-id");
   
-  // Create Bootstrap modal for retry payment confirmation
+  // Create a custom modal for retry payment confirmation
   const retryModal = document.createElement('div');
-  retryModal.className = 'modal fade';
+  retryModal.className = 'custom-modal-overlay';
+  retryModal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  `;
+  
   retryModal.innerHTML = `
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Retry Payment</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="custom-modal-content" style="
+      background: white;
+      border-radius: 15px;
+      padding: 0;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+      animation: modalSlideIn 0.3s ease;
+    ">
+      <div style="
+        background: linear-gradient(135deg, #007bff, #0056b3);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 1.5rem;
+        text-align: center;
+      ">
+        <h5 style="margin: 0; font-weight: 700; font-size: 1.2rem;">
+          <i class="fas fa-credit-card" style="margin-right: 0.5rem;"></i>
+          Retry Payment
+        </h5>
+      </div>
+      <div style="padding: 2rem; text-align: center;">
+        <div style="margin-bottom: 1.5rem;">
+          <i class="fas fa-sync-alt" style="font-size: 3rem; color: #007bff; margin-bottom: 1rem;"></i>
         </div>
-        <div class="modal-body">
-          <p>Do you want to retry the payment for this order?</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="confirmRetry">Retry Payment</button>
-        </div>
+        <h6 style="font-weight: 600; margin-bottom: 1rem; color: #333;">
+          Do you want to retry the payment for this order?
+        </h6>
+        <p style="color: #6c757d; margin-bottom: 0;">
+          You will be redirected to the payment gateway to complete the transaction.
+        </p>
+      </div>
+      <div style="
+        padding: 1rem 2rem 2rem;
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+      ">
+        <button type="button" class="btn-cancel-retry" style="
+          background: #6c757d;
+          color: white;
+          border: none;
+          border-radius: 25px;
+          padding: 0.75rem 2rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.3s;
+        ">
+          <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
+          Cancel
+        </button>
+        <button type="button" class="btn-confirm-retry" style="
+          background: linear-gradient(135deg, #007bff, #0056b3);
+          color: white;
+          border: none;
+          border-radius: 25px;
+          padding: 0.75rem 2rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.2s;
+        ">
+          <i class="fas fa-credit-card" style="margin-right: 0.5rem;"></i>
+          Retry Payment
+        </button>
       </div>
     </div>
   `;
   
   document.body.appendChild(retryModal);
-  const modal = new bootstrap.Modal(retryModal);
-  modal.show();
   
-  retryModal.querySelector('#confirmRetry').addEventListener('click', async () => {
+  // Handle cancel
+  retryModal.querySelector('.btn-cancel-retry').addEventListener('click', () => {
+    document.body.removeChild(retryModal);
+  });
+  
+  // Handle confirm retry
+  retryModal.querySelector('.btn-confirm-retry').addEventListener('click', async () => {
     try {
       const response = await fetch(`/retry-payment`, {
         method: "POST",
@@ -1041,47 +1398,114 @@ async function retryPayment(event) {
       showToast('Error retrying the payment', 'error');
     }
     
-    modal.hide();
     document.body.removeChild(retryModal);
   });
   
-  // Clean up modal when hidden
-  retryModal.addEventListener('hidden.bs.modal', () => {
-    if (document.body.contains(retryModal)) {
+  // Handle click outside modal
+  retryModal.addEventListener('click', (e) => {
+    if (e.target === retryModal) {
       document.body.removeChild(retryModal);
     }
   });
 }
 
-async function downloadInvoice(e) {
-  const orderId = e.target.getAttribute("data-id");
+async function downloadInvoice(event) {
+  const orderId = event.target.getAttribute("data-id");
   
-  // Create Bootstrap modal for download confirmation
+  // Create a custom modal for download confirmation
   const downloadModal = document.createElement('div');
-  downloadModal.className = 'modal fade';
+  downloadModal.className = 'custom-modal-overlay';
+  downloadModal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  `;
+  
   downloadModal.innerHTML = `
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Download Invoice</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="custom-modal-content" style="
+      background: white;
+      border-radius: 15px;
+      padding: 0;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+      animation: modalSlideIn 0.3s ease;
+    ">
+      <div style="
+        background: linear-gradient(135deg, #17a2b8, #138496);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 1.5rem;
+        text-align: center;
+      ">
+        <h5 style="margin: 0; font-weight: 700; font-size: 1.2rem;">
+          <i class="fas fa-download" style="margin-right: 0.5rem;"></i>
+          Download Invoice
+        </h5>
+      </div>
+      <div style="padding: 2rem; text-align: center;">
+        <div style="margin-bottom: 1.5rem;">
+          <i class="fas fa-file-invoice" style="font-size: 3rem; color: #17a2b8; margin-bottom: 1rem;"></i>
         </div>
-        <div class="modal-body">
-          <p>Do you want to download the invoice for this order?</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="confirmDownload">Yes, Download</button>
-        </div>
+        <h6 style="font-weight: 600; margin-bottom: 1rem; color: #333;">
+          Do you want to download the invoice for this order?
+        </h6>
+        <p style="color: #6c757d; margin-bottom: 0;">
+          The invoice will be downloaded as a PDF file to your device.
+        </p>
+      </div>
+      <div style="
+        padding: 1rem 2rem 2rem;
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+      ">
+        <button type="button" class="btn-cancel-download" style="
+          background: #6c757d;
+          color: white;
+          border: none;
+          border-radius: 25px;
+          padding: 0.75rem 2rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.3s;
+        ">
+          <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
+          Cancel
+        </button>
+        <button type="button" class="btn-confirm-download" style="
+          background: linear-gradient(135deg, #17a2b8, #138496);
+          color: white;
+          border: none;
+          border-radius: 25px;
+          padding: 0.75rem 2rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.2s;
+        ">
+          <i class="fas fa-download" style="margin-right: 0.5rem;"></i>
+          Yes, Download
+        </button>
       </div>
     </div>
   `;
   
   document.body.appendChild(downloadModal);
-  const modal = new bootstrap.Modal(downloadModal);
-  modal.show();
   
-  downloadModal.querySelector('#confirmDownload').addEventListener('click', async () => {
+  // Handle cancel
+  downloadModal.querySelector('.btn-cancel-download').addEventListener('click', () => {
+    document.body.removeChild(downloadModal);
+  });
+  
+  // Handle confirm download
+  downloadModal.querySelector('.btn-confirm-download').addEventListener('click', async () => {
     try {
       window.location.href = `/orders/download/invoice/${orderId}`;
       showToast('Invoice download started', 'success');
@@ -1090,13 +1514,12 @@ async function downloadInvoice(e) {
       showToast('Failed to download invoice', 'error');
     }
     
-    modal.hide();
     document.body.removeChild(downloadModal);
   });
   
-  // Clean up modal when hidden
-  downloadModal.addEventListener('hidden.bs.modal', () => {
-    if (document.body.contains(downloadModal)) {
+  // Handle click outside modal
+  downloadModal.addEventListener('click', (e) => {
+    if (e.target === downloadModal) {
       document.body.removeChild(downloadModal);
     }
   });
@@ -1176,123 +1599,265 @@ async function viewOrderedProduct(e) {
               cancelIndividualOrders(event);
             }
           });
-      });
+      }); // Close the data.items.forEach loop
     }
   } catch (err) {
     console.log(err);
   }
 }
 
-async function cancelIndividualOrders(e) {
-  e.target.addEventListener("click", (e) => {
-    // Create Bootstrap modal for confirmation
-    const confirmModal = document.createElement('div');
-    confirmModal.className = 'modal fade';
-    confirmModal.innerHTML = `
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Cancel Item</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-          </div>
-          <div class="modal-body">
-            <p>Are you sure you want to cancel this item? This action cannot be undone.</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Keep Item</button>
-            <button type="button" class="btn btn-danger" id="confirmCancel">Yes, Cancel Item</button>
+async function cancelIndividualOrders(event) {
+  const orderId = event.target.getAttribute("data-orderId");
+  const itemId = event.target.getAttribute("data-itemId");
+  
+  // Create a simple confirmation dialog
+  const confirmModal = document.createElement('div');
+  confirmModal.className = 'custom-modal-overlay';
+  confirmModal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  `;
+  
+  confirmModal.innerHTML = `
+    <div class="custom-modal-content" style="
+      background: white;
+      border-radius: 15px;
+      padding: 0;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+      animation: modalSlideIn 0.3s ease;
+    ">
+      <div style="
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 1.5rem;
+        text-align: center;
+      ">
+        <h5 style="margin: 0; font-weight: 700; font-size: 1.2rem;">
+          <i class="fas fa-exclamation-triangle" style="margin-right: 0.5rem;"></i>
+          Cancel Item Confirmation
+        </h5>
+      </div>
+      <div style="padding: 2rem; text-align: center;">
+        <div style="margin-bottom: 1.5rem;">
+          <i class="fas fa-times-circle" style="font-size: 3rem; color: #dc3545; margin-bottom: 1rem;"></i>
+        </div>
+        <h6 style="font-weight: 600; margin-bottom: 1rem; color: #333;">
+          Are you sure you want to cancel this item?
+        </h6>
+        <p style="color: #6c757d; margin-bottom: 0;">
+          This action cannot be undone. Any payments made for this item will be refunded to your wallet.
+        </p>
+      </div>
+      <div style="
+        padding: 1rem 2rem 2rem;
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+      ">
+        <button type="button" class="btn-keep-item" style="
+          background: #6c757d;
+          color: white;
+          border: none;
+          border-radius: 25px;
+          padding: 0.75rem 2rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.3s;
+        ">
+          <i class="fas fa-arrow-left" style="margin-right: 0.5rem;"></i>
+          Keep Item
+        </button>
+        <button type="button" class="btn-confirm-cancel-item" style="
+          background: linear-gradient(135deg, #dc3545, #c82333);
+          color: white;
+          border: none;
+          border-radius: 25px;
+          padding: 0.75rem 2rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.2s;
+        ">
+          <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
+          Yes, Cancel Item
+        </button>
+      </div>
+    </div>
+  `;
+  
+  document.body.appendChild(confirmModal);
+  
+  // Handle keep item
+  confirmModal.querySelector('.btn-keep-item').addEventListener('click', () => {
+    document.body.removeChild(confirmModal);
+  });
+  
+  // Handle confirm cancel
+  confirmModal.querySelector('.btn-confirm-cancel-item').addEventListener('click', async () => {
+    try {
+      const response = await fetch(`/item/cancel-order/${orderId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ itemId }),
+      });
+      const data = await response.json();
+      if (data.val) {
+        showToast('Item cancelled successfully! Refund will be processed to your wallet.', 'success');
+        fetchOrders();
+      } else {
+        showToast(data.msg || 'Failed to cancel item', 'error');
+      }
+    } catch (err) {
+      console.log(err);
+      showToast('An error occurred while cancelling the item', 'error');
+    }
+    document.body.removeChild(confirmModal);
+  });
+  
+  // Handle click outside modal
+  confirmModal.addEventListener('click', (e) => {
+    if (e.target === confirmModal) {
+      document.body.removeChild(confirmModal);
+    }
+  });
+}
+async function requestIndividualReturn(event) {
+  const orderId = event.target.getAttribute("data-orderId");
+  const itemId = event.target.getAttribute("data-itemId");
+  
+  // Create a custom modal for individual return request
+  const returnModal = document.createElement('div');
+  returnModal.className = 'custom-modal-overlay';
+  returnModal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  `;
+  
+  returnModal.innerHTML = `
+    <div class="custom-modal-content" style="
+      background: white;
+      border-radius: 15px;
+      padding: 0;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+      animation: modalSlideIn 0.3s ease;
+    ">
+      <div style="
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        border-radius: 15px 15px 0 0;
+        padding: 1.5rem;
+        text-align: center;
+      ">
+        <h5 style="margin: 0; font-weight: 700; font-size: 1.2rem;">
+          <i class="fas fa-undo" style="margin-right: 0.5rem;"></i>
+          Request Item Return
+        </h5>
+      </div>
+      <div style="padding: 2rem;">
+        <div style="margin-bottom: 1rem;">
+          <label style="font-weight: 600; color: #495057; display: block; margin-bottom: 0.5rem;">
+            Reason for Return
+          </label>
+          <textarea id="returnReason" rows="3" placeholder="Please explain why you want to return this item..." style="
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            resize: none;
+            font-family: inherit;
+            font-size: 0.9rem;
+          "></textarea>
+          <div id="reasonError" style="
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: none;
+          ">
+            Please enter a reason for the return
           </div>
         </div>
       </div>
-    `;
-    
-    document.body.appendChild(confirmModal);
-    const modal = new bootstrap.Modal(confirmModal);
-    modal.show();
-    
-    confirmModal.querySelector('#confirmCancel').addEventListener('click', async () => {
-      const orderId = e.target.getAttribute("data-orderId");
-      const itemId = e.target.getAttribute("data-itemId");
-      try {
-        const response = await fetch(`/item/cancel-order/${orderId}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ itemId }),
-        });
-        const data = await response.json();
-        if (data.val) {
-          showToast('Item cancelled successfully', 'success');
-          fetchOrders();
-        } else {
-          showToast(data.msg || 'Failed to cancel item', 'error');
-        }
-      } catch (err) {
-        console.log(err);
-        showToast('An error occurred while cancelling the item', 'error');
-      }
-      modal.hide();
-      document.body.removeChild(confirmModal);
-    });
-    
-    // Clean up modal when hidden
-    confirmModal.addEventListener('hidden.bs.modal', () => {
-      if (document.body.contains(confirmModal)) {
-        document.body.removeChild(confirmModal);
-      }
-    });
-  });
-}
-async function requestIndividualReturn(e) {
-  // Create Bootstrap modal for individual return request
-  const returnModal = document.createElement('div');
-  returnModal.className = 'modal fade';
-  returnModal.innerHTML = `
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Request Item Return</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="returnReason" class="form-label">Reason for Return</label>
-            <textarea id="returnReason" class="form-control" rows="3" placeholder="Please explain why you want to return this item..."></textarea>
-            <div class="invalid-feedback" id="reasonError" style="display: none;">
-              Please enter a reason for the return
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="submitReturn">Submit Request</button>
-        </div>
+      <div style="
+        padding: 1rem 2rem 2rem;
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+      ">
+        <button type="button" class="btn-cancel-return" style="
+          background: #6c757d;
+          color: white;
+          border: none;
+          border-radius: 25px;
+          padding: 0.75rem 2rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.3s;
+        ">
+          <i class="fas fa-times" style="margin-right: 0.5rem;"></i>
+          Cancel
+        </button>
+        <button type="button" class="btn-submit-return" style="
+          background: linear-gradient(135deg, #28a745, #20c997);
+          color: white;
+          border: none;
+          border-radius: 25px;
+          padding: 0.75rem 2rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: transform 0.2s;
+        ">
+          <i class="fas fa-paper-plane" style="margin-right: 0.5rem;"></i>
+          Submit Request
+        </button>
       </div>
     </div>
   `;
   
   document.body.appendChild(returnModal);
-  const modal = new bootstrap.Modal(returnModal);
-  modal.show();
   
-  returnModal.querySelector('#submitReturn').addEventListener('click', async () => {
+  // Handle cancel
+  returnModal.querySelector('.btn-cancel-return').addEventListener('click', () => {
+    document.body.removeChild(returnModal);
+  });
+  
+  // Handle submit
+  returnModal.querySelector('.btn-submit-return').addEventListener('click', async () => {
     const reason = returnModal.querySelector('#returnReason').value.trim();
     const reasonError = returnModal.querySelector('#reasonError');
     const reasonInput = returnModal.querySelector('#returnReason');
     
     if (!reason) {
-      reasonInput.classList.add('is-invalid');
+      reasonInput.style.borderColor = '#dc3545';
       reasonError.style.display = 'block';
       return;
     }
     
-    reasonInput.classList.remove('is-invalid');
+    reasonInput.style.borderColor = '#e9ecef';
     reasonError.style.display = 'none';
     
     try {
-      const orderId = e.target.getAttribute("data-orderId");
-      const itemId = e.target.getAttribute("data-itemId");
       const response = await fetch(`/item/return-order/${orderId}`, {
         method: "POST",
         headers: {
@@ -1312,13 +1877,12 @@ async function requestIndividualReturn(e) {
       showToast('An error occurred while submitting the request', 'error');
     }
     
-    modal.hide();
     document.body.removeChild(returnModal);
   });
   
-  // Clean up modal when hidden
-  returnModal.addEventListener('hidden.bs.modal', () => {
-    if (document.body.contains(returnModal)) {
+  // Handle click outside modal
+  returnModal.addEventListener('click', (e) => {
+    if (e.target === returnModal) {
       document.body.removeChild(returnModal);
     }
   });
@@ -1334,44 +1898,137 @@ function toggleEye(inputId, iconElement) {
 
 // Toast function for user notifications
 function showToast(message, type = 'info') {
+  // Remove any existing toasts first
+  const existingToasts = document.querySelectorAll('.custom-toast');
+  existingToasts.forEach(toast => {
+    if (toast.parentNode) {
+      toast.parentNode.removeChild(toast);
+    }
+  });
+
   const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
+  toast.className = `custom-toast toast-${type}`;
   toast.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
     padding: 15px 20px;
-    border-radius: 5px;
+    border-radius: 8px;
     color: white;
-    font-weight: bold;
-    z-index: 10000;
+    font-weight: 600;
+    z-index: 10001;
     opacity: 0;
-    transition: opacity 0.3s ease;
-    max-width: 300px;
+    transition: all 0.3s ease;
+    max-width: 350px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 10px;
   `;
   
   const colors = {
-    success: '#28a745',
-    error: '#dc3545',
-    info: '#17a2b8',
-    warning: '#ffc107'
+    success: { bg: '#28a745', icon: 'fas fa-check-circle' },
+    error: { bg: '#dc3545', icon: 'fas fa-exclamation-circle' },
+    info: { bg: '#17a2b8', icon: 'fas fa-info-circle' },
+    warning: { bg: '#ffc107', icon: 'fas fa-exclamation-triangle', textColor: '#212529' }
   };
   
-  toast.style.backgroundColor = colors[type] || colors.info;
-  toast.textContent = message;
+  const config = colors[type] || colors.info;
+  toast.style.backgroundColor = config.bg;
+  if (config.textColor) {
+    toast.style.color = config.textColor;
+  }
+  
+  toast.innerHTML = `
+    <i class="${config.icon}"></i>
+    <span>${message}</span>
+    <button onclick="this.parentElement.remove()" style="
+      background: none;
+      border: none;
+      color: inherit;
+      font-size: 18px;
+      cursor: pointer;
+      margin-left: auto;
+      padding: 0;
+      opacity: 0.7;
+    ">×</button>
+  `;
   
   document.body.appendChild(toast);
   
+  // Animate in
   setTimeout(() => {
     toast.style.opacity = '1';
+    toast.style.transform = 'translateX(0)';
   }, 100);
   
+  // Auto remove after 4 seconds
   setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => {
-      if (toast.parentNode) {
-        toast.parentNode.removeChild(toast);
-      }
-    }, 300);
-  }, 3000);
+    if (toast.parentNode) {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300);
+    }
+  }, 4000);
 }
+
+// Utility function to create and manage custom modals
+function createCustomModal(config) {
+  // Close any existing modals first
+  const existingModals = document.querySelectorAll('.custom-modal-overlay');
+  existingModals.forEach(modal => {
+    if (modal.parentNode) {
+      modal.parentNode.removeChild(modal);
+    }
+  });
+
+  const modal = document.createElement('div');
+  modal.className = 'custom-modal-overlay';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  `;
+  
+  modal.innerHTML = config.content;
+  document.body.appendChild(modal);
+  
+  // Handle ESC key
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+    }
+  };
+  
+  // Handle click outside modal
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeModal();
+    }
+  });
+  
+  function closeModal() {
+    document.removeEventListener('keydown', handleKeyDown);
+    if (modal.parentNode) {
+      modal.parentNode.removeChild(modal);
+    }
+  }
+  
+  document.addEventListener('keydown', handleKeyDown);
+  
+  return { modal, closeModal };
+}
+
+// Close the DOMContentLoaded event listener
+};
