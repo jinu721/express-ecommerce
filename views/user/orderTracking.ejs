@@ -3,169 +3,563 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Track Order #<%= order.orderId %></title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="/css/styles.css">
+    <title>Track Order #<%= order.orderId %> - Male Fashion</title>
+    
+    <!--=============== FLATICON ===============-->
+    <link rel="stylesheet" href="https://cdn-uicons.flaticon.com/2.0.0/uicons-regular-straight/css/uicons-regular-straight.css" />
+    
+    <!--=============== FONT AWESOME ===============-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    
+    <!--=============== SWIPER CSS ===============-->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    
+    <!--=============== CSS ===============-->
+    <link rel="stylesheet" href="/css/styles.css" />
+    
     <style>
-        .tracking-container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.5;
         }
         
-        .order-header {
-            text-align: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid #f0f0f0;
-        }
-        
-        .tracking-timeline {
-            position: relative;
+        .tracking-section {
             padding: 2rem 0;
+            background: #f5f5f5;
+            min-height: 80vh;
         }
         
-        .tracking-step {
+        .tracking-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        /* Header Section */
+        .order-header {
+            background: white;
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        
+        .order-header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            color: #111;
+            margin: 0;
+        }
+        
+        .order-date {
+            font-size: 13px;
+            color: #878787;
+            margin-top: 4px;
+        }
+        
+        .order-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: capitalize;
+        }
+        
+        .status-delivered {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .status-shipped, .status-out_for_delivery {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status-processing, .status-order_placed, .status-confirmed, .status-packed {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .status-cancelled {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        /* Status Banners */
+        .status-banner {
+            padding: 16px 24px;
+            border-radius: 4px;
+            text-align: center;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+        
+        .cancelled-banner {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+        
+        .delivered-banner {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+        
+        .status-banner h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .status-banner p {
+            font-size: 13px;
+            margin: 0;
+        }
+        
+        /* Expected Delivery Banner */
+        .delivery-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 2px;
+            margin-bottom: 16px;
             display: flex;
             align-items: center;
-            margin-bottom: 2rem;
-            position: relative;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
         }
         
-        .step-icon {
-            width: 50px;
-            height: 50px;
+        .banner-text {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .banner-icon {
+            font-size: 24px;
+        }
+        
+        .banner-content h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        
+        .banner-content p {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        /* Main Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 16px;
+            align-items: start;
+        }
+        
+        /* Tracking Section */
+        .tracking-card, .tracking-timeline {
+            background: white;
+            border-radius: 2px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+        
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #212121;
+            margin: 0;
+        }
+        
+        .card-body {
+            padding: 24px;
+        }
+        
+        /* Timeline */
+        .timeline, .timeline-horizontal {
+            position: relative;
+            padding-left: 40px;
+        }
+        
+        .timeline::before, .timeline-horizontal::before {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 12px;
+            bottom: 12px;
+            width: 2px;
+            background: #e0e0e0;
+        }
+        
+        .timeline-step, .timeline-item {
+            position: relative;
+            padding-bottom: 32px;
+        }
+        
+        .timeline-step:last-child, .timeline-item:last-child {
+            padding-bottom: 0;
+        }
+        
+        .step-icon-wrapper, .timeline-icon {
+            position: absolute;
+            left: -40px;
+            top: 0;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
-            margin-right: 1rem;
-            z-index: 2;
+            font-size: 11px;
+            z-index: 1;
         }
         
-        .step-completed {
-            background: #28a745;
+        .step-completed .step-icon-wrapper, .timeline-item.completed .timeline-icon {
+            background: #4caf50;
             color: white;
         }
         
-        .step-current {
-            background: #007bff;
+        .step-current .step-icon-wrapper, .timeline-item.current .timeline-icon {
+            background: #2196f3;
             color: white;
-            animation: pulse 2s infinite;
+            box-shadow: 0 0 0 4px rgba(33, 150, 243, 0.2);
         }
         
-        .step-pending {
-            background: #e9ecef;
-            color: #6c757d;
+        .step-pending .step-icon-wrapper, .timeline-item.pending .timeline-icon {
+            background: white;
+            border: 2px solid #e0e0e0;
+            color: #9e9e9e;
         }
         
-        .step-content {
-            flex: 1;
+        .step-icon {
+            font-size: 11px;
         }
         
-        .step-title {
-            font-weight: bold;
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
+        .step-content, .timeline-content {
+            min-height: 24px;
         }
         
-        .step-time {
-            color: #6c757d;
-            font-size: 0.9rem;
+        .step-title, .timeline-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #212121;
+            margin-bottom: 2px;
         }
         
-        .tracking-line {
-            position: absolute;
-            left: 25px;
-            top: 50px;
-            bottom: 0;
-            width: 2px;
-            background: #e9ecef;
+        .step-completed .step-title, .timeline-item.completed .timeline-title {
+            color: #4caf50;
         }
         
-        .tracking-step:last-child .tracking-line {
-            display: none;
+        .step-current .step-title, .timeline-item.current .timeline-title {
+            color: #2196f3;
         }
         
-        .order-details {
-            margin-top: 2rem;
-            padding-top: 2rem;
-            border-top: 2px solid #f0f0f0;
+        .step-pending .step-title, .timeline-item.pending .timeline-title {
+            color: #9e9e9e;
+        }
+        
+        .step-time, .timeline-time {
+            font-size: 12px;
+            color: #757575;
+        }
+        
+        .step-location, .timeline-location {
+            font-size: 12px;
+            color: #1976d2;
+            margin-top: 4px;
+        }
+        
+        .step-message {
+            font-size: 11px;
+            color: #4caf50;
+            margin-top: 4px;
+            font-style: italic;
+        }
+        
+        /* Delivery Info Card */
+        .info-card, .detail-card, .order-details-grid > div {
+            background: white;
+            border-radius: 2px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            margin-bottom: 16px;
+        }
+        
+        .info-section {
+            padding: 20px 24px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .info-section:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-card h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #212121;
+            margin: 0 0 16px 0;
+            padding: 20px 24px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            color: #878787;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .info-value {
+            font-size: 14px;
+            color: #212121;
+            line-height: 1.6;
+        }
+        
+        .address-text {
+            font-size: 14px;
+            color: #212121;
+            line-height: 1.8;
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 4px;
+        }
+        
+        .detail-row, .price-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 24px;
+            font-size: 14px;
+            color: #212121;
         }
         
         .detail-row {
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .price-row.total, .detail-row:last-child {
+            font-weight: 600;
+            font-size: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #f0f0f0;
+            margin-top: 8px;
+            color: #2e7d32;
+        }
+        
+        .price-row .discount {
+            color: #388e3c;
+        }
+        
+        .text-success {
+            color: #2e7d32;
+        }
+        
+        .text-warning {
+            color: #f57c00;
+        }
+        
+        /* Order Details Grid */
+        .order-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        /* Action Buttons */
+        .action-buttons {
+            padding: 16px 24px;
+            background: white;
+            border-radius: 2px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            padding: 0.5rem 0;
+            gap: 12px;
         }
         
-        .items-list {
-            margin-top: 1rem;
+        .btn, .btn-custom {
+            flex: 1;
+            padding: 12px 20px;
+            border: 1px solid #d4d5d9;
+            background: white;
+            color: #212121;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
-        .item-card {
+        .btn:hover, .btn-custom:hover {
+            border-color: #2874f0;
+            color: #2874f0;
+        }
+        
+        .btn-primary, .btn-primary-custom {
+            background: #2874f0;
+            color: white;
+            border-color: #2874f0;
+        }
+        
+        .btn-primary:hover, .btn-primary-custom:hover {
+            background: #1c60d4;
+            color: white;
+            border-color: #1c60d4;
+        }
+        
+        .btn-secondary-custom {
+            background: white;
+            color: #212121;
+            border-color: #d4d5d9;
+        }
+        
+        .btn-secondary-custom:hover {
+            border-color: #2874f0;
+            color: #2874f0;
+        }
+        
+        /* Expected Delivery Banner */
+        .delivery-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 24px;
+            border-radius: 2px;
+            margin-bottom: 16px;
             display: flex;
             align-items: center;
-            padding: 1rem;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            margin-bottom: 1rem;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
         }
         
-        .item-image {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-right: 1rem;
+        .banner-text {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         
-        .item-details {
-            flex: 1;
+        .banner-icon {
+            font-size: 24px;
         }
         
-        .item-name {
-            font-weight: bold;
-            margin-bottom: 0.5rem;
+        .banner-content h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 2px;
         }
         
-        .item-variant {
-            color: #6c757d;
-            font-size: 0.9rem;
+        .banner-content p {
+            font-size: 13px;
+            opacity: 0.9;
         }
         
-        .item-price {
-            font-weight: bold;
-            color: #28a745;
+        /* Responsive */
+        @media (max-width: 968px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .info-card {
+                order: -1;
+            }
         }
         
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
+        @media (max-width: 640px) {
+            .container {
+                padding: 12px;
+            }
+            
+            .order-header {
+                padding: 16px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .card-body {
+                padding: 16px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .delivery-banner {
+                flex-direction: column;
+                text-align: center;
+                gap: 12px;
+            }
         }
         
-        .cancelled-banner {
-            background: #dc3545;
-            color: white;
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 2rem;
+        /* Help Section */
+        .help-section {
+            background: #fffbf2;
+            border: 1px solid #ffe9b3;
+            border-radius: 2px;
+            padding: 16px;
+            margin-top: 16px;
         }
         
-        .delivered-banner {
-            background: #28a745;
-            color: white;
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 2rem;
+        .help-section h4 {
+            font-size: 14px;
+            color: #212121;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .help-section p {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+        
+        .help-links {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .help-link {
+            font-size: 13px;
+            color: #2874f0;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .help-link:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -175,123 +569,222 @@
     <main class="main">
         <%- include('../layouts/breadcrumbs.ejs') %>
         
-        <div class="tracking-container">
-            <div class="order-header">
-                <h1>Track Order #<%= order.orderId %></h1>
-                <p>Ordered on <%= new Date(order.orderedAt).toLocaleDateString() %></p>
-                
+        <section class="tracking-section">
+            <div class="tracking-container">
+                <!-- Order Header -->
+                <div class="order-header">
+                    <div class="header-content">
+                        <div>
+                            <h1>Order #<%= order.orderId %></h1>
+                            <p class="order-date">Placed on <%= new Date(order.orderedAt).toLocaleDateString('en-US', { 
+                                weekday: 'long', 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                            }) %></p>
+                        </div>
+                        <span class="order-status-badge status-<%= order.orderStatus %>">
+                            <i class="fas fa-shipping-fast"></i>
+                            <%= order.orderStatus.replace('_', ' ') %>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Status Banners -->
                 <% if (isCancelled) { %>
-                    <div class="cancelled-banner">
-                        <i class="fas fa-times-circle"></i>
-                        <strong>Order Cancelled</strong>
-                        <p>This order has been cancelled</p>
+                    <div class="status-banner cancelled-banner">
+                        <h3><i class="fas fa-times-circle"></i> Order Cancelled</h3>
+                        <p>This order has been cancelled and any payments will be refunded</p>
                     </div>
                 <% } else if (isDelivered) { %>
-                    <div class="delivered-banner">
-                        <i class="fas fa-check-circle"></i>
-                        <strong>Order Delivered!</strong>
-                        <p>Your order was delivered on <%= new Date(order.deliveredAt).toLocaleDateString() %></p>
+                    <div class="status-banner delivered-banner">
+                        <h3><i class="fas fa-check-circle"></i> Order Delivered Successfully!</h3>
+                        <p>Your order was delivered on <%= new Date(order.deliveredAt || order.orderedAt).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        }) %></p>
                     </div>
-                <% } %>
-            </div>
-            
-            <% if (!isCancelled) { %>
-                <div class="tracking-timeline">
-                    <% trackingSteps.forEach((step, index) => { %>
-                        <div class="tracking-step">
-                            <div class="step-icon <%= step.completed ? 'step-completed' : (step.current ? 'step-current' : 'step-pending') %>">
-                                <i class="<%= step.icon %>"></i>
+                <% } else { %>
+                    <!-- Expected Delivery Banner -->
+                    <div class="delivery-banner">
+                        <div class="banner-text">
+                            <div class="banner-icon">
+                                <i class="fas fa-box"></i>
                             </div>
-                            <div class="step-content">
-                                <div class="step-title"><%= step.label %></div>
-                                <% if (step.timestamp) { %>
-                                    <div class="step-time">
-                                        <%= new Date(step.timestamp).toLocaleString() %>
-                                    </div>
-                                <% } %>
+                            <div class="banner-content">
+                                <h3>Expected Delivery</h3>
+                                <p>Your order is on its way</p>
                             </div>
-                            <% if (index < trackingSteps.length - 1) { %>
-                                <div class="tracking-line"></div>
-                            <% } %>
                         </div>
-                    <% }); %>
-                </div>
-            <% } %>
-            
-            <div class="order-details">
-                <h3>Order Details</h3>
-                
-                <div class="detail-row">
-                    <span><strong>Payment Method:</strong></span>
-                    <span><%= order.paymentMethod.replace('_', ' ').toUpperCase() %></span>
-                </div>
-                
-                <div class="detail-row">
-                    <span><strong>Payment Status:</strong></span>
-                    <span class="<%= order.paymentStatus === 'paid' ? 'text-success' : 'text-warning' %>">
-                        <%= order.paymentStatus.toUpperCase() %>
-                    </span>
-                </div>
-                
-                <div class="detail-row">
-                    <span><strong>Subtotal:</strong></span>
-                    <span>₹<%= order.subtotal || order.totalAmount %></span>
-                </div>
-                
-                <% if (order.shippingCost > 0) { %>
-                    <div class="detail-row">
-                        <span><strong>Shipping:</strong></span>
-                        <span>₹<%= order.shippingCost %></span>
                     </div>
                 <% } %>
                 
-                <% if (order.coupon && order.coupon.discountApplied > 0) { %>
-                    <div class="detail-row">
-                        <span><strong>Coupon (<%= order.coupon.code %>):</strong></span>
-                        <span class="text-success">-₹<%= order.coupon.discountApplied %></span>
-                    </div>
-                <% } %>
-                
-                <div class="detail-row" style="border-top: 1px solid #e9ecef; padding-top: 1rem; font-size: 1.2rem;">
-                    <span><strong>Total Amount:</strong></span>
-                    <span><strong>₹<%= order.totalAmount %></strong></span>
-                </div>
-                
-                <h4 style="margin-top: 2rem;">Items Ordered</h4>
-                <div class="items-list">
-                    <% order.items.forEach(item => { %>
-                        <div class="item-card">
-                            <img src="<%= item.product.imageUrl && item.product.imageUrl[0] ? item.product.imageUrl[0] : '/img/default-product.jpg' %>" 
-                                 alt="<%= item.product.name %>" class="item-image">
-                            <div class="item-details">
-                                <div class="item-name"><%= item.product.name %></div>
-                                <div class="item-variant">
-                                    Size: <%= item.size %> | Color: <%= item.color %> | Qty: <%= item.quantity %>
+                <div class="content-grid">
+                    <!-- Tracking Timeline -->
+                    <% if (!isCancelled) { %>
+                        <div class="tracking-timeline">
+                            <div class="card-header">
+                                <h2 class="card-title"><i class="fas fa-route"></i> Shipment Tracking</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="timeline-horizontal">
+                                    <% trackingSteps.forEach((step, index) => { %>
+                                        <div class="timeline-step <%= step.completed ? 'step-completed' : (step.current ? 'step-current' : 'step-pending') %>">
+                                            <div class="step-icon-wrapper">
+                                                <i class="<%= step.icon %> step-icon"></i>
+                                            </div>
+                                            <div class="step-content">
+                                                <div class="step-title"><%= step.label %></div>
+                                                
+                                                <% if (step.timestamp) { %>
+                                                    <div class="step-time">
+                                                        <%= new Date(step.timestamp).toLocaleDateString('en-US', { 
+                                                            month: 'short', 
+                                                            day: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        }) %>
+                                                    </div>
+                                                <% } else if (step.current) { %>
+                                                    <div class="step-time">In Progress</div>
+                                                <% } else if (!step.completed) { %>
+                                                    <div class="step-time">Pending</div>
+                                                <% } %>
+                                                
+                                                <% 
+                                                const statusEntry = order.statusHistory.find(h => h.status === step.key);
+                                                %>
+                                                
+                                                <% if (statusEntry && statusEntry.location) { %>
+                                                    <div class="step-location">
+                                                        <i class="fas fa-map-marker-alt"></i> <%= statusEntry.location %>
+                                                    </div>
+                                                <% } %>
+                                                
+                                                <% if (statusEntry && statusEntry.message) { %>
+                                                    <div class="step-message">
+                                                        <i class="fas fa-info-circle"></i> <%= statusEntry.message %>
+                                                    </div>
+                                                <% } %>
+                                            </div>
+                                        </div>
+                                    <% }); %>
                                 </div>
-                                <% if (item.appliedOffer) { %>
-                                    <div class="item-variant text-success">
-                                        <i class="fas fa-tag"></i> <%= item.appliedOffer.name %>
-                                    </div>
-                                <% } %>
                             </div>
-                            <div class="item-price">
-                                <% if (item.discount > 0) { %>
-                                    <span style="text-decoration: line-through; color: #6c757d;">₹<%= item.originalPrice * item.quantity %></span><br>
-                                <% } %>
-                                ₹<%= item.totalPrice %>
+                            
+                            <!-- Help Section -->
+                            <div class="help-section">
+                                <h4>
+                                    <i class="fas fa-question-circle"></i>
+                                    Need Help?
+                                </h4>
+                                <p>Track your package in real-time or contact us for any delivery concerns.</p>
+                                <div class="help-links">
+                                    <a href="#" class="help-link">Contact Support</a>
+                                    <a href="#" class="help-link">Report Issue</a>
+                                </div>
+                            </div>
+                            
+                            <div class="action-buttons">
+                                <a href="/account" class="btn-custom">
+                                    <i class="fas fa-arrow-left"></i>
+                                    Back to Orders
+                                </a>
+                                <a href="/orders/download/invoice/<%= order._id %>" class="btn-custom btn-secondary-custom">
+                                    <i class="fas fa-download"></i>
+                                    Download Invoice
+                                </a>
                             </div>
                         </div>
-                    <% }); %>
-                </div>
-                
-                <div style="text-align: center; margin-top: 2rem;">
-                    <a href="/account" class="btn btn-primary">Back to Orders</a>
-                    <a href="/download-invoice/<%= order._id %>" class="btn btn-secondary">Download Invoice</a>
+                    <% } else { %>
+                        <div class="action-buttons">
+                            <a href="/account" class="btn-custom btn-primary-custom">
+                                <i class="fas fa-arrow-left"></i>
+                                Back to Orders
+                            </a>
+                        </div>
+                    <% } %>
+                    
+                    <!-- Delivery Info Sidebar -->
+                    <div>
+                        <!-- Order Details Grid -->
+                        <div class="order-details-grid" style="grid-template-columns: 1fr; gap: 16px;">
+                            <!-- Order Information -->
+                            <div class="detail-card">
+                                <h4><i class="fas fa-info-circle"></i> Order Information</h4>
+                                
+                                <div class="detail-row">
+                                    <span>Payment Method:</span>
+                                    <span><%= order.paymentMethod.replace('_', ' ').toUpperCase() %></span>
+                                </div>
+                                
+                                <div class="detail-row">
+                                    <span>Payment Status:</span>
+                                    <span class="<%= order.paymentStatus === 'paid' ? 'text-success' : 'text-warning' %>">
+                                        <%= order.paymentStatus.toUpperCase() %>
+                                    </span>
+                                </div>
+                                
+                                <div class="detail-row">
+                                    <span>Subtotal:</span>
+                                    <span>₹<%= order.subtotal || order.totalAmount %></span>
+                                </div>
+                                
+                                <% if (order.shippingCost > 0) { %>
+                                    <div class="detail-row">
+                                        <span>Shipping:</span>
+                                        <span>₹<%= order.shippingCost %></span>
+                                    </div>
+                                <% } else { %>
+                                    <div class="detail-row">
+                                        <span>Shipping:</span>
+                                        <span style="color: #388e3c;">FREE</span>
+                                    </div>
+                                <% } %>
+                                
+                                <% if (order.coupon && order.coupon.discountApplied > 0) { %>
+                                    <div class="detail-row">
+                                        <span>Coupon (<%= order.coupon.code %>):</span>
+                                        <span style="color: #388e3c;">-₹<%= order.coupon.discountApplied %></span>
+                                    </div>
+                                <% } %>
+                                
+                                <div class="detail-row">
+                                    <span>Total Amount:</span>
+                                    <span>₹<%= order.totalAmount %></span>
+                                </div>
+                            </div>
+
+                            <!-- Shipping Address -->
+                            <div class="info-card">
+                                <div class="info-section">
+                                    <div class="info-label">Delivery Address</div>
+                                    <div class="address-text">
+                                        <strong><%= order.shippingAddress.houseNumber %>, <%= order.shippingAddress.street %></strong><br>
+                                        <% if (order.shippingAddress.landMark) { %>
+                                            Near <%= order.shippingAddress.landMark %><br>
+                                        <% } %>
+                                        <%= order.shippingAddress.city %>, <%= order.shippingAddress.district %><br>
+                                        <%= order.shippingAddress.state %>, <%= order.shippingAddress.country %><br>
+                                        <strong>PIN:</strong> <%= order.shippingAddress.pinCode %>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
     </main>
     
     <%- include('../layouts/footer.ejs') %>
+    
+    <!--=============== SWIPER JS ===============-->
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    
+    <!--=============== MAIN JS ===============-->
+    <script src="/js/user/main.js"></script>
 </body>
 </html>

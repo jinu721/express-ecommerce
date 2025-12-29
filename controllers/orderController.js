@@ -12,6 +12,7 @@ const PDFDocument = require('pdfkit');
 
 // New Services & Models
 const Variant = require("../models/variantModel");
+const Offer = require("../models/offerModel");
 const stockService = require("../services/stockService");
 const pricingService = require("../services/pricingService");
 
@@ -501,7 +502,7 @@ module.exports = {
     const { orderId } = req.params;
     const { newStatus, location, message } = req.body;
     try {
-      const validStatuses = ["order_placed", "confirmed", "packed", "shipped", "out_for_delivery", "delivered", "cancelled"];
+      const validStatuses = ["processing", "order_placed", "confirmed", "packed", "shipped", "out_for_delivery", "delivered", "cancelled"];
       if (!validStatuses.includes(newStatus)) {
         return res.status(400).json({ message: "Invalid status" });
       }
@@ -515,6 +516,18 @@ module.exports = {
       if (order.paymentMethod === "cash_on_delivery" && newStatus === "delivered") {
         order.paymentStatus = "paid";
       }
+      
+      // Ensure required fields have default values for backward compatibility
+      if (!order.subtotal) {
+        order.subtotal = order.totalAmount || 0;
+      }
+      
+      // Ensure item fields have default values
+      order.items.forEach(item => {
+        if (!item.originalPrice) item.originalPrice = item.offerPrice || 0;
+        if (!item.offerPrice) item.offerPrice = item.originalPrice || 0;
+        if (!item.totalPrice) item.totalPrice = (item.offerPrice || 0) * (item.quantity || 1);
+      });
       
       // Use the new updateStatus method
       order.updateStatus(newStatus, location || '', message || `Order status updated to ${newStatus}`, 'admin');
@@ -691,119 +704,277 @@ module.exports = {
       res.setHeader('Content-Disposition', `attachment; filename=invoice-${order.orderId}.pdf`);
       res.setHeader('Content-Type', 'application/pdf');
   
-      const pdfDoc = new PDFDocument({ margin: 40 });
-      pdfDoc.pipe(res);
-  
-      // Header
-      pdfDoc.fontSize(24).text('INVOICE', { align: 'center' }).moveDown();
-      pdfDoc.fontSize(12).text(`Invoice #: ${order.orderId}`, { align: 'right' });
-      pdfDoc.text(`Date: ${new Date(order.orderedAt).toLocaleDateString()}`, { align: 'right' });
-      pdfDoc.moveDown();
-      
-      // Company Info
-      pdfDoc.fontSize(16).text('Male Fashion', { align: 'left' });
-      pdfDoc.fontSize(10).text('Your trusted fashion partner');
-      pdfDoc.moveDown();
-      
-      // Shipping Address
-      pdfDoc.fontSize(12).text('Ship To:', { underline: true });
-      const addr = order.shippingAddress;
-      pdfDoc.fontSize(10).text(`${addr.houseNumber}, ${addr.street}`);
-      pdfDoc.text(`${addr.city}, ${addr.district}, ${addr.state}`);
-      pdfDoc.text(`${addr.country} - ${addr.pinCode}`);
-      pdfDoc.moveDown();
-      
-      // Order Summary
-      pdfDoc.fontSize(12).text('Order Summary:', { underline: true }).moveDown(0.5);
-      
-      // Table Header
-      const tableTop = pdfDoc.y;
-      pdfDoc.fontSize(10);
-      pdfDoc.text('Item', 40, tableTop);
-      pdfDoc.text('Qty', 200, tableTop);
-      pdfDoc.text('Original Price', 250, tableTop);
-      pdfDoc.text('Final Price', 320, tableTop);
-      pdfDoc.text('Offer', 380, tableTop);
-      pdfDoc.text('Total', 450, tableTop);
-      
-      // Draw line
-      pdfDoc.moveTo(40, tableTop + 15).lineTo(550, tableTop + 15).stroke();
-      
-      let yPosition = tableTop + 25;
-      let subtotal = 0;
-      let totalDiscount = 0;
-      
-      // Items
-      order.items.forEach((item) => {
-        const itemTotal = item.totalPrice;
-        const itemDiscount = item.discount;
-        subtotal += item.originalPrice * item.quantity;
-        totalDiscount += itemDiscount;
-        
-        pdfDoc.text(item.product.name.substring(0, 25), 40, yPosition);
-        pdfDoc.text(item.quantity.toString(), 200, yPosition);
-        pdfDoc.text(`₹${item.originalPrice}`, 250, yPosition);
-        pdfDoc.text(`₹${item.offerPrice}`, 320, yPosition);
-        pdfDoc.text(item.appliedOffer ? item.appliedOffer.name.substring(0, 10) : 'None', 380, yPosition);
-        pdfDoc.text(`₹${itemTotal}`, 450, yPosition);
-        
-        yPosition += 20;
+      const pdfDoc = new PDFDocument({ 
+        margin: 50,
+        size: 'A4',
+        info: {
+          Title: `Invoice #${order.orderId}`,
+          Author: 'Male Fashion',
+          Subject: 'Order Invoice'
+        }
       });
+      pdfDoc.pipe(res);
+
+      // Helper function to safely get numeric values
+      const safeNumber = (value, defaultValue = 0) => {
+        const num = Number(value);
+        return isNaN(num) ? defaultValue : num;
+      };
+
+      // Helper function to format currency
+      const formatCurrency = (amount) => {
+        const num = safeNumber(amount);
+        return `₹${num.toFixed(2)}`;
+      };
+
+      // Colors
+      const primaryColor = '#2c3e50';
+      const accentColor = '#3498db';
+      const successColor = '#27ae60';
+      const lightGray = '#ecf0f1';
       
-      // Summary section
-      yPosition += 10;
-      pdfDoc.moveTo(40, yPosition).lineTo(550, yPosition).stroke();
-      yPosition += 15;
+      // Header Section with Company Logo Area
+      pdfDoc.rect(0, 0, 612, 120).fill('#34495e');
       
-      pdfDoc.text('Subtotal:', 350, yPosition);
-      pdfDoc.text(`₹${order.subtotal || subtotal}`, 450, yPosition);
-      yPosition += 15;
+      // Company Name and Logo Area
+      pdfDoc.fillColor('white')
+        .fontSize(32)
+        .font('Helvetica-Bold')
+        .text('MALE FASHION', 50, 30);
       
-      if (totalDiscount > 0) {
-        pdfDoc.text('Offer Discount:', 350, yPosition);
-        pdfDoc.text(`-₹${totalDiscount}`, 450, yPosition);
-        yPosition += 15;
+      pdfDoc.fillColor('#bdc3c7')
+        .fontSize(12)
+        .font('Helvetica')
+        .text('Premium Fashion for Modern Men', 50, 70)
+        .text('Email: support@malefashion.com | Phone: +91 9876543210', 50, 85);
+
+      // Invoice Title and Details
+      pdfDoc.fillColor(primaryColor)
+        .fontSize(28)
+        .font('Helvetica-Bold')
+        .text('INVOICE', 400, 30);
+      
+      pdfDoc.fillColor('#7f8c8d')
+        .fontSize(11)
+        .font('Helvetica')
+        .text(`Invoice #: ${order.orderId}`, 400, 65)
+        .text(`Date: ${new Date(order.orderedAt).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: '2-digit', 
+          year: 'numeric'
+        })}`, 400, 80)
+        .text(`Time: ${new Date(order.orderedAt).toLocaleTimeString('en-IN', {
+          hour: '2-digit',
+          minute: '2-digit'
+        })}`, 400, 95);
+
+      // Reset position after header
+      let currentY = 150;
+
+      // Billing Information Section
+      pdfDoc.rect(50, currentY, 250, 120).fill(lightGray);
+      pdfDoc.fillColor(primaryColor)
+        .fontSize(14)
+        .font('Helvetica-Bold')
+        .text('BILL TO:', 60, currentY + 15);
+
+      const addr = order.shippingAddress;
+      pdfDoc.fillColor('#2c3e50')
+        .fontSize(11)
+        .font('Helvetica')
+        .text(`${addr.houseNumber}, ${addr.street}`, 60, currentY + 35)
+        .text(`${addr.city}, ${addr.district}`, 60, currentY + 50)
+        .text(`${addr.state}, ${addr.country}`, 60, currentY + 65)
+        .text(`PIN: ${addr.pinCode}`, 60, currentY + 80);
+
+      // Order Information Section
+      pdfDoc.rect(320, currentY, 240, 120).fill('#e8f4fd');
+      pdfDoc.fillColor(primaryColor)
+        .fontSize(14)
+        .font('Helvetica-Bold')
+        .text('ORDER DETAILS:', 330, currentY + 15);
+
+      pdfDoc.fillColor('#2c3e50')
+        .fontSize(11)
+        .font('Helvetica')
+        .text(`Payment Method: ${order.paymentMethod.replace('_', ' ').toUpperCase()}`, 330, currentY + 35)
+        .text(`Payment Status: ${order.paymentStatus.toUpperCase()}`, 330, currentY + 50)
+        .text(`Order Status: ${order.orderStatus.replace('_', ' ').toUpperCase()}`, 330, currentY + 65)
+        .text(`Items Count: ${order.items.length}`, 330, currentY + 80);
+
+      currentY += 150;
+
+      // Items Table Header
+      pdfDoc.rect(50, currentY, 512, 35).fill(primaryColor);
+      pdfDoc.fillColor('white')
+        .fontSize(11)
+        .font('Helvetica-Bold')
+        .text('ITEM', 60, currentY + 12)
+        .text('QTY', 280, currentY + 12)
+        .text('UNIT PRICE', 320, currentY + 12)
+        .text('DISCOUNT', 400, currentY + 12)
+        .text('TOTAL', 480, currentY + 12);
+
+      currentY += 35;
+
+      // Calculate totals with proper error handling
+      let calculatedSubtotal = 0;
+      let calculatedTotalDiscount = 0;
+      let calculatedOfferDiscount = 0;
+
+      // Items Table Rows
+      order.items.forEach((item, index) => {
+        const bgColor = index % 2 === 0 ? '#ffffff' : '#f8f9fa';
+        pdfDoc.rect(50, currentY, 512, 30).fill(bgColor);
+
+        // Safe calculations
+        const originalPrice = safeNumber(item.originalPrice);
+        const offerPrice = safeNumber(item.offerPrice);
+        const quantity = safeNumber(item.quantity, 1);
+        const itemDiscount = safeNumber(item.discount);
+        const totalPrice = safeNumber(item.totalPrice, offerPrice * quantity);
+
+        // Add to totals
+        calculatedSubtotal += originalPrice * quantity;
+        calculatedOfferDiscount += itemDiscount;
+
+        pdfDoc.fillColor('#2c3e50')
+          .fontSize(10)
+          .font('Helvetica')
+          .text(item.product.name.substring(0, 30), 60, currentY + 8)
+          .text(`Size: ${item.size || 'N/A'}`, 60, currentY + 20);
+
+        pdfDoc.text(quantity.toString(), 285, currentY + 12)
+          .text(formatCurrency(originalPrice), 325, currentY + 12);
+
+        if (itemDiscount > 0) {
+          pdfDoc.fillColor(successColor)
+            .text(`-${formatCurrency(itemDiscount)}`, 405, currentY + 12);
+        } else {
+          pdfDoc.fillColor('#95a5a6')
+            .text('No Discount', 405, currentY + 12);
+        }
+
+        pdfDoc.fillColor('#2c3e50')
+          .font('Helvetica-Bold')
+          .text(formatCurrency(totalPrice), 485, currentY + 12);
+
+        currentY += 30;
+      });
+
+      // Summary Section
+      currentY += 20;
+      const summaryStartY = currentY;
+
+      // Summary Background
+      pdfDoc.rect(320, currentY, 242, 140).fill('#f8f9fa').stroke('#dee2e6');
+
+      pdfDoc.fillColor(primaryColor)
+        .fontSize(12)
+        .font('Helvetica-Bold')
+        .text('ORDER SUMMARY', 330, currentY + 10);
+
+      currentY += 35;
+
+      // Subtotal
+      const orderSubtotal = safeNumber(order.subtotal, calculatedSubtotal);
+      pdfDoc.fillColor('#2c3e50')
+        .fontSize(10)
+        .font('Helvetica')
+        .text('Subtotal:', 330, currentY)
+        .font('Helvetica-Bold')
+        .text(formatCurrency(orderSubtotal), 480, currentY);
+
+      currentY += 18;
+
+      // Offer Discount
+      if (calculatedOfferDiscount > 0) {
+        pdfDoc.fillColor(successColor)
+          .font('Helvetica')
+          .text('Offer Discount:', 330, currentY)
+          .font('Helvetica-Bold')
+          .text(`-${formatCurrency(calculatedOfferDiscount)}`, 480, currentY);
+        currentY += 18;
       }
-      
-      if (order.coupon && order.coupon.discountApplied > 0) {
-        pdfDoc.text(`Coupon (${order.coupon.code}):`, 350, yPosition);
-        pdfDoc.text(`-₹${order.coupon.discountApplied}`, 450, yPosition);
-        yPosition += 15;
+
+      // Coupon Discount
+      const couponDiscount = safeNumber(order.coupon?.discountApplied);
+      if (couponDiscount > 0) {
+        pdfDoc.fillColor(successColor)
+          .font('Helvetica')
+          .text(`Coupon (${order.coupon.code}):`, 330, currentY)
+          .font('Helvetica-Bold')
+          .text(`-${formatCurrency(couponDiscount)}`, 480, currentY);
+        currentY += 18;
       }
-      
-      if (order.shippingCost > 0) {
-        pdfDoc.text('Shipping:', 350, yPosition);
-        pdfDoc.text(`₹${order.shippingCost}`, 450, yPosition);
-        yPosition += 15;
+
+      // Shipping Cost
+      const shippingCost = safeNumber(order.shippingCost);
+      if (shippingCost > 0) {
+        pdfDoc.fillColor('#2c3e50')
+          .font('Helvetica')
+          .text('Shipping:', 330, currentY)
+          .font('Helvetica-Bold')
+          .text(formatCurrency(shippingCost), 480, currentY);
+        currentY += 18;
+      } else {
+        pdfDoc.fillColor(successColor)
+          .font('Helvetica')
+          .text('Shipping:', 330, currentY)
+          .font('Helvetica-Bold')
+          .text('FREE', 480, currentY);
+        currentY += 18;
       }
-      
-      // Total
-      pdfDoc.fontSize(12).text('Total Amount:', 350, yPosition);
-      pdfDoc.text(`₹${order.totalAmount}`, 450, yPosition, { underline: true });
-      
-      // Savings Summary
-      if (totalDiscount > 0 || (order.coupon && order.coupon.discountApplied > 0)) {
-        yPosition += 30;
-        const totalSavings = totalDiscount + (order.coupon?.discountApplied || 0);
-        pdfDoc.fontSize(14).fillColor('green').text(`🎉 You Saved: ₹${totalSavings}!`, 40, yPosition);
-        pdfDoc.fillColor('black');
+
+      // Total Line
+      pdfDoc.rect(330, currentY + 5, 225, 1).fill('#dee2e6');
+      currentY += 15;
+
+      // Final Total
+      const finalTotal = safeNumber(order.totalAmount);
+      pdfDoc.fillColor(primaryColor)
+        .fontSize(12)
+        .font('Helvetica-Bold')
+        .text('TOTAL AMOUNT:', 330, currentY)
+        .fontSize(14)
+        .text(formatCurrency(finalTotal), 480, currentY);
+
+      // Savings Summary (if applicable)
+      const totalSavings = calculatedOfferDiscount + couponDiscount;
+      if (totalSavings > 0) {
+        currentY += 40;
+        pdfDoc.rect(50, currentY, 512, 40).fill('#d5f4e6').stroke(successColor);
+        pdfDoc.fillColor(successColor)
+          .fontSize(14)
+          .font('Helvetica-Bold')
+          .text(`🎉 Congratulations! You saved ${formatCurrency(totalSavings)} on this order!`, 60, currentY + 15);
       }
+
+      // Footer Section
+      currentY += 80;
       
-      // Payment Info
-      yPosition += 40;
-      pdfDoc.fontSize(12).text('Payment Information:', { underline: true });
-      pdfDoc.fontSize(10).text(`Method: ${order.paymentMethod.toUpperCase()}`);
-      pdfDoc.text(`Status: ${order.paymentStatus.toUpperCase()}`);
-      pdfDoc.text(`Order Status: ${order.orderStatus.toUpperCase()}`);
+      // Thank you message
+      pdfDoc.rect(50, currentY, 512, 60).fill('#34495e');
+      pdfDoc.fillColor('white')
+        .fontSize(16)
+        .font('Helvetica-Bold')
+        .text('Thank you for choosing Male Fashion!', 0, currentY + 15, { align: 'center', width: 612 });
       
-      // Footer
-      pdfDoc.moveDown(2);
-      pdfDoc.fontSize(14).text('Thank you for shopping with Male Fashion!', { align: 'center' });
-      pdfDoc.fontSize(10).text('For support, contact us at support@malefashion.com', { align: 'center' });
-  
+      pdfDoc.fillColor('#bdc3c7')
+        .fontSize(10)
+        .font('Helvetica')
+        .text('For any queries, contact us at support@malefashion.com or call +91 9876543210', 0, currentY + 35, { align: 'center', width: 612 });
+
+      // Terms and Conditions
+      currentY += 80;
+      pdfDoc.fillColor('#7f8c8d')
+        .fontSize(8)
+        .font('Helvetica')
+        .text('Terms & Conditions: All sales are final. Returns accepted within 7 days of delivery. Original packaging required for returns.', 50, currentY, { width: 512, align: 'justify' });
+
       pdfDoc.end();
     } catch (err) {
-      console.log(err);
+      console.error('PDF Generation Error:', err);
       res.status(500).json({ val: false, msg: err.message });
     }
   },
@@ -1130,6 +1301,11 @@ module.exports = {
     const { orderId } = req.params;
     const userId = req.session.currentId;
     
+    // Check if user is logged in
+    if (!userId) {
+      return res.redirect('/login');
+    }
+    
     try {
       const order = await orderModel
         .findOne({ _id: orderId, user: userId })
@@ -1141,8 +1317,21 @@ module.exports = {
         return res.status(404).render('404');
       }
       
+      // Ensure order has required fields with defaults
+      if (!order.subtotal) {
+        order.subtotal = order.totalAmount || 0;
+      }
+      
+      // Ensure items have required fields
+      order.items.forEach(item => {
+        if (!item.originalPrice) item.originalPrice = item.offerPrice || 0;
+        if (!item.offerPrice) item.offerPrice = item.originalPrice || 0;
+        if (!item.totalPrice) item.totalPrice = (item.offerPrice || 0) * (item.quantity || 1);
+      });
+      
       // Define status progression for tracking
       const statusFlow = [
+        { key: 'processing', label: 'Processing', icon: 'fas fa-cog' },
         { key: 'order_placed', label: 'Order Placed', icon: 'fas fa-shopping-cart' },
         { key: 'confirmed', label: 'Confirmed', icon: 'fas fa-check-circle' },
         { key: 'packed', label: 'Packed', icon: 'fas fa-box' },
@@ -1154,13 +1343,18 @@ module.exports = {
       // Find current status index
       const currentStatusIndex = statusFlow.findIndex(s => s.key === order.orderStatus);
       
-      // Mark completed statuses
-      const trackingSteps = statusFlow.map((step, index) => ({
-        ...step,
-        completed: index <= currentStatusIndex,
-        current: index === currentStatusIndex,
-        timestamp: order.statusHistory.find(h => h.status === step.key)?.updatedAt
-      }));
+      // Mark completed statuses and include status history data
+      const trackingSteps = statusFlow.map((step, index) => {
+        const statusEntry = order.statusHistory.find(h => h.status === step.key);
+        return {
+          ...step,
+          completed: index <= currentStatusIndex,
+          current: index === currentStatusIndex,
+          timestamp: statusEntry?.updatedAt,
+          location: statusEntry?.location,
+          message: statusEntry?.message
+        };
+      });
       
       res.render('orderTracking', {
         order,

@@ -25,15 +25,18 @@ const orderSchema = new mongoose.Schema({
       },
       originalPrice: {
         type: Number,
-        required: true,
+        required: false, // Made optional for backward compatibility
+        default: 0,
       },
       offerPrice: {
         type: Number,
-        required: true,
+        required: false, // Made optional for backward compatibility  
+        default: 0,
       },
       totalPrice: {
         type: Number,
-        required: true,
+        required: false, // Made optional for backward compatibility
+        default: 0,
       },
       discount: {
         type: Number,
@@ -41,7 +44,7 @@ const orderSchema = new mongoose.Schema({
       },
       appliedOffer: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Offer',
+        ref: 'Offers',
       },
       size: {
         type: String,
@@ -52,7 +55,7 @@ const orderSchema = new mongoose.Schema({
       },
       itemStatus: {
         type: String,
-        enum: ['order_placed', 'confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'],
+        enum: ['processing', 'order_placed', 'confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'],
         default: 'order_placed',
       },
       trackingInfo: {
@@ -82,7 +85,8 @@ const orderSchema = new mongoose.Schema({
   },
   subtotal: {
     type: Number,
-    required: true,
+    required: false, // Made optional for backward compatibility
+    default: 0,
   },
   shippingCost: {
     type: Number,
@@ -104,7 +108,7 @@ const orderSchema = new mongoose.Schema({
   },
   orderStatus: {
     type: String,
-    enum: ['order_placed', 'confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'],
+    enum: ['processing', 'order_placed', 'confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'],
     default: 'order_placed',
   },
   orderId:{
@@ -116,7 +120,7 @@ const orderSchema = new mongoose.Schema({
   },
   coupon: {
     code: { type: String },
-    couponId: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon' },
+    couponId: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupons' },
     discountApplied: { type: Number, default: 0 }
   },
   shippingAddress: {
@@ -164,7 +168,7 @@ const orderSchema = new mongoose.Schema({
     {
       status: {
         type: String,
-        enum: ['order_placed', 'confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'],
+        enum: ['processing', 'order_placed', 'confirmed', 'packed', 'shipped', 'out_for_delivery', 'delivered', 'cancelled', 'returned'],
         required: true,
       },
       location: String,
@@ -196,6 +200,9 @@ orderSchema.methods.updateStatus = function(newStatus, location = '', message = 
   // Update timestamp fields
   const now = new Date();
   switch(newStatus) {
+    case 'processing':
+      // Processing is the initial status, no specific timestamp needed
+      break;
     case 'confirmed':
       this.confirmedAt = now;
       break;

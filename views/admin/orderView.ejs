@@ -14,45 +14,100 @@
     />
     <link rel="stylesheet" href="/css/modern-admin.css" />
     <style>
+      /* Main content area adjustments */
+      .main-content {
+        margin-left: 250px; /* Adjust for sidebar width */
+        padding: 20px;
+        min-height: 100vh;
+        background-color: #f8f9fa;
+      }
+      
+      @media (max-width: 768px) {
+        .main-content {
+          margin-left: 0;
+          padding: 15px;
+        }
+      }
+      
       .order-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         padding: 2rem;
-        border-radius: 10px;
+        border-radius: 15px;
         margin-bottom: 2rem;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
       }
+      
+      .order-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+      
       .status-card {
         background: white;
-        border-radius: 10px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
         margin-bottom: 2rem;
+        border: 1px solid #e9ecef;
       }
-      .order-details-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 2rem;
-        margin-bottom: 2rem;
+      
+      .status-card h4 {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
       }
+      
       .detail-card {
         background: white;
-        border-radius: 10px;
-        padding: 1.5rem;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        margin-bottom: 2rem;
+        border: 1px solid #e9ecef;
       }
+      
+      .detail-card h5 {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      
       .items-table {
         background: white;
-        border-radius: 10px;
+        border-radius: 15px;
         overflow: hidden;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        border: 1px solid #e9ecef;
       }
+      
+      .table thead th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        font-weight: 600;
+        color: #495057;
+        padding: 1rem;
+      }
+      
+      .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f3f4;
+      }
+      
       .status-badge {
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
+        padding: 0.6rem 1.2rem;
+        border-radius: 25px;
         font-size: 0.8rem;
-        font-weight: bold;
+        font-weight: 600;
         text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
+      
       .status-order_placed { background: #e3f2fd; color: #1976d2; }
       .status-confirmed { background: #f3e5f5; color: #7b1fa2; }
       .status-packed { background: #fff3e0; color: #f57c00; }
@@ -66,6 +121,7 @@
         position: relative;
         padding-left: 2rem;
       }
+      
       .timeline::before {
         content: '';
         position: absolute;
@@ -73,23 +129,101 @@
         top: 0;
         bottom: 0;
         width: 2px;
-        background: #e0e0e0;
+        background: linear-gradient(to bottom, #667eea, #764ba2);
       }
+      
       .timeline-item {
         position: relative;
-        margin-bottom: 1.5rem;
+        margin-bottom: 2rem;
+        background: white;
+        padding: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
       }
+      
       .timeline-item::before {
         content: '';
         position: absolute;
-        left: -23px;
-        top: 5px;
+        left: -27px;
+        top: 15px;
         width: 16px;
         height: 16px;
         border-radius: 50%;
-        background: #2196f3;
+        background: #667eea;
         border: 3px solid white;
         box-shadow: 0 0 0 3px #e3f2fd;
+      }
+      
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+      }
+      
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      }
+      
+      .form-control, .form-select {
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+      }
+      
+      .form-control:focus, .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+      }
+      
+      .product-image {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 10px;
+        margin-right: 15px;
+      }
+      
+      .variant-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        margin: 0.1rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+      
+      .btn-sm {
+        border-radius: 8px;
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+      
+      .order-summary-table {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1rem;
+      }
+      
+      .order-summary-table .table {
+        margin-bottom: 0;
+      }
+      
+      .order-summary-table .table td {
+        border: none;
+        padding: 0.5rem 0;
+      }
+      
+      .address-card {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 1.5rem;
+        border-left: 4px solid #667eea;
       }
     </style>
   </head>
@@ -100,35 +234,38 @@
 
     <header><%- include('../layouts/headerAdmin.ejs') %></header>
     
-    <main class="container-fluid py-4">
+    <div class="main-content">
       <!-- Order Header -->
       <div class="order-header">
         <div class="row align-items-center">
           <div class="col-md-8">
-            <h1><i class="fas fa-shopping-bag"></i> Order #<%= order.orderId %></h1>
-            <p class="mb-0">Placed on <%= new Date(order.orderedAt).toLocaleDateString() %> at <%= new Date(order.orderedAt).toLocaleTimeString() %></p>
+            <h1><i class="fas fa-shopping-bag me-3"></i>Order #<%= order.orderId %></h1>
+            <p class="mb-0 opacity-90">
+              <i class="fas fa-calendar me-2"></i>
+              Placed on <%= new Date(order.orderedAt).toLocaleDateString() %> at <%= new Date(order.orderedAt).toLocaleTimeString() %>
+            </p>
           </div>
           <div class="col-md-4 text-end">
-            <div class="status-badge status-<%= order.orderStatus %>">
+            <div class="status-badge status-<%= order.orderStatus %> mb-2">
               <%= order.orderStatus.replace('_', ' ').toUpperCase() %>
             </div>
-            <div class="mt-2">
-              <strong>₹<%= order.totalAmount %></strong>
+            <div class="h3 mb-0">
+              <i class="fas fa-rupee-sign"></i><%= order.totalAmount %>
             </div>
           </div>
         </div>
       </div>
-
       <div class="row">
         <!-- Left Column -->
         <div class="col-lg-8">
           <!-- Status Update Section -->
           <div class="status-card">
-            <h4><i class="fas fa-edit"></i> Update Order Status</h4>
+            <h4><i class="fas fa-edit me-2"></i>Update Order Status</h4>
             <div class="row">
               <div class="col-md-6">
                 <label class="form-label">Status</label>
                 <select id="order-status" class="form-select">
+                  <option value="processing" <%= order.orderStatus === 'processing' ? 'selected' : '' %>>Processing</option>
                   <option value="order_placed" <%= order.orderStatus === 'order_placed' ? 'selected' : '' %>>Order Placed</option>
                   <option value="confirmed" <%= order.orderStatus === 'confirmed' ? 'selected' : '' %>>Confirmed</option>
                   <option value="packed" <%= order.orderStatus === 'packed' ? 'selected' : '' %>>Packed</option>
@@ -148,7 +285,7 @@
               <textarea id="status-message" placeholder="Additional details about the status update..." class="form-control" rows="2"></textarea>
             </div>
             <button class="btn btn-primary mt-3 update-status-btn">
-              <i class="fas fa-save"></i> Update Status
+              <i class="fas fa-save me-2"></i>Update Status
             </button>
           </div>
 
@@ -156,7 +293,7 @@
           <div class="items-table">
             <div class="table-responsive">
               <table class="table table-hover mb-0">
-                <thead class="table-dark">
+                <thead>
                   <tr>
                     <th>Product</th>
                     <th>Variant</th>
@@ -174,26 +311,26 @@
                         <div class="d-flex align-items-center">
                           <img src="<%= item.product.imageUrl && item.product.imageUrl[0] ? item.product.imageUrl[0] : '/img/default-product.jpg' %>" 
                                alt="<%= item.product.name %>" 
-                               style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; margin-right: 10px;">
+                               class="product-image">
                           <div>
-                            <strong><%= item.product.name %></strong>
+                            <div class="fw-bold"><%= item.product.name %></div>
                             <% if (item.appliedOffer) { %>
-                              <br><small class="text-success"><i class="fas fa-tag"></i> <%= item.appliedOffer.name %></small>
+                              <small class="text-success"><i class="fas fa-tag me-1"></i><%= item.appliedOffer.name %></small>
                             <% } %>
                           </div>
                         </div>
                       </td>
                       <td>
-                        <span class="badge bg-secondary"><%= item.size %></span>
-                        <span class="badge bg-info"><%= item.color %></span>
+                        <span class="variant-badge bg-secondary text-white"><%= item.size %></span>
+                        <span class="variant-badge bg-info text-white"><%= item.color %></span>
                       </td>
                       <td>
                         <% if (item.discount > 0) { %>
-                          <span class="text-decoration-line-through text-muted">₹<%= item.originalPrice %></span><br>
+                          <span class="text-decoration-line-through text-muted small">₹<%= item.originalPrice %></span><br>
                         <% } %>
                         <strong>₹<%= item.offerPrice %></strong>
                       </td>
-                      <td><%= item.quantity %></td>
+                      <td><span class="badge bg-light text-dark"><%= item.quantity %></span></td>
                       <td><strong>₹<%= item.totalPrice %></strong></td>
                       <td>
                         <span class="status-badge status-<%= item.itemStatus %>">
@@ -202,8 +339,8 @@
                       </td>
                       <td>
                         <% if (item.returnRequest && item.returnRequest.requestStatus && item.returnRequest.adminStatus === 'pending') { %>
-                          <button class="btn btn-sm btn-warning" onclick="viewReturnRequest('<%= item._id %>', '<%= item.returnRequest.requestMessage %>')">
-                            <i class="fas fa-undo"></i> Return Request
+                          <button class="btn btn-warning btn-sm" onclick="viewReturnRequest('<%= item._id %>', '<%= item.returnRequest.requestMessage %>')">
+                            <i class="fas fa-undo me-1"></i>Return Request
                           </button>
                         <% } else if (item.returnRequest && item.returnRequest.adminStatus === 'approved') { %>
                           <span class="badge bg-success">Return Approved</span>
@@ -222,38 +359,39 @@
 
           <!-- Order Summary -->
           <div class="detail-card mt-4">
-            <h5><i class="fas fa-calculator"></i> Order Summary</h5>
-            <div class="row">
-              <div class="col-md-6">
-                <table class="table table-sm">
+            <h5><i class="fas fa-calculator me-2"></i>Order Summary</h5>
+            <div class="order-summary-table">
+              <table class="table table-sm">
+                <tr>
+                  <td>Subtotal:</td>
+                  <td class="text-end">₹<%= order.subtotal || order.totalAmount %></td>
+                </tr>
+                <% if (order.totalDiscount > 0) { %>
+                  <tr class="text-success">
+                    <td>Offer Discount:</td>
+                    <td class="text-end">-₹<%= order.totalDiscount %></td>
+                  </tr>
+                <% } %>
+                <% if (order.coupon && order.coupon.discountApplied > 0) { %>
+                  <tr class="text-success">
+                    <td>Coupon (<%= order.coupon.code %>):</td>
+                    <td class="text-end">-₹<%= order.coupon.discountApplied %></td>
+                  </tr>
+                <% } %>
+                <% if (order.shippingCost > 0) { %>
                   <tr>
-                    <td>Subtotal:</td>
-                    <td class="text-end">₹<%= order.subtotal || order.totalAmount %></td>
+                    <td>Shipping:</td>
+                    <td class="text-end">₹<%= order.shippingCost %></td>
                   </tr>
-                  <% if (order.totalDiscount > 0) { %>
-                    <tr class="text-success">
-                      <td>Offer Discount:</td>
-                      <td class="text-end">-₹<%= order.totalDiscount %></td>
-                    </tr>
-                  <% } %>
-                  <% if (order.coupon && order.coupon.discountApplied > 0) { %>
-                    <tr class="text-success">
-                      <td>Coupon (<%= order.coupon.code %>):</td>
-                      <td class="text-end">-₹<%= order.coupon.discountApplied %></td>
-                    </tr>
-                  <% } %>
-                  <% if (order.shippingCost > 0) { %>
-                    <tr>
-                      <td>Shipping:</td>
-                      <td class="text-end">₹<%= order.shippingCost %></td>
-                    </tr>
-                  <% } %>
-                  <tr class="table-dark">
-                    <td><strong>Total:</strong></td>
-                    <td class="text-end"><strong>₹<%= order.totalAmount %></strong></td>
-                  </tr>
-                </table>
-              </div>
+                <% } %>
+                <tr class="fw-bold border-top">
+                  <td>Total:</td>
+                  <td class="text-end">₹<%= order.totalAmount %></td>
+                </tr>
+              </table>
+            </div>
+            
+            <div class="row mt-4">
               <div class="col-md-6">
                 <p><strong>Payment Method:</strong> <%= order.paymentMethod.replace('_', ' ').toUpperCase() %></p>
                 <p><strong>Payment Status:</strong> 
@@ -261,6 +399,8 @@
                     <%= order.paymentStatus.toUpperCase() %>
                   </span>
                 </p>
+              </div>
+              <div class="col-md-6">
                 <% if (order.razorpayOrderId) { %>
                   <p><strong>Razorpay Order ID:</strong> <code><%= order.razorpayOrderId %></code></p>
                 <% } %>
@@ -273,8 +413,8 @@
         <div class="col-lg-4">
           <!-- Customer Info -->
           <div class="detail-card">
-            <h5><i class="fas fa-user"></i> Customer Information</h5>
-            <p><strong>Customer ID:</strong> <%= order.user %></p>
+            <h5><i class="fas fa-user me-2"></i>Customer Information</h5>
+            <p><strong>Customer ID:</strong> <code><%= order.user %></code></p>
             <p><strong>Order Date:</strong> <%= new Date(order.orderedAt).toLocaleDateString() %></p>
             <% if (order.deliveredAt) { %>
               <p><strong>Delivered:</strong> <%= new Date(order.deliveredAt).toLocaleDateString() %></p>
@@ -283,8 +423,8 @@
 
           <!-- Shipping Address -->
           <div class="detail-card">
-            <h5><i class="fas fa-map-marker-alt"></i> Shipping Address</h5>
-            <address>
+            <h5><i class="fas fa-map-marker-alt me-2"></i>Shipping Address</h5>
+            <div class="address-card">
               <%= order.shippingAddress.houseNumber %>, <%= order.shippingAddress.street %><br>
               <% if (order.shippingAddress.landMark) { %>
                 Near <%= order.shippingAddress.landMark %><br>
@@ -292,19 +432,19 @@
               <%= order.shippingAddress.city %>, <%= order.shippingAddress.district %><br>
               <%= order.shippingAddress.state %>, <%= order.shippingAddress.country %><br>
               <strong>PIN:</strong> <%= order.shippingAddress.pinCode %>
-            </address>
+            </div>
           </div>
 
           <!-- Status History -->
           <div class="detail-card">
-            <h5><i class="fas fa-history"></i> Status History</h5>
+            <h5><i class="fas fa-history me-2"></i>Status History</h5>
             <div class="timeline">
               <% order.statusHistory.reverse().forEach(status => { %>
                 <div class="timeline-item">
                   <div>
                     <strong><%= status.status.replace('_', ' ').toUpperCase() %></strong>
                     <% if (status.location) { %>
-                      <br><small class="text-muted"><i class="fas fa-map-pin"></i> <%= status.location %></small>
+                      <br><small class="text-muted"><i class="fas fa-map-pin me-1"></i><%= status.location %></small>
                     <% } %>
                     <% if (status.message) { %>
                       <br><small class="text-muted"><%= status.message %></small>
@@ -319,22 +459,21 @@
           <!-- Return Requests -->
           <% if (order.returnRequest && order.returnRequest.requestStatus && order.returnRequest.adminStatus === 'pending') { %>
             <div class="detail-card">
-              <h5><i class="fas fa-undo"></i> Order Return Request</h5>
+              <h5><i class="fas fa-undo me-2"></i>Order Return Request</h5>
               <p><strong>Reason:</strong> <%= order.returnRequest.requestMessage %></p>
               <div class="d-flex gap-2">
                 <button class="btn btn-success btn-sm btn-requestApproved">
-                  <i class="fas fa-check"></i> Approve
+                  <i class="fas fa-check me-1"></i>Approve
                 </button>
                 <button class="btn btn-danger btn-sm btn-requestCancel">
-                  <i class="fas fa-times"></i> Reject
+                  <i class="fas fa-times me-1"></i>Reject
                 </button>
               </div>
             </div>
           <% } %>
         </div>
       </div>
-    </main>
-
+    </div>
     <!-- Return Request Modal -->
     <div class="modal fade" id="returnModal" tabindex="-1">
       <div class="modal-dialog">
@@ -349,10 +488,10 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-danger" onclick="handleItemReturn('reject')">
-              <i class="fas fa-times"></i> Reject
+              <i class="fas fa-times me-1"></i>Reject
             </button>
             <button type="button" class="btn btn-success" onclick="handleItemReturn('approve')">
-              <i class="fas fa-check"></i> Approve
+              <i class="fas fa-check me-1"></i>Approve
             </button>
           </div>
         </div>
