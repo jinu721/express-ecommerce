@@ -39,9 +39,9 @@ router.get('/admin', (req, res) => {
   return res.redirect('/register');
 });
 
-// ~~~ Download Report ~~~
-// Purpose: Allow the admin to download a report in various formats.
-// Response: Triggers the download of a report file.
+// ~~~ Download Sales Report ~~~
+// Purpose: Generate and download sales reports in PDF, Excel, or CSV format.
+// Response: Downloads the generated report file.
 router.post('/admin/dashboard/download-report', adminController.downloadReport);
 
 // ~~~ Search Users ~~~

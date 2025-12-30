@@ -124,11 +124,11 @@ btnLoginDirect.addEventListener("click", (e) => {
           errPassLog.style.display = "flex";
           errPassLog.textContent = parsedData.msg;
         } else if (parsedData.type === "ban") {
-          Swal.fire({
-            icon: "error",
-            title: "Account Banned",
-            text: parsedData.msg,
-          });
+          if (typeof Toast !== 'undefined') {
+            Toast.error("Account Banned", parsedData.msg);
+          } else {
+            alert("Account Banned: " + parsedData.msg);
+          }
         }
       } else {
         // Success - redirect based on role
@@ -404,11 +404,11 @@ btnOtpLog.addEventListener("click", (e) => {
         }else if(parsedData.type === "ban"){
           getOtpTextLog.style.display = "flex";
           getOtpLoaderLog.style.display = "none";
-          Swal.fire({
-            icon: "error",
-            title: "Oops...",
-            text: parsedData.msg,
-          });
+          if (typeof Toast !== 'undefined') {
+            Toast.error("Account Banned", parsedData.msg);
+          } else {
+            alert("Account Banned: " + parsedData.msg);
+          }
         }
       } else {
         usernameOrEmail.style.display = "none";

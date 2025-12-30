@@ -25,28 +25,55 @@ module.exports = {
       }
 
       const variants = await Variant.find(query)
+        .populate('product')
         .sort({ createdAt: 1 });
 
-      // Add availability info and convert Map to Object for JSON
-      const variantsWithAvailability = variants.map(v => ({
-        _id: v._id,
-        sku: v.sku,
-        attributes: Object.fromEntries(v.attributes), // Convert Map to Object
-        attributeString: v.getAttributeString(),
-        stock: v.stock,
-        reserved: v.reserved,
-        availableStock: v.availableStock,
-        isInStock: v.isInStock(),
-        isLowStock: v.isLowStock(),
-        priceAdjustment: v.priceAdjustment,
-        images: v.images,
-        isActive: v.isActive
+      // Get product for pricing calculations
+      const Product = require('../models/productModel');
+      const product = await Product.findById(productId);
+      
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: 'Product not found'
+        });
+      }
+
+      // Add availability info, pricing, and convert Map to Object for JSON
+      const pricingService = require('../services/pricingService');
+      const variantsWithPricing = await Promise.all(variants.map(async (v) => {
+        // Calculate variant-specific pricing
+        const offerResult = await pricingService.calculateBestOffer(product, 1, null, v);
+        
+        return {
+          _id: v._id,
+          sku: v.sku,
+          attributes: Object.fromEntries(v.attributes), // Convert Map to Object
+          attributeString: v.getAttributeString(),
+          stock: v.stock,
+          reserved: v.reserved,
+          availableStock: v.availableStock,
+          isInStock: v.isInStock(),
+          isLowStock: v.isLowStock(),
+          priceAdjustment: v.priceAdjustment,
+          specialPrice: v.specialPrice,
+          images: v.images,
+          isActive: v.isActive,
+          // Add pricing information
+          originalPrice: offerResult.originalPrice,
+          finalPrice: offerResult.finalPrice,
+          discount: offerResult.discount,
+          discountPercentage: offerResult.discountPercentage,
+          hasOffer: offerResult.hasOffer,
+          offer: offerResult.offer,
+          isPercentageOffer: offerResult.isPercentageOffer
+        };
       }));
 
       res.json({
         success: true,
-        count: variantsWithAvailability.length,
-        variants: variantsWithAvailability
+        count: variantsWithPricing.length,
+        variants: variantsWithPricing
       });
     } catch (error) {
       console.error('Get product variants error:', error);

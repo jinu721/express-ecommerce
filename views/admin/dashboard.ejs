@@ -10,21 +10,19 @@
     <style>
       .dashboard-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
       }
       
       .stat-card {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(255, 255, 255, 0.3);
         color: #1d1d1f;
-        padding: 20px 16px;
-        border-radius: 12px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06),
-                    0 2px 8px rgba(0, 0, 0, 0.04);
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
@@ -32,11 +30,10 @@
       
       .stat-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1),
-                    0 4px 12px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
       }
       
-      .stat-card.users::before { 
+      .stat-card::before { 
         content: '';
         position: absolute;
         top: 0;
@@ -47,362 +44,429 @@
       }
       
       .stat-card.products::before { 
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
         background: linear-gradient(90deg, #059669, #047857);
       }
       
       .stat-card.orders::before { 
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
         background: linear-gradient(90deg, #dc2626, #b91c1c);
       }
       
       .stat-card.revenue::before { 
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
         background: linear-gradient(90deg, #ea580c, #c2410c);
       }
       
       .stat-content {
-        position: relative;
-        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 16px;
       }
       
       .stat-icon {
-        font-size: 32px;
+        font-size: 36px;
         opacity: 0.8;
-        margin-bottom: 12px;
+        color: #4f46e5;
       }
       
-      .stat-card.users .stat-icon { color: #4f46e5; }
       .stat-card.products .stat-icon { color: #059669; }
       .stat-card.orders .stat-icon { color: #dc2626; }
       .stat-card.revenue .stat-icon { color: #ea580c; }
       
-      .stat-value {
-        font-size: 24px;
+      .stat-details h3 {
+        font-size: 28px;
         font-weight: 700;
-        margin-bottom: 6px;
-        line-height: 1;
+        margin: 0 0 4px 0;
         color: #1d1d1f;
       }
       
-      .stat-label {
+      .stat-details p {
         font-size: 14px;
-        opacity: 0.7;
+        color: #6b7280;
+        margin: 0;
         font-weight: 500;
-        color: #48484a;
+      }
+      
+      .time-filter {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 20px;
+        border-radius: 16px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      }
+      
+      .filter-controls {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      
+      .filter-btn {
+        padding: 8px 16px;
+        border: 2px solid #e5e7eb;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-weight: 500;
+      }
+      
+      .filter-btn.active {
+        background: #4f46e5;
+        color: white;
+        border-color: #4f46e5;
+      }
+      
+      .filter-btn:hover:not(.active) {
+        border-color: #4f46e5;
+        color: #4f46e5;
+      }
+      
+      .custom-date-inputs {
+        display: none;
+        gap: 12px;
+        align-items: center;
+        margin-top: 12px;
+      }
+      
+      .custom-date-inputs.show {
+        display: flex;
+      }
+      
+      .date-input {
+        padding: 8px 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+      
+      .update-btn {
+        background: #4f46e5;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.2s ease;
+      }
+      
+      .update-btn:hover {
+        background: #4338ca;
+      }
+      
+      .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
       }
       
       .chart-container {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06),
-                    0 2px 8px rgba(0, 0, 0, 0.04);
-        margin-bottom: 24px;
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        min-height: 450px;
+        position: relative;
+      }
+      
+      .chart-container canvas {
+        max-height: 350px !important;
+        width: 100% !important;
       }
       
       .chart-title {
         font-size: 18px;
         font-weight: 700;
         color: #1d1d1f;
-        margin-bottom: 16px;
+        margin-bottom: 20px;
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 12px;
       }
       
       .chart-title i {
         color: #4f46e5;
-        font-size: 16px;
       }
       
-      .report-section {
+      .categories-section {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06),
-                    0 2px 8px rgba(0, 0, 0, 0.04);
-        margin-bottom: 24px;
+        padding: 24px;
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+        margin-bottom: 30px;
       }
       
-      .report-buttons {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-        gap: 16px;
-        margin-bottom: 24px;
-      }
-      
-      .report-btn {
-        padding: 12px 24px;
-        border: 2px solid rgba(0, 0, 0, 0.1);
-        background: rgba(255, 255, 255, 0.8);
-        border-radius: 12px;
-        font-weight: 600;
-        color: #48484a;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-align: center;
-      }
-      
-      .report-btn:hover, .report-btn.active {
-        border-color: #4f46e5;
-        background: #4f46e5;
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-      }
-      
-      .download-section {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 16px;
-        margin-top: 24px;
-      }
-      
-      .download-btn {
-        padding: 16px 24px;
-        border: none;
-        border-radius: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
+      .section-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1d1d1f;
+        margin-bottom: 20px;
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 8px;
-        color: white;
+        gap: 12px;
       }
       
-      .download-btn.pdf {
-        background: linear-gradient(135deg, #ff6b6b, #ee5a52);
-        box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+      .section-title i {
+        color: #4f46e5;
       }
       
-      .download-btn.excel {
-        background: linear-gradient(135deg, #51cf66, #40c057);
-        box-shadow: 0 4px 12px rgba(81, 207, 102, 0.3);
-      }
-      
-      .download-btn.csv {
-        background: linear-gradient(135deg, #74c0fc, #339af0);
-        box-shadow: 0 4px 12px rgba(116, 192, 252, 0.3);
-      }
-      
-      .download-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-      }
-      
-      .date-inputs {
+      .categories-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
         gap: 16px;
-        margin: 24px 0;
-        padding: 24px;
-        background: rgba(248, 250, 252, 0.8);
+      }
+      
+      .category-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        padding: 16px;
         border-radius: 12px;
-        display: none;
+        text-align: center;
+        transition: all 0.2s ease;
       }
       
-      .date-inputs.show {
-        display: grid;
+      .category-card:hover {
+        background: #f1f5f9;
+        transform: translateY(-1px);
       }
       
-      .form-group label {
+      .category-card h4 {
+        font-size: 16px;
         font-weight: 600;
-        color: #1d1d1f;
-        margin-bottom: 8px;
-        display: block;
+        color: #1e293b;
+        margin: 0 0 8px 0;
       }
       
-      .form-control {
-        width: 100%;
-        padding: 12px 16px;
-        border: 2px solid rgba(0, 0, 0, 0.1);
-        border-radius: 8px;
+      .category-card p {
         font-size: 14px;
-        transition: border-color 0.3s ease;
-        background: rgba(255, 255, 255, 0.8);
+        color: #64748b;
+        margin: 0;
       }
       
-      .form-control:focus {
-        outline: none;
-        border-color: #4f46e5;
-        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      .page-header {
+        margin-bottom: 30px;
       }
       
-      @media (max-width: 768px) {
-        .dashboard-grid {
-          grid-template-columns: 1fr;
-        }
-        
-        .date-inputs {
-          grid-template-columns: 1fr;
-        }
-        
-        .download-section {
-          grid-template-columns: 1fr;
-        }
+      .page-header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+        color: #2d3748;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      
+      .page-header h1 i {
+        color: #667eea;
       }
     </style>
   </head>
   <body>
     <div class="admin-layout">
-      <%- include('../layouts/headerAdmin.ejs') %>
+      <%- include('../layouts/headerAdmin') %>
       
       <div class="admin-main">
-        <header class="admin-header">
-          <h1 style="font-size: 2rem; font-weight: 700; margin: 0; color: #2d3748;">
-            <i class="fas fa-chart-line" style="color: #667eea; margin-right: 12px;"></i>
-            Dashboard
-          </h1>
-          <div class="header-profile">
-            <span style="color: #718096; font-size: 1rem;">Welcome back, Admin</span>
+        <div class="admin-content">
+          <header class="page-header">
+            <h1>
+              <i class="fas fa-tachometer-alt"></i>
+              Dashboard
+            </h1>
+          </header>
+
+          <!-- Time Filter -->
+          <div class="time-filter">
+            <div class="filter-controls">
+              <button class="filter-btn active" data-range="daily">Today</button>
+              <button class="filter-btn" data-range="weekly">This Week</button>
+              <button class="filter-btn" data-range="monthly">This Month</button>
+              <button class="filter-btn" data-range="custom">Custom Range</button>
+              <button class="update-btn" onclick="loadDashboard()">
+                <i class="fas fa-sync-alt"></i> Update
+              </button>
+            </div>
+            
+            <div class="custom-date-inputs" id="customDateInputs">
+              <input type="date" id="startDate" class="date-input" />
+              <span>to</span>
+              <input type="date" id="endDate" class="date-input" />
+            </div>
           </div>
-        </header>
-        
-        <main class="admin-content">
-          <!-- Stats Cards -->
+
+          <!-- Report Download Section -->
+          <div class="time-filter">
+            <h3 class="section-title">
+              <i class="fas fa-download"></i>
+              Download Sales Report
+            </h3>
+            <div class="filter-controls">
+              <button class="filter-btn" onclick="downloadReport('pdf')">
+                <i class="fas fa-file-pdf"></i> Download PDF
+              </button>
+              <button class="filter-btn" onclick="downloadReport('excel')">
+                <i class="fas fa-file-excel"></i> Download Excel
+              </button>
+              <button class="filter-btn" onclick="downloadReport('csv')">
+                <i class="fas fa-file-csv"></i> Download CSV
+              </button>
+            </div>
+          </div>
+
+          <!-- Stats Grid -->
           <div class="dashboard-grid">
             <div class="stat-card users">
               <div class="stat-content">
-                <div class="stat-icon">
-                  <i class="fas fa-users"></i>
+                <i class="fas fa-users stat-icon"></i>
+                <div class="stat-details">
+                  <h3 id="totalUsers">0</h3>
+                  <p>Total Users</p>
                 </div>
-                <div class="stat-value" id="totalUsers">Loading...</div>
-                <div class="stat-label">Total Users</div>
               </div>
             </div>
             
             <div class="stat-card products">
               <div class="stat-content">
-                <div class="stat-icon">
-                  <i class="fas fa-box"></i>
+                <i class="fas fa-box stat-icon"></i>
+                <div class="stat-details">
+                  <h3 id="totalProducts">0</h3>
+                  <p>Total Products</p>
                 </div>
-                <div class="stat-value" id="totalProducts">Loading...</div>
-                <div class="stat-label">Total Products</div>
               </div>
             </div>
             
             <div class="stat-card orders">
               <div class="stat-content">
-                <div class="stat-icon">
-                  <i class="fas fa-shopping-cart"></i>
+                <i class="fas fa-shopping-cart stat-icon"></i>
+                <div class="stat-details">
+                  <h3 id="totalOrders">0</h3>
+                  <p>Pending Orders</p>
                 </div>
-                <div class="stat-value" id="totalOrders">Loading...</div>
-                <div class="stat-label">Total Orders</div>
               </div>
             </div>
             
             <div class="stat-card revenue">
               <div class="stat-content">
-                <div class="stat-icon">
-                  <i class="fas fa-rupee-sign"></i>
+                <i class="fas fa-rupee-sign stat-icon"></i>
+                <div class="stat-details">
+                  <h3 id="totalRevenue">₹0</h3>
+                  <p>Total Revenue</p>
                 </div>
-                <div class="stat-value" id="totalRevenue">Loading...</div>
-                <div class="stat-label">Total Revenue</div>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-content">
+                <i class="fas fa-chart-line stat-icon"></i>
+                <div class="stat-details">
+                  <h3 id="totalSales">0</h3>
+                  <p>Completed Sales</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-content">
+                <i class="fas fa-money-bill-wave stat-icon"></i>
+                <div class="stat-details">
+                  <h3 id="pendingMoney">₹0</h3>
+                  <p>Pending COD</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-content">
+                <i class="fas fa-tags stat-icon"></i>
+                <div class="stat-details">
+                  <h3 id="activeOffers">0</h3>
+                  <p>Active Offers</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-content">
+                <i class="fas fa-exclamation-triangle stat-icon"></i>
+                <div class="stat-details">
+                  <h3 id="lowStock">0</h3>
+                  <p>Low Stock Items</p>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Report Generation -->
-          <div class="report-section">
-            <h2 class="chart-title">
-              <i class="fas fa-file-download"></i>
-              Generate Reports
+          <!-- Charts Grid -->
+          <div class="charts-grid">
+            <div class="chart-container">
+              <h3 class="chart-title">
+                <i class="fas fa-chart-bar"></i>
+                Top Selling Products
+              </h3>
+              <div style="position: relative; height: 350px;">
+                <canvas id="topSellingChart"></canvas>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <h3 class="chart-title">
+                <i class="fas fa-chart-pie"></i>
+                Top Selling Categories
+              </h3>
+              <div style="position: relative; height: 350px;">
+                <canvas id="topSellingCategoriesChart"></canvas>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <h3 class="chart-title">
+                <i class="fas fa-chart-area"></i>
+                Top Selling Brands
+              </h3>
+              <div style="position: relative; height: 350px;">
+                <canvas id="topSellingBrandsChart"></canvas>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <h3 class="chart-title">
+                <i class="fas fa-chart-line"></i>
+                Revenue Trend
+              </h3>
+              <div style="position: relative; height: 350px;">
+                <canvas id="revenueTrendChart"></canvas>
+              </div>
+            </div>
+            
+            <div class="chart-container">
+              <h3 class="chart-title">
+                <i class="fas fa-chart-doughnut"></i>
+                Order Status Distribution
+              </h3>
+              <div style="position: relative; height: 350px;">
+                <canvas id="orderStatusChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Categories Section -->
+          <div class="categories-section">
+            <h2 class="section-title">
+              <i class="fas fa-layer-group"></i>
+              Categories Overview
             </h2>
-            
-            <div class="report-buttons">
-              <button class="report-btn active" data-range="daily">
-                <i class="fas fa-calendar-day"></i><br>Daily
-              </button>
-              <button class="report-btn" data-range="weekly">
-                <i class="fas fa-calendar-week"></i><br>Weekly
-              </button>
-              <button class="report-btn" data-range="monthly">
-                <i class="fas fa-calendar-alt"></i><br>Monthly
-              </button>
-              <button class="report-btn" data-range="custom">
-                <i class="fas fa-calendar-check"></i><br>Custom
-              </button>
-            </div>
-            
-            <div id="customDateInputs" class="date-inputs">
-              <div class="form-group">
-                <label for="start-date">Start Date</label>
-                <input type="date" id="start-date" class="form-control" />
-              </div>
-              <div class="form-group">
-                <label for="end-date">End Date</label>
-                <input type="date" id="end-date" class="form-control" />
-              </div>
-            </div>
-            
-            <div class="download-section">
-              <button class="download-btn pdf btnDownloadPdf">
-                <i class="fas fa-file-pdf"></i>
-                Download PDF
-              </button>
-              <button class="download-btn excel" onclick="downloadReport('excel')">
-                <i class="fas fa-file-excel"></i>
-                Download Excel
-              </button>
-              <button class="download-btn csv" onclick="downloadReport('csv')">
-                <i class="fas fa-file-csv"></i>
-                Download CSV
-              </button>
+            <div class="categories-grid" id="categoriesGrid">
+              <!-- Categories will be loaded here -->
             </div>
           </div>
-
-          <!-- Charts -->
-          <div class="chart-container">
-            <h3 class="chart-title">
-              <i class="fas fa-chart-bar"></i>
-              Top Selling Products
-            </h3>
-            <canvas id="topSellingChart" height="100"></canvas>
-          </div>
-          
-          <div class="chart-container">
-            <h3 class="chart-title">
-              <i class="fas fa-chart-pie"></i>
-              Top Selling Categories
-            </h3>
-            <canvas id="topSellingCategoriesChart" height="100"></canvas>
-          </div>
-          
-          <div class="chart-container">
-            <h3 class="chart-title">
-              <i class="fas fa-chart-area"></i>
-              Top Selling Brands
-            </h3>
-            <canvas id="topSellingBrandsChart" height="100"></canvas>
-          </div>
-
-          <!-- Dashboard Data Container -->
-          <div class="dashboardData"></div>
-        </main>
+        </div>
       </div>
     </div>
 

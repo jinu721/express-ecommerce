@@ -266,21 +266,54 @@ class VariantSelector {
         `<span class="text-success"><i class="fas fa-check-circle"></i> In Stock (${this.currentVariant.availableStock})</span>` :
         '<span class="text-danger"><i class="fas fa-times-circle"></i> Out of Stock</span>';
 
-      // Show variant pricing
+      // Show variant pricing with proper fallbacks
       let priceInfo = '';
-      if (this.currentVariant.hasOffer) {
+      
+      // Get pricing data with fallbacks
+      const originalPrice = this.currentVariant.originalPrice || this.currentVariant.basePrice || 0;
+      const finalPrice = this.currentVariant.finalPrice || this.currentVariant.originalPrice || this.currentVariant.basePrice || 0;
+      const discount = this.currentVariant.discount || 0;
+      const discountPercentage = this.currentVariant.discountPercentage || 0;
+      const hasOffer = this.currentVariant.hasOffer || false;
+      const isPercentageOffer = this.currentVariant.isPercentageOffer || false;
+      
+      console.log('Variant pricing debug:', {
+        variantId: this.currentVariant._id,
+        originalPrice,
+        finalPrice,
+        discount,
+        discountPercentage,
+        hasOffer,
+        isPercentageOffer,
+        rawVariant: this.currentVariant
+      });
+      
+      if (hasOffer && discount > 0) {
         priceInfo = `
-          <div class="variant-pricing mt-2">
-            <span class="h5 text-success">₹${Math.round(this.currentVariant.finalPrice)}</span>
-            <span class="text-muted text-decoration-line-through ms-2">₹${Math.round(this.currentVariant.originalPrice)}</span>
-            ${this.currentVariant.isPercentageOffer ? `<span class="badge bg-danger ms-2">${this.currentVariant.discountPercentage}% Off</span>` : ''}
-            ${this.currentVariant.offer ? `<small class="text-success d-block">${this.currentVariant.offer.name}</small>` : ''}
+          <div class="variant-pricing mt-3">
+            <div class="price-row d-flex align-items-center gap-3 mb-2">
+              <span class="h4 text-success mb-0 fw-bold">₹${Math.round(finalPrice)}</span>
+              <span class="h6 text-muted text-decoration-line-through mb-0">₹${Math.round(originalPrice)}</span>
+              ${isPercentageOffer && discountPercentage ? `<span class="badge bg-danger fs-6">${discountPercentage}% OFF</span>` : ''}
+            </div>
+            ${this.currentVariant.offer ? `
+              <div class="offer-info">
+                <small class="text-success fw-semibold">
+                  <i class="fas fa-tag me-1"></i>${this.currentVariant.offer.name}
+                </small>
+              </div>
+            ` : ''}
+            <div class="savings-info mt-1">
+              <small class="text-muted">You save ₹${Math.round(discount)}</small>
+            </div>
           </div>
         `;
       } else {
         priceInfo = `
-          <div class="variant-pricing mt-2">
-            <span class="h5">₹${Math.round(this.currentVariant.originalPrice)}</span>
+          <div class="variant-pricing mt-3">
+            <div class="price-row">
+              <span class="h4 text-dark mb-0 fw-bold">₹${Math.round(finalPrice || originalPrice)}</span>
+            </div>
           </div>
         `;
       }
@@ -297,7 +330,7 @@ class VariantSelector {
               ${this.currentVariant.isLowStock ? '<br><small class="text-warning">Low Stock!</small>' : ''}
             </div>
           </div>
-          ${priceInfo}
+          ${priceInfo} 
         </div>
       `;
     } else if (this.selectedAttributes.size > 0) {

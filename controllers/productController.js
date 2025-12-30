@@ -1050,20 +1050,31 @@ module.exports = {
         console.log('Extracted attributes:', attributes);
       }
 
-      // Format variants for frontend
-      const formattedVariants = variants.map(v => {
+      // Format variants for frontend with pricing
+      const formattedVariants = await Promise.all(variants.map(async (v) => {
         const attrs = v.attributes instanceof Map ? 
           Object.fromEntries(v.attributes) : 
           v.attributes || {};
-          
+        
+        // Calculate variant-specific pricing
+        const variantOfferResult = await pricingService.calculateBestOffer(product, 1, req.session.currentId, v);
+        
         return {
           ...v.toObject(),
           attributes: attrs,
-          availableStock: Math.max(0, v.stock - (v.reserved || 0))
+          availableStock: Math.max(0, v.stock - (v.reserved || 0)),
+          // Add pricing information
+          originalPrice: variantOfferResult.originalPrice,
+          finalPrice: variantOfferResult.finalPrice,
+          discount: variantOfferResult.discount,
+          discountPercentage: variantOfferResult.discountPercentage,
+          hasOffer: variantOfferResult.hasOffer,
+          offer: variantOfferResult.offer,
+          isPercentageOffer: variantOfferResult.isPercentageOffer
         };
-      });
+      }));
 
-      console.log('Formatted variants:', formattedVariants.length);
+      console.log('Formatted variants with pricing:', formattedVariants.length);
 
       res.json({
         success: true,
