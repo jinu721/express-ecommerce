@@ -1,11 +1,6 @@
 const Attribute = require('../models/attributeModel');
 const Category = require('../models/categoryModel');
 
-/**
- * Attribute Controller
- * Manages dynamic product attributes (size, color, material, etc.)
- */
-
 module.exports = {
   /**
    * Get all attributes

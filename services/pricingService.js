@@ -3,6 +3,9 @@ const couponModel = require('../models/couponModel');
 const couponUsageModel = require('../models/couponUsageModel');
 const productModel = require('../models/productModel');
 
+// Helper function for consistent rounding to avoid floating point precision issues
+const roundToTwoDecimals = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
+
 /**
  * Pricing Service
  * Handles offer and coupon calculations for ecommerce system
@@ -101,8 +104,8 @@ class PricingService {
       if (offers.length === 0) {
         console.log('No offers found, returning original price');
         return {
-          originalPrice: Math.round(totalBasePrice * 100) / 100,
-          finalPrice: Math.round(totalBasePrice * 100) / 100,
+          originalPrice: roundToTwoDecimals(totalBasePrice),
+          finalPrice: roundToTwoDecimals(totalBasePrice),
           discount: 0,
           discountPercentage: 0,
           offer: null,
@@ -126,7 +129,7 @@ class PricingService {
       // Apply the best offer (first in sorted list)
       const bestOffer = offers[0];
       const discount = this.calculateOfferDiscount(bestOffer, totalBasePrice);
-      const finalPrice = Math.max(0, Math.round((totalBasePrice - discount) * 100) / 100);
+      const finalPrice = Math.max(0, roundToTwoDecimals(totalBasePrice - discount));
       
       // Calculate discount percentage for display
       let discountPercentage = 0;
@@ -138,9 +141,9 @@ class PricingService {
       
       // Ensure all values are valid numbers and properly rounded
       return {
-        originalPrice: Math.round(totalBasePrice * 100) / 100,
-        finalPrice: Math.round(finalPrice * 100) / 100,
-        discount: Math.round(discount * 100) / 100,
+        originalPrice: roundToTwoDecimals(totalBasePrice),
+        finalPrice: roundToTwoDecimals(finalPrice),
+        discount: roundToTwoDecimals(discount),
         discountPercentage: isNaN(discountPercentage) ? 0 : discountPercentage,
         offer: bestOffer,
         hasOffer: discount > 0,

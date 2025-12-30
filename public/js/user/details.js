@@ -215,30 +215,40 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// ~~~~~~~~~~~~~~~~~~~ Wishlist ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// ~~~~~~~~~~~~~~~~~~~ Wishlist Toggle ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 const wishlistButton = document.getElementById("wishlistButton");
 if (wishlistButton) {
   const wishlistIcon = wishlistButton.querySelector(".wishlistIcon");
-  wishlistButton.addEventListener("click", (e) => {
+  
+  // Set initial state based on server data
+  const isInitiallyInWishlist = wishlistButton.classList.contains('wishlist-active');
+  if (isInitiallyInWishlist) {
+    wishlistIcon.classList.add('filled');
+  }
+  
+  wishlistButton.addEventListener("click", async (e) => {
     e.preventDefault();
     
-    const isActive = wishlistIcon.style.color === 'red';
+    // Prevent multiple clicks
+    if (wishlistButton.classList.contains('loading')) return;
     
-    if (isActive) {
+    const isCurrentlyActive = wishlistButton.classList.contains('wishlist-active');
+    
+    // Add loading state
+    wishlistButton.classList.add('loading');
+    
+    if (isCurrentlyActive) {
       // Remove from wishlist
-      const cartItemId = wishlistButton.getAttribute("data-wishlist-item-id");
-      if (cartItemId) {
-        removeFromWishlist(cartItemId);
-      }
-      wishlistIcon.style.color = '';
+      const wishlistItemId = wishlistButton.getAttribute("data-wishlist-item-id");
+      await removeFromWishlist(wishlistItemId);
     } else {
-      // Add to wishlist
-      const variant = variantSelector?.getSelectedVariant();
-      const attributes = variantSelector?.getSelectedAttributes() || {};
-      addToWishlist(productId, variant, attributes);
-      wishlistIcon.style.color = 'red';
+      // Add to wishlist - no variant selection required
+      await addToWishlist(productId, null, {});
     }
+    
+    // Remove loading state
+    wishlistButton.classList.remove('loading');
   });
 }
 
@@ -252,38 +262,112 @@ async function addToWishlist(productId, variant, attributes) {
       body: JSON.stringify({ 
         variantId: variant ? variant._id : null,
         attributes: attributes,
-        // Legacy fields for backward compatibility
-        size: attributes.SIZE || '',
-        color: attributes.COLOR || ''
+        // Legacy fields for backward compatibility - use empty values if no variant
+        size: attributes.SIZE || 'N/A',
+        color: attributes.COLOR || 'N/A'
       }),
     });
     const data = await response.json();
     if (data.val) {
-      Toast.success('Added to Wishlist', 'Item added to wishlist successfully');
+      // Animate heart filling
+      const wishlistIcon = wishlistButton.querySelector(".wishlistIcon");
+      wishlistIcon.classList.add('filled');
+      wishlistButton.classList.add('wishlist-active', 'pulse');
+      
+      if (typeof Toast !== 'undefined') {
+        Toast.success('Added to Wishlist', 'Item added to wishlist successfully');
+      }
+      
       if (wishlistButton) {
         wishlistButton.setAttribute("data-wishlist-item-id", data.wishlistItemId);
       }
+      
+      // Remove pulse effect after animation
+      setTimeout(() => wishlistButton.classList.remove('pulse'), 600);
     } else {
-      Toast.error('Failed to Add', data.msg);
+      // Check if it's a login error
+      if (response.status === 401 || data.msg.includes('login')) {
+        if (typeof Toast !== 'undefined') {
+          Toast.error('Login Required', 'Please login to add items to wishlist');
+        } else {
+          alert('Please login to add items to wishlist');
+        }
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        if (typeof Toast !== 'undefined') {
+          Toast.error('Failed to Add', data.msg);
+        } else {
+          alert('Failed to add: ' + data.msg);
+        }
+      }
     }
   } catch (err) {
     console.log(err);
+    if (typeof Toast !== 'undefined') {
+      Toast.error('Network Error', 'Please check your connection and try again');
+    } else {
+      alert('Network Error: Please check your connection and try again');
+    }
   }
 }
 
-async function removeFromWishlist(cartItemId) {
+async function removeFromWishlist(wishlistItemId) {
+  if (!wishlistItemId) {
+    if (typeof Toast !== 'undefined') {
+      Toast.error('Error', 'Unable to remove item from wishlist');
+    } else {
+      alert('Unable to remove item from wishlist');
+    }
+    return;
+  }
+
   try {
-    const response = await fetch(`/remove-from-wishlist/${cartItemId}`, {
+    const response = await fetch(`/remove-from-wishlist/${wishlistItemId}`, {
       method: "DELETE",
     });
     const data = await response.json();
     if (data.val) {
-      Toast.success('Removed', 'Item removed from wishlist');
+      // Animate heart emptying
+      const wishlistIcon = wishlistButton.querySelector(".wishlistIcon");
+      wishlistIcon.classList.add('emptying');
+      wishlistIcon.classList.remove('filled');
+      wishlistButton.classList.remove('wishlist-active');
+      
+      if (typeof Toast !== 'undefined') {
+        Toast.success('Removed from Wishlist', 'Item removed from wishlist successfully');
+      }
+      
+      // Remove wishlist item ID
+      wishlistButton.removeAttribute("data-wishlist-item-id");
+      
+      // Remove emptying animation after completion
+      setTimeout(() => {
+        wishlistIcon.classList.remove('emptying');
+      }, 400);
     } else {
-      Toast.error('Failed to Remove', data.msg);
+      if (typeof Toast !== 'undefined') {
+        Toast.error('Failed to Remove', data.msg);
+      } else {
+        alert('Failed to remove: ' + data.msg);
+      }
+      // Revert UI changes on failure
+      const wishlistIcon = wishlistButton.querySelector(".wishlistIcon");
+      wishlistIcon.classList.add('filled');
+      wishlistButton.classList.add('wishlist-active');
     }
   } catch (err) {
     console.log(err);
+    if (typeof Toast !== 'undefined') {
+      Toast.error('Network Error', 'Please check your connection and try again');
+    } else {
+      alert('Network Error: Please check your connection and try again');
+    }
+    // Revert UI changes on error
+    const wishlistIcon = wishlistButton.querySelector(".wishlistIcon");
+    wishlistIcon.classList.add('filled');
+    wishlistButton.classList.add('wishlist-active');
   }
 }
 

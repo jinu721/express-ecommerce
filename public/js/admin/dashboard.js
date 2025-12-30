@@ -39,7 +39,6 @@ dateButtons.forEach((btn) => {
 let topSellingProductsChartInstance = null;
 let topSellingCategoriesChartInstance = null;
 let topSellingBrandsChartInstance = null;
-let lineChartWithDotsInstance = null;
 
 // Function to load dashboard stats into the new UI
 async function loadDashboardStats(range = 'daily') {
@@ -74,7 +73,6 @@ function updateCharts(dashboard) {
   updateTopSellingProductsChart(dashboard.topSellingProducts || []);
   updateTopSellingCategoriesChart(dashboard.topSellingCategories || []);
   updateTopSellingBrandsChart(dashboard.topSellingBrands || []);
-  updateVisitorChart(dashboard.vistors || []);
 }
 
 // Update top selling products chart
@@ -169,71 +167,6 @@ function updateTopSellingBrandsChart(brands) {
       responsive: true,
       plugins: { legend: { display: true } },
       scales: { x: { beginAtZero: true }, y: { beginAtZero: true } },
-    },
-  });
-}
-
-// Update visitor chart
-function updateVisitorChart(visitors) {
-  const ctx = document.getElementById("lineChartWithDots");
-  if (!ctx) return;
-  
-  if (lineChartWithDotsInstance) {
-    lineChartWithDotsInstance.destroy();
-  }
-  
-  if (visitors.length === 0) {
-    console.log("No visitor data available");
-    return;
-  }
-  
-  const dates = visitors.map((data) => {
-    const date = new Date(data.date);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  });
-  
-  const uniqueVisitors = visitors.map((data) => data.uniqueVisitors || 0);
-  const totalViews = visitors.map((data) => data.totalViews || 0);
-  
-  lineChartWithDotsInstance = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: dates,
-      datasets: [
-        {
-          label: "Unique Visitors",
-          data: uniqueVisitors,
-          borderColor: "rgba(54, 162, 235, 1)",
-          backgroundColor: "rgba(54, 162, 235, 0.2)",
-          fill: false,
-          pointRadius: 5,
-          pointBackgroundColor: "rgba(54, 162, 235, 1)",
-          borderWidth: 2,
-          tension: 0.3,
-        },
-        {
-          label: "Total Views",
-          data: totalViews,
-          borderColor: "rgba(255, 99, 132, 1)",
-          backgroundColor: "rgba(255, 99, 132, 0.2)",
-          fill: false,
-          pointBackgroundColor: "rgba(255, 99, 132, 1)",
-          borderWidth: 2,
-          tension: 0.3,
-        },
-      ],
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: true } },
-      scales: {
-        x: { type: "category", title: { display: true, text: "Date" } },
-        y: { beginAtZero: true, title: { display: true, text: "Count" } },
-      },
     },
   });
 }

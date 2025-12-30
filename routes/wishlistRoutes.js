@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 const wishlistController = require('../controllers/wishlistController');
 
+// ~~~ Get Wishlist API ~~~
+// Purpose: Get wishlist data for API calls (used by frontend to check wishlist status)
+// Response: Returns wishlist items in JSON format
+router.get('/api/wishlist', wishlistController.getWishlistAPI);
+
 // ~~~ Wishlist Page ~~~
 // Purpose: Load the wishlist page for the user to view all their saved items.
 // Response: Displays the user's wishlist with the items they have added.

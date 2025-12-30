@@ -22,6 +22,9 @@ router.get('/details/:id', productController.productDetailesLoad);
 router.get('/api/categories', productController.getCategoriesAPI);
 router.get('/api/brands', productController.getBrandsAPI);
 
+// ~~~ API Endpoint for Variant Popup ~~~
+router.get('/api/products/:id/popup-data', productController.getProductPopupData);
+
 // ~~~ Admin Products Page ~~~
 // Purpose: Load the admin page that lists all products.
 // Response: Renders the page showing all the products for the admin.

@@ -349,7 +349,11 @@ module.exports = {
       const variant = item.variantId ? await Variant.findById(item.variantId) : null;
 
       // Check Stock
-      const stockCheck = await stockService.checkStock(product, variant, qty, item.size);
+      const attributes = {};
+      if (item.size && item.size !== 'N/A') attributes.SIZE = item.size;
+      if (item.color && item.color !== 'N/A') attributes.COLOR = item.color;
+      
+      const stockCheck = await stockService.checkStock(product, variant, qty, attributes);
       if (!stockCheck.available) {
            return res.status(400).json({ val: false, msg: stockCheck.reason });
       }

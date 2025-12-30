@@ -6,6 +6,7 @@ const userController = require('../controllers/userController');
 // Purpose: Load the registration page for the user.
 // Response: Renders the registration form for the user to fill in.
 router.get('/register', userController.RegisterLoad);
+router.get('/login', userController.RegisterLoad);
 
 // ~~~ Register User ~~~
 // Purpose: Handle the user registration form submission.

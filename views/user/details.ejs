@@ -23,6 +23,9 @@
     <link rel="stylesheet" href="/css/variant-selector.css" />
     <link rel="stylesheet" href="/css/ios-toast.css" />
     <link rel="stylesheet" href="/css/product-images.css" />
+    <link rel="stylesheet" href="/css/wishlist-heart.css" />
+    <link rel="stylesheet" href="/css/variant-popup.css" />
+    <link rel="stylesheet" href="/css/wishlist-heart.css" />
 
     <title>Ecommerce Website</title>
   </head>
@@ -103,7 +106,7 @@
                 <i class="fi-rs-crown"></i> <%= product.warranty ? product.warranty : 'No Warranty Available' %>
               </li>
               <li class="list__item flex">
-                <i class="fi-rs-refresh"></i> <%= product.returnPolicy !== 'null' ? product.returnPolicy : 'No Return Policy' %>
+                <i class="fi-rs-refresh"></i> <%= product.returnPolicy ? product.returnPolicy : 'No Return Policy' %>
               </li>
               <li class="list__item flex">
                 <i class="fi-rs-credit-card"></i> <%= product.cashOnDelivery ? 'Cash on Delivery available' : 'No Cash on Delivery available' %>
@@ -111,7 +114,6 @@
             </ul>
 
             <div id="variant-selector" class="variant-selector-container">
-              <!-- This will be populated by JavaScript -->
             </div>
 
             <div class="details__action add-to-cart-section">
@@ -120,8 +122,8 @@
               <button class="btn btn--sm buy-now-btn" disabled>Buy Now</button>
               
               <% if(isAlreadyWishlist){ %>        
-                <a data-id="<%= product._id %>" class="details__action-btn wishlistDiv"  id="wishlistButton">
-                  <i style="color: red;" class="fi fi-rs-heart wishlistIcon"></i>
+                <a data-id="<%= product._id %>" data-wishlist-item-id="<%= wishlistItemId %>" class="details__action-btn wishlistDiv wishlist-active"  id="wishlistButton">
+                  <i class="fi fi-rs-heart wishlistIcon filled"></i>
                 </a>         
               <% } else { %>
                 <a data-id="<%= product._id %>" class="details__action-btn wishlistDiv"  id="wishlistButton">
@@ -296,6 +298,8 @@
     <script src="/js/variantSelector.js"></script>
     
     <!--=============== MAIN JS ===============-->
+    <script src="/js/variantSelector.js"></script>
+    <script src="/js/variantPopup.js"></script>
     <script src="/js/user/details.js"></script>
   </body>
 </html>

@@ -1517,7 +1517,6 @@ async function downloadInvoice(event) {
     document.body.removeChild(downloadModal);
   });
   
-  // Handle click outside modal
   downloadModal.addEventListener('click', (e) => {
     if (e.target === downloadModal) {
       document.body.removeChild(downloadModal);

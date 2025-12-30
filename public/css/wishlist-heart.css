@@ -1,0 +1,195 @@
+/* Minimal Wishlist Heart Animation CSS */
+.wishlistDiv {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.wishlistDiv:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(239, 68, 68, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.wishlistIcon {
+  font-size: 20px;
+  color: #9ca3af;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+/* Heart fill animation - smooth and minimal */
+.wishlistIcon.filled {
+  color: #ef4444;
+  animation: heartBeat 0.4s ease-out;
+}
+
+.wishlistIcon.emptying {
+  animation: heartEmpty 0.3s ease-in;
+}
+
+/* Minimal heart beat animation */
+@keyframes heartBeat {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Heart empty animation */
+@keyframes heartEmpty {
+  0% {
+    transform: scale(1);
+    color: #ef4444;
+  }
+  100% {
+    transform: scale(1);
+    color: #9ca3af;
+  }
+}
+
+/* Active state - minimal red accent */
+.wishlistDiv.wishlist-active {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+.wishlistDiv.wishlist-active .wishlistIcon {
+  color: #ef4444;
+}
+
+.wishlistDiv.wishlist-active:hover {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+/* Subtle pulse effect */
+.wishlistDiv.pulse {
+  animation: subtlePulse 0.4s ease-out;
+}
+
+@keyframes subtlePulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Loading state */
+.wishlistDiv.loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.wishlistDiv.loading .wishlistIcon {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Shop page wishlist buttons - even more minimal */
+.product__actions .action__btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.product__actions .action__btn:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.product__actions .action__btn i {
+  font-size: 16px;
+  color: #6b7280;
+  transition: all 0.2s ease;
+}
+
+.product__actions .action__btn.wishlist-active {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+.product__actions .action__btn.wishlist-active i {
+  color: #ef4444;
+}
+
+.product__actions .action__btn:hover i {
+  color: #374151;
+}
+
+.product__actions .action__btn.wishlist-active:hover i {
+  color: #dc2626;
+}
+
+/* Cart button styling - blue accent */
+.product__actions .cart__btn {
+  border-color: rgba(59, 130, 246, 0.1);
+}
+
+.product__actions .cart__btn:hover {
+  background: rgba(59, 130, 246, 0.05);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.product__actions .cart__btn:hover i {
+  color: #3b82f6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .wishlistDiv {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+  
+  .wishlistIcon {
+    font-size: 18px;
+  }
+  
+  .product__actions .action__btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+  }
+  
+  .product__actions .action__btn i {
+    font-size: 14px;
+  }
+}

@@ -95,6 +95,9 @@ module.exports = {
         });
       }
 
+      // Helper function for consistent rounding
+      const roundToTwoDecimals = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
+
       // Calculate Total with Shipping
       let shippingCost = 0;
       
@@ -102,7 +105,7 @@ module.exports = {
       for (const item of processedItems) {
         const product = await productModel.findById(item.product);
         if (product.hasCustomShipping) {
-          shippingCost += Math.round((product.shippingPrice || 0) * item.quantity * 100) / 100;
+          shippingCost += roundToTwoDecimals((product.shippingPrice || 0) * item.quantity);
         }
       }
       
@@ -114,17 +117,17 @@ module.exports = {
         }
       }
       
-      const totalAmount = Math.round((processedItems.reduce(
+      const totalAmount = roundToTwoDecimals(processedItems.reduce(
         (sum, i) => sum + i.totalPrice, 0
-      ) + shippingCost) * 100) / 100;
+      ) + shippingCost);
       
-      const originalTotal = Math.round((processedItems.reduce(
+      const originalTotal = roundToTwoDecimals(processedItems.reduce(
         (sum, i) => sum + (i.originalPrice * i.quantity), 0
-      ) + shippingCost) * 100) / 100;
+      ) + shippingCost);
       
-      const totalOfferDiscount = Math.round(processedItems.reduce(
+      const totalOfferDiscount = roundToTwoDecimals(processedItems.reduce(
         (sum, i) => sum + i.discount, 0
-      ) * 100) / 100;
+      ));
 
       // Clear Cart (if from cart)
       if (Array.isArray(parsedItem)) {
@@ -147,8 +150,8 @@ module.exports = {
       if (isOfferApplied && code) {
         try {
             const couponResult = await pricingService.applyCoupon(code, totalAmount, userId, processedItems);
-            couponDiscount = Math.round(couponResult.discount * 100) / 100;
-            finalAmount = Math.round(couponResult.finalAmount * 100) / 100;
+            couponDiscount = roundToTwoDecimals(couponResult.discount);
+            finalAmount = roundToTwoDecimals(couponResult.finalAmount);
             if (couponDetails) {
                 couponDetails.discountApplied = couponDiscount;
                 couponDetails.couponId = couponResult.coupon._id;
@@ -158,7 +161,7 @@ module.exports = {
         }
       }
 
-      const amountToSend = Math.round(finalAmount * 100) / 100;
+      const amountToSend = roundToTwoDecimals(finalAmount);
 
       // 3. Payment Processing
       if (selectedPayment === "cash_on_delivery") {
@@ -170,9 +173,9 @@ module.exports = {
               orderId: orderId++,
               user: userId,
               items: processedItems,
-              subtotal: Math.round(processedItems.reduce((sum, i) => sum + i.totalPrice, 0) * 100) / 100,
-              shippingCost: Math.round(shippingCost * 100) / 100,
-              totalDiscount: Math.round(totalOfferDiscount * 100) / 100,
+              subtotal: roundToTwoDecimals(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
+              shippingCost: roundToTwoDecimals(shippingCost),
+              totalDiscount: roundToTwoDecimals(totalOfferDiscount),
               totalAmount: amountToSend,
               paymentMethod: selectedPayment,
               shippingAddress: address,
@@ -228,10 +231,10 @@ module.exports = {
               orderId: orderId++,
               user: userId,
               items: processedItems,
-              subtotal: Math.round(processedItems.reduce((sum, i) => sum + i.totalPrice, 0) * 100) / 100,
-              shippingCost: Math.round(shippingCost * 100) / 100,
-              totalDiscount: Math.round(totalOfferDiscount * 100) / 100,
-              totalAmount: Math.round(amountToSend * 100) / 100, // Store rounded amount
+              subtotal: roundToTwoDecimals(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
+              shippingCost: roundToTwoDecimals(shippingCost),
+              totalDiscount: roundToTwoDecimals(totalOfferDiscount),
+              totalAmount: amountToSend, // Store the properly rounded amount
               paymentMethod: selectedPayment,
               shippingAddress: address,
               coupon: couponDetails,
@@ -276,9 +279,9 @@ module.exports = {
               orderId: orderId++,
               user: userId,
               items: processedItems,
-              subtotal: Math.round(processedItems.reduce((sum, i) => sum + i.totalPrice, 0) * 100) / 100,
-              shippingCost: Math.round(shippingCost * 100) / 100,
-              totalDiscount: Math.round(totalOfferDiscount * 100) / 100,
+              subtotal: roundToTwoDecimals(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
+              shippingCost: roundToTwoDecimals(shippingCost),
+              totalDiscount: roundToTwoDecimals(totalOfferDiscount),
               totalAmount: amountToSend,
               paymentMethod: selectedPayment,
               shippingAddress: address,

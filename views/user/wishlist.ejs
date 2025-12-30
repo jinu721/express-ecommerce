@@ -19,6 +19,7 @@
     <!--=============== CSS ===============-->
     <link rel="stylesheet" href="/css/styles.css" />
     <link rel="stylesheet" href="/css/ios-toast.css" />
+    <link rel="stylesheet" href="/css/variant-popup.css" />
 
     <title>Ecommerce Website</title>
   </head>
@@ -74,16 +75,36 @@
                   </p>
                 </td>
                 <td>
-                  <% let isInStock = false; %>
-                  <% for (let x in products.sizes) { %>
-                     <% if (products.sizes[x] >0){ %> 
-                        <% isInStock = true; %>
-                        <% break; %>
-                     <% } %>
-                  <% } %>
-                  <span class="table__price">&#8377;<%= data.price %></span>
+                  <div class="price-container">
+                    <% if (data.hasOffer) { %>
+                      <div class="price-row">
+                        <span class="table__price new-price">&#8377;<%= Math.round(data.finalPrice) %></span>
+                        <span class="discount-badge"><%= data.discountPercentage %>% OFF</span>
+                      </div>
+                      <div class="price-row">
+                        <span class="table__price old-price">&#8377;<%= Math.round(data.originalPrice) %></span>
+                      </div>
+                    <% } else { %>
+                      <span class="table__price">&#8377;<%= Math.round(data.originalPrice || data.price || 0) %></span>
+                    <% } %>
+                  </div>
                 </td>
-                <td><span class="table__stock"><% isInStock?'In Stock':'Out of stock' %>In Stock</span></td>
+                <td>
+                  <% let isInStock = false; %>
+                  <% if (data.sizes && typeof data.sizes === 'object') { %>
+                    <% for (let x in data.sizes) { %>
+                       <% if (data.sizes[x] > 0){ %> 
+                          <% isInStock = true; %>
+                          <% break; %>
+                       <% } %>
+                    <% } %>
+                  <% } else { %>
+                    <% isInStock = true; // Default to in stock if no size info %>
+                  <% } %>
+                  <span class="table__stock <%= isInStock ? 'in-stock' : 'out-of-stock' %>">
+                    <%= isInStock ? 'In Stock' : 'Out of Stock' %>
+                  </span>
+                </td>
                 <td>
                   <a
                      data-price="<%= data.price %>"
@@ -130,6 +151,7 @@
     <!--=============== SWIPER JS ===============-->
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="/js/ios-toast.js"></script>
+    <script src="/js/variantPopup.js"></script>
 
     <!--=============== MAIN JS ===============-->
     <script src="/js/user/main.js"></script>

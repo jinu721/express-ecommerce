@@ -19,7 +19,7 @@ const checkoutRoutes = require('./routes/checkoutRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const walletRoutes = require('./routes/walletRotes');
 const couponRoutes = require('./routes/couponRoutes');
-// New refactored routes
+
 const variantRoutes = require('./routes/variantRoutes');
 const offerRoutes = require('./routes/offerRoutes');
 const brandRoutes = require('./routes/brandRoutes');
@@ -31,7 +31,6 @@ const roleCheck = require('./middlewares/roleCheck');
 const hideLogin = require('./middlewares/hideLogin');
 const countCheck = require('./middlewares/countCheck');
 const adminCheck = require('./middlewares/adminAuth');
-const visitorsCheck = require('./middlewares/countViewers');
 const brudCrumbsMiddleware = require('./middlewares/brudCrumbs');
 
 app.set('view engine','ejs');
@@ -57,7 +56,6 @@ app.use(roleCheck);
 app.use(hideLogin);  
 app.use(countCheck);
 app.use(adminCheck); 
-app.use(visitorsCheck);
 app.use(brudCrumbsMiddleware);
 
 app.use('/register', (req, res, next) => {
@@ -80,7 +78,7 @@ app.use('/', checkoutRoutes);
 app.use('/', orderRoutes); 
 app.use('/', walletRoutes); 
 app.use('/', couponRoutes); 
-// New refactored route handlers
+
 app.use('/', variantRoutes);
 app.use('/', offerRoutes);
 app.use('/', brandRoutes);

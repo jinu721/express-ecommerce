@@ -81,3 +81,216 @@
   color: #86868B;
   line-height: 1.4;
 }
+
+/* Confirmation Dialog Styles */
+.toast-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.toast-confirm-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.toast-confirm-container {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 0;
+  min-width: 320px;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transform: scale(0.9);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.toast-confirm-overlay.show .toast-confirm-container {
+  transform: scale(1);
+}
+
+.toast-confirm-header {
+  text-align: center;
+  padding: 24px 24px 16px;
+}
+
+.toast-confirm-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0 auto 16px;
+}
+
+.toast-confirm-icon.success {
+  background: rgba(52, 199, 89, 0.1);
+  color: #34C759;
+}
+
+.toast-confirm-icon.error {
+  background: rgba(255, 59, 48, 0.1);
+  color: #FF3B30;
+}
+
+.toast-confirm-icon.warning {
+  background: rgba(255, 149, 0, 0.1);
+  color: #FF9500;
+}
+
+.toast-confirm-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1D1D1F;
+  margin: 0;
+}
+
+.toast-confirm-content {
+  padding: 0 24px 24px;
+  text-align: center;
+}
+
+.toast-confirm-message {
+  font-size: 14px;
+  color: #86868B;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.toast-confirm-actions {
+  display: flex;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.toast-btn {
+  flex: 1;
+  padding: 16px;
+  border: none;
+  background: none;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.toast-btn:first-child {
+  border-right: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.toast-btn-cancel {
+  color: #86868B;
+}
+
+.toast-btn-cancel:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.toast-btn-confirm {
+  font-weight: 600;
+}
+
+.toast-btn-confirm.success {
+  color: #34C759;
+}
+
+.toast-btn-confirm.error {
+  color: #FF3B30;
+}
+
+.toast-btn-confirm.warning {
+  color: #FF9500;
+}
+
+.toast-btn-confirm:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .toast-container {
+    right: 10px;
+    left: 10px;
+  }
+  
+  .toast {
+    min-width: auto;
+  }
+  
+  .toast-confirm-container {
+    margin: 20px;
+    min-width: auto;
+  }
+}
+
+/* Wishlist Price Styling */
+.price-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.price-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table__price.new-price {
+  font-weight: 700;
+  color: #059669;
+  font-size: 16px;
+}
+
+.table__price.old-price {
+  font-size: 14px;
+  color: #6b7280;
+  text-decoration: line-through;
+}
+
+.discount-badge {
+  background: #fef3c7;
+  color: #d97706;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.table__price {
+  font-weight: 600;
+  color: #1f2937;
+}
+/* Stock Status Styling */
+.table__stock {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.table__stock.in-stock {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.table__stock.out-of-stock {
+  background: #fee2e2;
+  color: #991b1b;
+}

@@ -30,11 +30,18 @@ class StockService {
 
       // If no variant but attributes provided, find variant
       if (Object.keys(attributes).length > 0) {
-        const foundVariant = await Variant.findOne({
+        // Build query for individual attribute fields
+        const query = {
           product: product._id,
-          attributes: attributes,
           isActive: true
-        });
+        };
+        
+        // Add individual attribute queries
+        for (const [key, value] of Object.entries(attributes)) {
+          query[`attributes.${key}`] = value;
+        }
+        
+        const foundVariant = await Variant.findOne(query);
 
         if (!foundVariant) {
           return {

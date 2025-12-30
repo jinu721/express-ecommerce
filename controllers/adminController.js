@@ -2,7 +2,6 @@ const userModel = require("../models/userModel");
 const productModel = require("../models/productModel");
 const categoryModel = require("../models/categoryModel");
 const orderModel = require("../models/orderModel");
-const visitorModel = require("../models/visitorModel");
 const moment = require("moment");
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
@@ -212,8 +211,6 @@ module.exports = {
         },
       ]);
 
-      const vistors = await visitorModel.find({});
-
       const dashboard = {
         usersCount: users.length,
         productsCount: products.length,
@@ -226,7 +223,6 @@ module.exports = {
         topSellingProducts,
         topSellingCategories,
         topSellingBrands,
-        vistors,
         offersCount,
         brandsCount,
         lowStockCount

@@ -48,6 +48,66 @@ class Toast {
   static info(title, message) {
     this.show({ type: 'info', title, message });
   }
+
+  // Confirmation dialog
+  static confirm(options) {
+    return new Promise((resolve) => {
+      const modal = document.createElement('div');
+      modal.className = 'toast-confirm-overlay';
+      
+      modal.innerHTML = `
+        <div class="toast-confirm-container">
+          <div class="toast-confirm-header">
+            <div class="toast-confirm-icon ${options.type || 'warning'}">
+              ${options.type === 'error' ? '⚠' : options.type === 'success' ? '✓' : '?'}
+            </div>
+            <h3 class="toast-confirm-title">${options.title || 'Confirm'}</h3>
+          </div>
+          <div class="toast-confirm-content">
+            <p class="toast-confirm-message">${options.message || 'Are you sure?'}</p>
+          </div>
+          <div class="toast-confirm-actions">
+            <button class="toast-btn toast-btn-cancel">${options.cancelText || 'Cancel'}</button>
+            <button class="toast-btn toast-btn-confirm ${options.type || 'warning'}">${options.confirmText || 'Confirm'}</button>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      document.body.style.overflow = 'hidden';
+      
+      // Show animation
+      setTimeout(() => modal.classList.add('show'), 10);
+      
+      // Event listeners
+      const cancelBtn = modal.querySelector('.toast-btn-cancel');
+      const confirmBtn = modal.querySelector('.toast-btn-confirm');
+      
+      const cleanup = () => {
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+        setTimeout(() => document.body.removeChild(modal), 300);
+      };
+      
+      cancelBtn.addEventListener('click', () => {
+        cleanup();
+        resolve(false);
+      });
+      
+      confirmBtn.addEventListener('click', () => {
+        cleanup();
+        resolve(true);
+      });
+      
+      // Close on overlay click
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          cleanup();
+          resolve(false);
+        }
+      });
+    });
+  }
 }
 
 // Make Toast available globally

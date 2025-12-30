@@ -6,7 +6,25 @@ const pricingService = require("../services/pricingService");
 const stockService = require("../services/stockService");
 
 module.exports = {
-  // ~~~ Load Wishlist Page ~~~
+  // ~~~ Get Wishlist API ~~~
+  async getWishlistAPI(req, res) {
+    const { currentId } = req.session;
+    try {
+      if (!req.session.loggedIn) {
+        return res.status(200).json({ items: [] });
+      }
+
+      const wishlist = await wishlistModel.findOne({ userId: currentId }).populate('items.productId');
+      if (!wishlist || wishlist.items.length === 0) {
+        return res.status(200).json({ items: [] });
+      }
+      
+      return res.status(200).json({ items: wishlist.items });
+    } catch (err) {
+      console.log(err);
+      res.status(500).json({ items: [] });
+    }
+  },
   async wishlistLoad(req, res) {
     const { currentId } = req.session;
     try {
@@ -72,10 +90,10 @@ module.exports = {
     }
   },
 
-  // ~~~ Add Item to Wishlist ~~~
+  // ~~~ Add Item to Wishlist (Updated - No Variant Required) ~~~
   async addToWishlist(req, res) {
     const { productId } = req.params;
-    const { size, color, variantId } = req.body; // variantId from body
+    const { size = 'N/A', color = 'N/A', variantId, attributes = {} } = req.body;
 
     try {
       if (!req.session.loggedIn) {
@@ -87,7 +105,12 @@ module.exports = {
       if (!wishlist) {
         wishlist = await wishlistModel.create({
           userId: req.session.currentId,
-          items: [{ productId, size, color, variantId }],
+          items: [{ 
+            productId, 
+            size, 
+            color, 
+            variantId 
+          }],
         });
 
         return res.status(200).json({
@@ -97,19 +120,21 @@ module.exports = {
         });
       }
 
-      // Check duplicate (using variantId if available, else size/color)
-      const index = wishlist.items.findIndex((item) => {
-          if (variantId && item.variantId) {
-              return item.variantId.toString() === variantId;
-          }
-          return item.productId.toString() === productId && item.size === size && item.color === color;
-      });
+      // Check duplicate - for wishlist, we only check product (no variant required)
+      const existingItem = wishlist.items.find((item) => 
+        item.productId.toString() === productId
+      );
 
-      if (index > -1) {
+      if (existingItem) {
         return res.status(200).json({ val: false, msg: "Item already in wishlist" });
       }
 
-      wishlist.items.push({ productId, size, color, variantId });
+      wishlist.items.push({ 
+        productId, 
+        size, 
+        color, 
+        variantId 
+      });
       await wishlist.save();
 
       return res.status(200).json({
@@ -125,7 +150,7 @@ module.exports = {
 
   // ~~~ Add Item from Wishlist to Cart (Refactored) ~~~
   async addToCartFromWishlist(req, res) {
-    const { wishlistItemId } = req.body;
+    const { wishlistItemId, variantId: requestVariantId, quantity: requestQuantity, attributes: requestAttributes } = req.body;
 
     try {
       if (!req.session.loggedIn) {
@@ -138,41 +163,70 @@ module.exports = {
       const item = wishlist.items.find((item) => item._id.toString() === wishlistItemId);
       if (!item) return res.status(404).json({ val: false, msg: "Item not found in wishlist" });
 
-      const { productId, size, color, quantity = 1, variantId } = item;
+      const { productId, size, color, quantity: itemQuantity = 1, variantId: itemVariantId } = item;
       const product = await productModel.findById(productId);
       if (!product) return res.status(404).json({ val: false, msg: "Product not found" });
 
+      // Use request data if provided (from variant popup), otherwise use wishlist item data
+      const finalQuantity = requestQuantity || itemQuantity;
+      const finalVariantId = requestVariantId || itemVariantId;
+      const finalAttributes = requestAttributes || {};
+
       // Resolve Variant
       let variant = null;
-      if (variantId) {
-          variant = await Variant.findById(variantId);
-      } else {
+      if (finalVariantId) {
+          variant = await Variant.findById(finalVariantId);
+      } else if (Object.keys(finalAttributes).length > 0) {
+          // Find variant by attributes from popup selection
+          const query = { product: productId, isActive: true };
+          for (const [key, value] of Object.entries(finalAttributes)) {
+              query[`attributes.${key}`] = value;
+          }
+          variant = await Variant.findOne(query);
+      } else if (size !== 'N/A' || color !== 'N/A') {
+          // Try to find variant by wishlist item attributes only if they're not N/A
           variant = await Variant.findOne({
               product: productId,
-              'attributes.size': size,
-              'attributes.color': color
+              'attributes.SIZE': size !== 'N/A' ? size : undefined,
+              'attributes.COLOR': color !== 'N/A' ? color : undefined
+          });
+      }
+
+      // Check if product has variants but no variant was found
+      const hasVariants = await Variant.countDocuments({ product: productId, isActive: true });
+      
+      if (hasVariants > 0 && !variant && !requestVariantId) {
+          return res.status(400).json({ 
+              val: false, 
+              msg: "Please select product options",
+              requiresVariantSelection: true,
+              productId: productId
           });
       }
 
       // Check Stock
-      const stockCheck = await stockService.checkStock(product, variant, quantity, size);
+      const stockAttributes = Object.keys(finalAttributes).length > 0 ? finalAttributes : {};
+      if (!stockAttributes.SIZE && size && size !== 'N/A') stockAttributes.SIZE = size;
+      if (!stockAttributes.COLOR && color && color !== 'N/A') stockAttributes.COLOR = color;
+      
+      const stockCheck = await stockService.checkStock(product, variant, finalQuantity, stockAttributes);
       if (!stockCheck.available) {
           return res.status(400).json({ val: false, msg: `Stock unavailable: ${stockCheck.reason}` });
       }
 
       // Calculate Price
-      const pricing = await pricingService.calculateProductPrice(product, variant, quantity, req.user); // req.user might need middleware population
+      const pricing = await pricingService.calculateBestOffer(product, finalQuantity, req.session.currentId, variant);
 
       // Add to Cart Logic (Simplified from cartController)
       let cart = await cartModel.findOne({ userId: req.session.currentId });
       const newItemData = {
           productId,
           variantId: variant ? variant._id : null,
-          quantity,
-          size,
-          color,
+          quantity: finalQuantity,
+          size: variant ? (variant.attributes.get('SIZE') || size) : size,
+          color: variant ? (variant.attributes.get('COLOR') || color) : color,
           price: pricing.finalPrice,
-          total: pricing.finalPrice * quantity
+          total: pricing.finalPrice * finalQuantity
       };
 
       if (!cart) {
@@ -188,7 +242,7 @@ module.exports = {
           });
 
           if (existingIndex > -1) {
-              cart.items[existingIndex].quantity += quantity;
+              cart.items[existingIndex].quantity += finalQuantity;
               cart.items[existingIndex].total += newItemData.total; // Approx, should recalculate but ok for this flow
           } else {
               cart.items.push(newItemData);

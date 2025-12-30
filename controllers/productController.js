@@ -245,10 +245,18 @@ module.exports = {
         return res.status(404).render("404");
       }
 
-      const isAlreadyWishlist = await wishlistModel.findOne({
+      const wishlistData = await wishlistModel.findOne({
         userId: req.session.currentId,
         "items.productId": productId,
       });
+      
+      const isAlreadyWishlist = !!wishlistData;
+      let wishlistItemId = null;
+      
+      if (wishlistData) {
+        const wishlistItem = wishlistData.items.find(item => item.productId.toString() === productId);
+        wishlistItemId = wishlistItem ? wishlistItem._id : null;
+      }
 
       // Find related products (handle brand being ObjectId or String for safety)
       const relatedQuery = { 
@@ -332,6 +340,7 @@ module.exports = {
         category: product.category,
         isBuyedUser: !!isBuyedUser,
         isAlreadyWishlist,
+        wishlistItemId,
       });
     } catch (err) {
       console.error(err);
@@ -395,8 +404,8 @@ module.exports = {
 
   async getBrandsAPI(req, res) {
     try {
-      const brands = await Brand.find({ isDeleted: false })
-        .select('_id name description')
+      const brands = await Brand.find({ isActive: true })
+        .select('_id name description productCount')
         .sort({ name: 1 });
       
       res.json({ items: brands });
@@ -946,6 +955,128 @@ module.exports = {
       res.status(500).json({
         val: false,
         msg: "An error occurred while deleting the review",
+      });
+    }
+  },
+
+  // ~~~ Get Product Popup Data API ~~~
+  // Purpose: Provides product data for variant selection popup
+  async getProductPopupData(req, res) {
+    const { id } = req.params;
+    
+    // Helper function for color hex codes
+    const getColorHex = (colorName) => {
+      const colorMap = {
+        'red': '#ff0000',
+        'blue': '#0000ff',
+        'green': '#008000',
+        'black': '#000000',
+        'white': '#ffffff',
+        'yellow': '#ffff00',
+        'pink': '#ffc0cb',
+        'purple': '#800080',
+        'orange': '#ffa500',
+        'brown': '#a52a2a',
+        'gray': '#808080',
+        'grey': '#808080'
+      };
+      
+      return colorMap[colorName.toLowerCase()] || '#cccccc';
+    };
+    
+    try {
+      const product = await productModel.findById(id)
+        .populate('brand', 'name')
+        .populate('category', 'name');
+      
+      if (!product) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Product not found' 
+        });
+      }
+
+      // Calculate offer pricing
+      const offerResult = await pricingService.calculateBestOffer(product, 1, req.session.currentId);
+      
+      const productData = {
+        ...product.toObject(),
+        originalPrice: offerResult.originalPrice,
+        finalPrice: offerResult.finalPrice,
+        discount: offerResult.discount,
+        discountPercentage: offerResult.discountPercentage,
+        hasOffer: offerResult.hasOffer,
+        offer: offerResult.offer
+      };
+
+      // Get variants if they exist
+      const variants = await Variant.find({ product: id, isActive: true });
+      
+      console.log(`Found ${variants.length} variants for product ${id}`);
+      
+      // Get attributes if variants exist
+      let attributes = [];
+      if (variants.length > 0) {
+        const attributeMap = new Map();
+        
+        variants.forEach(variant => {
+          if (variant.attributes) {
+            // Handle both Map and Object formats
+            const attrs = variant.attributes instanceof Map ? 
+              Object.fromEntries(variant.attributes) : 
+              variant.attributes;
+              
+            Object.keys(attrs).forEach(key => {
+              if (!attributeMap.has(key)) {
+                attributeMap.set(key, new Set());
+              }
+              attributeMap.get(key).add(attrs[key]);
+            });
+          }
+        });
+        
+        attributes = Array.from(attributeMap.entries()).map(([key, values]) => ({
+          name: key,
+          displayName: key.charAt(0).toUpperCase() + key.slice(1).toLowerCase(),
+          type: key.toLowerCase() === 'color' ? 'COLOR_PICKER' : 'DROPDOWN',
+          isRequired: true,
+          values: Array.from(values).map(value => ({
+            value: value,
+            displayValue: value,
+            hexCode: key.toLowerCase() === 'color' ? getColorHex(value) : null
+          }))
+        }));
+        
+        console.log('Extracted attributes:', attributes);
+      }
+
+      // Format variants for frontend
+      const formattedVariants = variants.map(v => {
+        const attrs = v.attributes instanceof Map ? 
+          Object.fromEntries(v.attributes) : 
+          v.attributes || {};
+          
+        return {
+          ...v.toObject(),
+          attributes: attrs,
+          availableStock: Math.max(0, v.stock - (v.reserved || 0))
+        };
+      });
+
+      console.log('Formatted variants:', formattedVariants.length);
+
+      res.json({
+        success: true,
+        product: productData,
+        variants: formattedVariants,
+        attributes
+      });
+
+    } catch (error) {
+      console.error('Error fetching product popup data:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to load product data' 
       });
     }
   },
