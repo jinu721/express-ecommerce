@@ -385,7 +385,7 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
   console.log(selectedAddressId);
   const item = e.target.getAttribute("data-item");
   const delivaryChargeELem = document.querySelector('.delivaryCharge');
-  let delivaryChargePrice = "0"; 
+  let delivaryChargePrice = "0";
   if (delivaryChargeELem) {
     if (delivaryChargeELem.value && delivaryChargeELem.value !== "Free Shipping") {
       delivaryChargePrice = delivaryChargeELem.value;
@@ -398,7 +398,7 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
   const parsedItem = JSON.parse(item);
   console.log(parsedItem);
   console.log(isOfferApplied, code);
-  
+
 
   if (!selectedAddressId) {
     showToast("Please select an address", 'error');
@@ -429,7 +429,7 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
         if (selectedPayment === "razorpay") {
           let paymentSuccess = false;
           let paymentInProgress = false;
-          let isPaymentHandled = false; 
+          let isPaymentHandled = false;
 
           const options = {
             key: data.key,
@@ -439,7 +439,7 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
             description: "Order Payment",
             order_id: data.order.id,
             handler: async function (paymentResponse) {
-              if (isPaymentHandled) return; 
+              if (isPaymentHandled) return;
               isPaymentHandled = true;
 
               try {
@@ -504,7 +504,7 @@ document.querySelector(".btnPlaceOrder").addEventListener("click", async (e) => 
           });
 
           const rzp = new Razorpay(options);
-          
+
           rzp.on("payment.failed", function (response) {
             if (isPaymentHandled) return;
             isPaymentHandled = true;
@@ -547,7 +547,8 @@ document.querySelector(".btncouponAplly").addEventListener("click", async (e) =>
 
   // Get current total from the page
   const totalElement = document.querySelector(".order__grand-total");
-  const currentTotal = parseInt(totalElement.textContent.replace(/[^\d]/g, ''));
+  const currentTotalText = totalElement.textContent.replace(/[^\d.]/g, '');
+  const currentTotal = parseFloat(currentTotalText);
 
   // Disable input and button during processing
   couponInput.setAttribute("readonly", "true");
@@ -577,14 +578,14 @@ document.querySelector(".btncouponAplly").addEventListener("click", async (e) =>
       applyCouponBtn.innerHTML = '<i class="fas fa-tag"></i> Apply';
     } else {
       showToast(data.msg, 'success');
-      
+
       // Update the order table with discount
       updateOrderTableWithDiscount(data.originalPrice, data.discountedPrice, data.discount);
-      
+
       // Show delete button
       deleteCouponBtn.style.display = "block";
       applyCouponBtn.style.display = "none";
-      
+
       // Set global variables
       isOfferApplied = true;
       code = couponInput.value.trim();
@@ -602,7 +603,7 @@ document.querySelector(".btncouponAplly").addEventListener("click", async (e) =>
 function updateOrderTableWithDiscount(originalPrice, discountedPrice, discount) {
   const orderTable = document.querySelector(".order__table tbody");
   const totalRow = orderTable.querySelector("tr:last-child");
-  
+
   // Check if discount row already exists
   let discountRow = orderTable.querySelector(".discount-row");
   if (!discountRow) {
@@ -611,19 +612,19 @@ function updateOrderTableWithDiscount(originalPrice, discountedPrice, discount) 
     discountRow.className = "discount-row";
     discountRow.innerHTML = `
       <td><span class="order__subtitle" style="color: #28a745;">Coupon Discount</span></td>
-      <td colspan="2"><span class="table__price" style="color: #28a745;">-&#8377;<span class="discount-amount">${discount}</span></span></td>
+      <td colspan="2"><span class="table__price" style="color: #28a745;">-&#8377;<span class="discount-amount">${Number(discount).toFixed(2)}</span></span></td>
     `;
-    
+
     // Insert before the total row
     orderTable.insertBefore(discountRow, totalRow);
   } else {
     // Update existing discount row
-    discountRow.querySelector(".discount-amount").textContent = discount;
+    discountRow.querySelector(".discount-amount").textContent = Number(discount).toFixed(2);
   }
-  
+
   // Update total
   const totalElement = totalRow.querySelector(".order__grand-total");
-  totalElement.innerHTML = `&#8377;${discountedPrice}`;
+  totalElement.innerHTML = `&#8377;${Number(discountedPrice).toFixed(2)}`;
 }
 
 document.querySelector(".btncouponDelete").addEventListener("click", async (e) => {
@@ -645,26 +646,26 @@ document.querySelector(".btncouponDelete").addEventListener("click", async (e) =
 
     const data = await response.json();
     console.log("Remove coupon response:", data);
-    
+
     if (data.val) {
       // Remove discount row from table
       const discountRow = document.querySelector(".discount-row");
       if (discountRow) {
         discountRow.remove();
       }
-      
+
       // Recalculate and update total (you might need to reload or recalculate)
       location.reload(); // Simple solution - reload the page
-      
+
       showToast("Coupon removed successfully", 'success');
-      
+
       // Reset form
       couponInput.value = "";
       couponInput.removeAttribute("readonly");
       applyCouponBtn.disabled = false;
       applyCouponBtn.style.display = "block";
       deleteCouponBtn.style.display = "none";
-      
+
       // Reset global variables
       isOfferApplied = false;
       code = null;
@@ -694,7 +695,7 @@ function showToast(message, type = 'info') {
     opacity: 0;
     transition: opacity 0.3s ease;
   `;
-  
+
   // Set background color based on type
   const colors = {
     success: '#28a745',
@@ -702,18 +703,18 @@ function showToast(message, type = 'info') {
     info: '#17a2b8',
     warning: '#ffc107'
   };
-  
+
   toast.style.backgroundColor = colors[type] || colors.info;
   toast.textContent = message;
-  
+
   // Add to page
   document.body.appendChild(toast);
-  
+
   // Show toast
   setTimeout(() => {
     toast.style.opacity = '1';
   }, 100);
-  
+
   // Hide and remove toast
   setTimeout(() => {
     toast.style.opacity = '0';

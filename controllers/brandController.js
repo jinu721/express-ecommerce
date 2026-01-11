@@ -3,16 +3,9 @@ const Product = require('../models/productModel');
 const fs = require('fs').promises;
 const path = require('path');
 
-/**
- * Brand Controller
- * Handles brand management operations
- */
 
 module.exports = {
-  /**
-   * List all active brands (Public)
-   * GET /api/brands
-   */
+
   async listBrands(req, res) {
     try {
       const brands = await Brand.find({ isActive: true })
@@ -34,10 +27,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Get brand details (Public)
-   * GET /api/brands/:brandId
-   */
   async getBrandDetails(req, res) {
     try {
       const { brandId } = req.params;
@@ -64,10 +53,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Get products by brand (Public)
-   * GET /api/brands/:brandId/products
-   */
   async getBrandProducts(req, res) {
     try {
       const { brandId } = req.params;
@@ -117,10 +102,6 @@ module.exports = {
     }
   },
 
-  /**
-   * List all brands for admin (Admin)
-   * GET /admin/brands
-   */
   async adminListBrands(req, res) {
     try {
       const { page = 1, limit = 10, search, isActive } = req.query;
@@ -141,7 +122,6 @@ module.exports = {
       const count = await Brand.countDocuments(query);
       const totalPages = Math.ceil(count / limit);
 
-      // If AJAX request, return JSON (useful for search/pagination dynamically)
       if (req.xhr || req.headers.accept.indexOf('json') > -1) {
          return res.json({
             success: true,
@@ -168,15 +148,10 @@ module.exports = {
     }
   },
 
-  /**
-   * Create brand (Admin)
-   * POST /admin/brands
-   */
   async createBrand(req, res) {
     try {
       const { name, description } = req.body;
 
-      // Check if brand already exists
       const existingBrand = await Brand.findOne({ name });
       if (existingBrand) {
         return res.status(400).json({
@@ -191,7 +166,6 @@ module.exports = {
         isActive: true
       };
 
-      // Add logo if uploaded
       if (req.file) {
         brandData.logo = `uploads/brands/${req.file.filename}`;
       }

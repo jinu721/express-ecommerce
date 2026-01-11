@@ -228,7 +228,7 @@
                       <h3 class="table__title"><%= product.name %></h3>
                       <p class="table__quantity">x <%= quantity %></p>
                     </td>
-                    <td><span class="table__price">&#8377;<%= isNaN(product.totalPrice) ? '0' : Math.round(product.totalPrice) %></span></td>
+                    <td><span class="table__price">&#8377;<%= isNaN(product.totalPrice) ? '0.00' : Number(product.totalPrice).toFixed(2) %></span></td>
                   </tr>
                   <% calculatedSubTotal = product.totalPrice || 0; %>
                 <% } else { %>
@@ -251,20 +251,20 @@
                         <h3 class="table__title"><%= data.name %></h3>
                         <p class="table__quantity">x <%= data.quantity %></p>
                       </td>
-                      <td><span class="table__price">&#8377;<%= isNaN(itemTotal) ? '0' : Math.round(itemTotal) %></span></td>
+                      <td><span class="table__price">&#8377;<%= isNaN(itemTotal) ? '0.00' : Number(itemTotal).toFixed(2) %></span></td>
                     </tr>
                   <% }); %>
                 <% } %>
               
                 <tr>
                   <td><span class="order__subtitle">Subtotal</span></td>
-                  <td colspan="2"><span class="table__price">&#8377;<%= isNaN(subtotal || calculatedSubTotal) ? '0' : Math.round(subtotal || calculatedSubTotal) %></span></td>
+                  <td colspan="2"><span class="table__price">&#8377;<%= isNaN(subtotal || calculatedSubTotal) ? '0.00' : Number(subtotal || calculatedSubTotal).toFixed(2) %></span></td>
                 </tr>
                 
                 <% if (typeof discount !== 'undefined' && discount > 0) { %>
                 <tr>
                   <td><span class="order__subtitle">Discount</span></td>
-                  <td colspan="2"><span class="table__price" style="color: #28a745;">-&#8377;<%= Math.round(discount) %></span></td>
+                  <td colspan="2"><span class="table__price" style="color: #28a745;">-&#8377;<%= Number(discount).toFixed(2) %></span></td>
                 </tr>
                 <% } %>
                 
@@ -272,7 +272,7 @@
                   <td><span class="order__subtitle">Shipping</span></td>
                   <td colspan="2">
                     <% if(deliveryCharge && deliveryCharge > 0){ %>
-                      <span class="table__price">&#8377;<span class="delivaryCharge"><%= deliveryCharge %></span></span>
+                      <span class="table__price">&#8377;<span class="delivaryCharge"><%= Number(deliveryCharge).toFixed(2) %></span></span>
                     <% }else{ %>
                       <span class="table__price delivaryCharge">Free Shipping</span>
                     <% } %>
@@ -282,7 +282,7 @@
                 <% if (typeof walletBalance !== 'undefined') { %>
                 <tr style="background-color: #f8f9fa;">
                   <td><span class="order__subtitle" style="color: #007bff;"><i class="fas fa-wallet"></i> Wallet Balance</span></td>
-                  <td colspan="2"><span class="table__price" style="color: #007bff; font-weight: bold;">&#8377;<%= Math.round(walletBalance || 0) %></span></td>
+                  <td colspan="2"><span class="table__price" style="color: #007bff; font-weight: bold;">&#8377;<%= Number(walletBalance || 0).toFixed(2) %></span></td>
                 </tr>
                 <% } %>
                 
@@ -290,7 +290,7 @@
                   <td><span class="order__subtitle" style="font-weight: bold; font-size: 1.1rem;">Total</span></td>
                   <td colspan="2">
                     <span class="order__grand-total" style="font-weight: bold; font-size: 1.2rem; color: #28a745;">
-                      &#8377;<%= isNaN(total) ? '0' : Math.round(total) %>
+                      &#8377;<%= isNaN(total) ? '0.00' : Number(total).toFixed(2) %>
                     </span>
                   </td>
                 </tr>

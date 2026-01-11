@@ -6,11 +6,11 @@ class Toast {
   static show(options) {
     const toast = document.createElement('div');
     toast.className = 'toast-container';
-    
-    const icon = options.type === 'success' ? '✓' : 
-                 options.type === 'error' ? '✕' : 
-                 options.type === 'warning' ? '⚠' : 'ℹ';
-    
+
+    const icon = options.type === 'success' ? '✓' :
+      options.type === 'error' ? '✕' :
+        options.type === 'warning' ? '⚠' : 'ℹ';
+
     toast.innerHTML = `
       <div class="toast toast-${options.type || 'info'}">
         <div class="toast-icon">${icon}</div>
@@ -20,33 +20,48 @@ class Toast {
         </div>
       </div>
     `;
-    
+
     document.body.appendChild(toast);
-    
+
     // Show animation
     setTimeout(() => toast.classList.add('show'), 100);
-    
+
     // Auto hide
+    const duration = options.duration !== undefined ? options.duration : 3000;
+
+    if (duration > 0) {
+      setTimeout(() => {
+        this.hide(toast);
+      }, duration);
+    }
+
+    return toast;
+  }
+
+  static hide(toast) {
+    if (!toast) return;
+    toast.classList.remove('show');
     setTimeout(() => {
-      toast.classList.remove('show');
-      setTimeout(() => document.body.removeChild(toast), 300);
-    }, options.duration || 3000);
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    }, 300);
   }
-  
-  static success(title, message) {
-    this.show({ type: 'success', title, message });
+
+  static success(title, message, options = {}) {
+    return this.show({ type: 'success', title, message, ...options });
   }
-  
-  static error(title, message) {
-    this.show({ type: 'error', title, message });
+
+  static error(title, message, options = {}) {
+    return this.show({ type: 'error', title, message, ...options });
   }
-  
-  static warning(title, message) {
-    this.show({ type: 'warning', title, message });
+
+  static warning(title, message, options = {}) {
+    return this.show({ type: 'warning', title, message, ...options });
   }
-  
-  static info(title, message) {
-    this.show({ type: 'info', title, message });
+
+  static info(title, message, options = {}) {
+    return this.show({ type: 'info', title, message, ...options });
   }
 
   // Confirmation dialog
@@ -54,7 +69,7 @@ class Toast {
     return new Promise((resolve) => {
       const modal = document.createElement('div');
       modal.className = 'toast-confirm-overlay';
-      
+
       modal.innerHTML = `
         <div class="toast-confirm-container">
           <div class="toast-confirm-header">
@@ -72,33 +87,33 @@ class Toast {
           </div>
         </div>
       `;
-      
+
       document.body.appendChild(modal);
       document.body.style.overflow = 'hidden';
-      
+
       // Show animation
       setTimeout(() => modal.classList.add('show'), 10);
-      
+
       // Event listeners
       const cancelBtn = modal.querySelector('.toast-btn-cancel');
       const confirmBtn = modal.querySelector('.toast-btn-confirm');
-      
+
       const cleanup = () => {
         modal.classList.remove('show');
         document.body.style.overflow = '';
         setTimeout(() => document.body.removeChild(modal), 300);
       };
-      
+
       cancelBtn.addEventListener('click', () => {
         cleanup();
         resolve(false);
       });
-      
+
       confirmBtn.addEventListener('click', () => {
         cleanup();
         resolve(true);
       });
-      
+
       // Close on overlay click
       modal.addEventListener('click', (e) => {
         if (e.target === modal) {

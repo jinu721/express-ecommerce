@@ -21,13 +21,13 @@ document.getElementById('submitButton').addEventListener('click', () => {
   } else if (!validUntil) {
     document.getElementById('validUntilError').textContent = 'Valid Until date is required!';
     return;
-  }else if (!minPurchase || isNaN(minPurchase) || minPurchase <= 0) {
+  } else if (!minPurchase || isNaN(minPurchase) || minPurchase <= 0) {
     document.getElementById('minPurchaseError').textContent = 'Enter a valid Minimum Purchase amount!';
     return;
   } else if (!maxDiscount || isNaN(maxDiscount) || maxDiscount <= 0) {
     document.getElementById('maxDiscountError').textContent = 'Enter a valid Maximum Discount amount!';
     return;
-  }else if (new Date(validFrom) >= new Date(validUntil)) {
+  } else if (new Date(validFrom) >= new Date(validUntil)) {
     document.getElementById('validUntilError').textContent = 'Valid Until must be after Valid From!';
     return;
   } else if (!usageLimit || isNaN(usageLimit) || usageLimit <= 0) {
@@ -57,82 +57,36 @@ document.getElementById('submitButton').addEventListener('click', () => {
       const dataResponse = await response.json();
       console.log(dataResponse);
       if (dataResponse.val) {
-        showToast('Coupon created successfully!', 'success');
+        Toast.success('Success', 'Coupon created successfully!');
         setTimeout(() => {
           window.location.href = "/admin/coupons";
         }, 2000);
       } else {
-        if(dataResponse.isCodeError){
-          console.log('hii')
+        if (dataResponse.isCodeError) {
           document.getElementById('couponCodeError').textContent = dataResponse.msg;
           return
-        }else{
-          showToast(dataResponse.msg || 'Failed to create coupon', 'error');
+        } else {
+          Toast.error('Error', dataResponse.msg || 'Failed to create coupon');
         }
       }
     } catch (err) {
       console.error('Create coupon error:', err);
-      showToast('Something went wrong. Please try again.', 'error');
+      Toast.error('Error', 'Something went wrong. Please try again.');
     }
   }
-
-// Toast function for admin
-function showToast(message, type = 'info') {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    padding: 15px 20px;
-    border-radius: 5px;
-    color: white;
-    font-weight: bold;
-    z-index: 10000;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    max-width: 300px;
-  `;
-  
-  const colors = {
-    success: '#28a745',
-    error: '#dc3545',
-    info: '#17a2b8',
-    warning: '#ffc107'
-  };
-  
-  toast.style.backgroundColor = colors[type] || colors.info;
-  toast.textContent = message;
-  
-  document.body.appendChild(toast);
-  
-  setTimeout(() => {
-    toast.style.opacity = '1';
-  }, 100);
-  
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => {
-      if (toast.parentNode) {
-        toast.parentNode.removeChild(toast);
-      }
-    }, 300);
-  }, 3000);
-}
   createCoupon();
 });
 
 
 function generateCouponCode() {
-    const brand = "SYMTERON";
-    const randomLetters = Math.random().toString(36).substring(2, 4).toUpperCase(); 
-    const randomNumbers = Math.floor(1000 + Math.random() * 9000); 
-    return `${brand}-${randomLetters}${randomNumbers}`;
-  }
-  
-  document.getElementById('generateCouponBtn').addEventListener('click', () => {
-    const couponCode = generateCouponCode();
-    document.getElementById('couponCode').value = couponCode;
-  });
-  
-  
+  const brand = "SYMTERON";
+  const randomLetters = Math.random().toString(36).substring(2, 4).toUpperCase();
+  const randomNumbers = Math.floor(1000 + Math.random() * 9000);
+  return `${brand}-${randomLetters}${randomNumbers}`;
+}
+
+document.getElementById('generateCouponBtn').addEventListener('click', () => {
+  const couponCode = generateCouponCode();
+  document.getElementById('couponCode').value = couponCode;
+});
+

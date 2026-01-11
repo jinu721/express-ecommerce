@@ -10,11 +10,11 @@ let orderStatusChartInstance = null;
 
 // Filter button handling
 document.querySelectorAll('.filter-btn').forEach(btn => {
-  btn.addEventListener('click', function() {
+  btn.addEventListener('click', function () {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     this.classList.add('active');
     currentRange = this.dataset.range;
-    
+
     const customInputs = document.getElementById('customDateInputs');
     if (currentRange === 'custom') {
       customInputs.classList.add('show');
@@ -28,26 +28,26 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
 async function loadDashboard() {
   try {
     let url = `/admin/dashboard/data?range=${currentRange}`;
-    
+
     if (currentRange === 'custom') {
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
-      
+
       if (!startDate || !endDate) {
         Toast.error('Error', 'Please select both start and end dates');
         return;
       }
-      
+
       url += `&startDate=${startDate}&endDate=${endDate}`;
     }
-    
+
     console.log('Loading dashboard data from:', url);
-    
+
     const response = await fetch(url);
     const data = await response.json();
-    
+
     console.log('Dashboard data received:', data);
-    
+
     if (data.val) {
       updateDashboard(data.dashboard);
       updateCharts(data.dashboard);
@@ -72,11 +72,11 @@ function updateDashboard(dashboard) {
   document.getElementById('pendingMoney').textContent = `₹${(dashboard.totalPendingMoney || 0).toLocaleString()}`;
   document.getElementById('activeOffers').textContent = dashboard.offersCount || 0;
   document.getElementById('lowStock').textContent = dashboard.lowStockCount || 0;
-  
+
   // Update categories with better display
   const categoriesGrid = document.getElementById('categoriesGrid');
   categoriesGrid.innerHTML = '';
-  
+
   if (dashboard.categories && dashboard.categories.length > 0) {
     dashboard.categories.slice(0, 8).forEach(category => { // Show top 8 categories
       const categoryCard = document.createElement('div');
@@ -91,7 +91,7 @@ function updateDashboard(dashboard) {
   } else {
     categoriesGrid.innerHTML = '<div class="col-12"><p class="text-muted text-center">No categories found</p></div>';
   }
-  
+
   // Show additional stats if available
   if (dashboard.couponDiscounts > 0) {
     console.log(`Total coupon discounts: ₹${dashboard.couponDiscounts.toLocaleString()}`);
@@ -107,31 +107,31 @@ function updateCharts(dashboard) {
     revenueTrend: dashboard.revenueTrend?.length || 0,
     orderStatusDistribution: dashboard.orderStatusDistribution?.length || 0
   });
-  
+
   try {
     updateTopSellingProductsChart(dashboard.topSellingProducts || []);
   } catch (error) {
     console.error('Error updating products chart:', error);
   }
-  
+
   try {
     updateTopSellingCategoriesChart(dashboard.topSellingCategories || []);
   } catch (error) {
     console.error('Error updating categories chart:', error);
   }
-  
+
   try {
     updateTopSellingBrandsChart(dashboard.topSellingBrands || []);
   } catch (error) {
     console.error('Error updating brands chart:', error);
   }
-  
+
   try {
     updateRevenueTrendChart(dashboard.revenueTrend || []);
   } catch (error) {
     console.error('Error updating revenue chart:', error);
   }
-  
+
   try {
     updateOrderStatusChart(dashboard.orderStatusDistribution || []);
   } catch (error) {
@@ -151,7 +151,7 @@ function generateColors(count) {
     'rgba(245, 158, 11, 0.8)',
     'rgba(239, 68, 68, 0.8)'
   ];
-  
+
   return Array.from({ length: count }, (_, i) => colors[i % colors.length]);
 }
 
@@ -159,11 +159,11 @@ function generateColors(count) {
 function updateTopSellingProductsChart(products) {
   const ctx = document.getElementById("topSellingChart");
   if (!ctx) return;
-  
+
   if (topSellingProductsChartInstance) {
     topSellingProductsChartInstance.destroy();
   }
-  
+
   // Handle empty data
   if (!products || products.length === 0) {
     const parent = ctx.parentElement;
@@ -176,19 +176,19 @@ function updateTopSellingProductsChart(products) {
     }
     return;
   }
-  
+
   // Remove no data message if exists
   const parent = ctx.parentElement;
   const noDataMsg = parent.querySelector('.no-data-message');
   if (noDataMsg) noDataMsg.remove();
-  
+
   const labels = products.map(item => {
     const name = item.productName || 'Unknown Product';
     return name.length > 20 ? name.substring(0, 20) + '...' : name;
   });
   const data = products.map(item => item.totalQuantity || 0);
   const colors = generateColors(products.length);
-  
+
   topSellingProductsChartInstance = new Chart(ctx, {
     type: "bar",
     data: {
@@ -210,7 +210,7 @@ function updateTopSellingProductsChart(products) {
         },
         tooltip: {
           callbacks: {
-            title: function(context) {
+            title: function (context) {
               const index = context[0].dataIndex;
               return products[index]?.productName || 'Unknown Product';
             }
@@ -238,11 +238,11 @@ function updateTopSellingProductsChart(products) {
 function updateTopSellingCategoriesChart(categories) {
   const ctx = document.getElementById("topSellingCategoriesChart");
   if (!ctx) return;
-  
+
   if (topSellingCategoriesChartInstance) {
     topSellingCategoriesChartInstance.destroy();
   }
-  
+
   // Handle empty data
   if (!categories || categories.length === 0) {
     ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
@@ -256,16 +256,16 @@ function updateTopSellingCategoriesChart(categories) {
     }
     return;
   }
-  
+
   // Remove no data message if exists
   const parent = ctx.parentElement;
   const noDataMsg = parent.querySelector('.no-data-message');
   if (noDataMsg) noDataMsg.remove();
-  
+
   const labels = categories.map(item => item.categoryName || 'Unknown Category');
   const data = categories.map(item => item.totalQuantity || 0);
   const colors = generateColors(categories.length);
-  
+
   topSellingCategoriesChartInstance = new Chart(ctx, {
     type: "pie",
     data: {
@@ -293,11 +293,11 @@ function updateTopSellingCategoriesChart(categories) {
 function updateTopSellingBrandsChart(brands) {
   const ctx = document.getElementById("topSellingBrandsChart");
   if (!ctx) return;
-  
+
   if (topSellingBrandsChartInstance) {
     topSellingBrandsChartInstance.destroy();
   }
-  
+
   // Handle empty data
   if (!brands || brands.length === 0) {
     ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
@@ -311,16 +311,16 @@ function updateTopSellingBrandsChart(brands) {
     }
     return;
   }
-  
+
   // Remove no data message if exists
   const parent = ctx.parentElement;
   const noDataMsg = parent.querySelector('.no-data-message');
   if (noDataMsg) noDataMsg.remove();
-  
+
   const labels = brands.map(item => item.brandName || 'Unknown Brand');
   const data = brands.map(item => item.totalQuantity || 0);
   const colors = generateColors(brands.length);
-  
+
   topSellingBrandsChartInstance = new Chart(ctx, {
     type: "doughnut",
     data: {
@@ -348,11 +348,11 @@ function updateTopSellingBrandsChart(brands) {
 function updateRevenueTrendChart(revenueTrend) {
   const ctx = document.getElementById("revenueTrendChart");
   if (!ctx) return;
-  
+
   if (revenueTrendChartInstance) {
     revenueTrendChartInstance.destroy();
   }
-  
+
   // Handle empty data
   if (!revenueTrend || revenueTrend.length === 0) {
     ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
@@ -366,18 +366,18 @@ function updateRevenueTrendChart(revenueTrend) {
     }
     return;
   }
-  
+
   // Remove no data message if exists
   const parent = ctx.parentElement;
   const noDataMsg = parent.querySelector('.no-data-message');
   if (noDataMsg) noDataMsg.remove();
-  
+
   const labels = revenueTrend.map(item => {
     const date = new Date(item.date);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   });
   const data = revenueTrend.map(item => item.revenue || 0);
-  
+
   revenueTrendChartInstance = new Chart(ctx, {
     type: "line",
     data: {
@@ -404,7 +404,7 @@ function updateRevenueTrendChart(revenueTrend) {
         y: {
           beginAtZero: true,
           ticks: {
-            callback: function(value) {
+            callback: function (value) {
               return '₹' + value.toLocaleString();
             }
           }
@@ -418,11 +418,11 @@ function updateRevenueTrendChart(revenueTrend) {
 function updateOrderStatusChart(orderStatus) {
   const ctx = document.getElementById("orderStatusChart");
   if (!ctx) return;
-  
+
   if (orderStatusChartInstance) {
     orderStatusChartInstance.destroy();
   }
-  
+
   // Handle empty data
   if (!orderStatus || orderStatus.length === 0) {
     ctx.getContext('2d').clearRect(0, 0, ctx.width, ctx.height);
@@ -436,19 +436,19 @@ function updateOrderStatusChart(orderStatus) {
     }
     return;
   }
-  
+
   // Remove no data message if exists
   const parent = ctx.parentElement;
   const noDataMsg = parent.querySelector('.no-data-message');
   if (noDataMsg) noDataMsg.remove();
-  
+
   const labels = orderStatus.map(item => {
     const status = item._id || 'Unknown';
     return status.charAt(0).toUpperCase() + status.slice(1);
   });
   const data = orderStatus.map(item => item.count || 0);
   const colors = generateColors(orderStatus.length);
-  
+
   orderStatusChartInstance = new Chart(ctx, {
     type: "doughnut",
     data: {
@@ -473,7 +473,7 @@ function updateOrderStatusChart(orderStatus) {
 }
 
 // Load dashboard on page load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   loadDashboard();
 });
 
@@ -482,24 +482,26 @@ async function downloadReport(format) {
   try {
     const startDate = currentRange === 'custom' ? document.getElementById('startDate').value : null;
     const endDate = currentRange === 'custom' ? document.getElementById('endDate').value : null;
-    
+
+    if (!currentRange) currentRange = 'daily';
+
     if (currentRange === 'custom' && (!startDate || !endDate)) {
       Toast.error('Error', 'Please select both start and end dates for custom range');
       return;
     }
-    
+
     const requestData = {
       range: currentRange,
       format: format
     };
-    
+
     if (currentRange === 'custom') {
       requestData.startDate = startDate;
       requestData.endDate = endDate;
     }
-    
+
     Toast.info('Generating Report', `Preparing ${format.toUpperCase()} report...`);
-    
+
     const response = await fetch('/admin/dashboard/download-report', {
       method: 'POST',
       headers: {
@@ -507,21 +509,22 @@ async function downloadReport(format) {
       },
       body: JSON.stringify(requestData)
     });
-    
+
     if (response.ok) {
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      
-      const filename = `SalesReport_${currentRange}_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : format}`;
+
+      const safeRange = currentRange || 'daily';
+      const filename = `SalesReport_${safeRange}_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : format}`;
       a.download = filename;
-      
+
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-      
+
       Toast.success('Download Complete', `${format.toUpperCase()} report downloaded successfully`);
     } else {
       const errorData = await response.json();

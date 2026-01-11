@@ -157,10 +157,10 @@ module.exports = {
     req.session.destroy((err) => {
       if (err) {
         console.log("Error in logout :-" + err);
-        return res.status(500).json({ success: false });
+        return res.status(500).json({ val: false, msg: "Logout failed" });
       }
       res.clearCookie('connect.sid'); // Clear session cookie
-      return res.redirect('/');
+      return res.status(200).json({ val: true, msg: "Logged out successfully" });
     });
   },
 

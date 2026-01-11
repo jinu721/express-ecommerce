@@ -10,6 +10,9 @@ const stockService = require("../services/stockService");
 const Variant = require("../models/variantModel");
 const Wallet = require("../models/walletModel"); // Assuming wallet model exists
 
+// Helper function for consistent rounding
+const roundToTwoDecimals = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
+
 module.exports = {
   // ~~~ Checkout Page Load (REFACTORED) ~~~
   async checkoutPageLoad(req, res) {
@@ -17,7 +20,7 @@ module.exports = {
       const userId = req.session.currentId;
       const user = await userModel.findById(userId);
       let isBuyNow = !!req.session.tempCart;
-      
+
       let cartItems = [];
       let summary = {
         subtotal: 0,
@@ -30,109 +33,119 @@ module.exports = {
       if (isBuyNow) {
         const { productId, quantity, size, color } = req.session.tempCart;
         const product = await productModel.findById(productId);
-        
+
         // Find Variant using proper attributes map
         const attributeQuery = {};
         if (size) attributeQuery['attributes.SIZE'] = size.toUpperCase();
         if (color) attributeQuery['attributes.COLOR'] = color.toUpperCase();
-        
-        const variant = await Variant.findOne({ 
-            product: productId,
-            ...attributeQuery,
-            isActive: true
+
+        const variant = await Variant.findOne({
+          product: productId,
+          ...attributeQuery,
+          isActive: true
         });
 
         if (!product) {
-            return res.redirect('/shop'); // Fallback
+          return res.redirect('/shop'); // Fallback
         }
 
         // Calculate Price with proper variant handling
         const pricing = await pricingService.calculateBestOffer(product, Number(quantity), req.session.currentId, variant);
 
         cartItems.push({
-            ...product.toObject(),
-            variant: variant,
-            quantity: Number(quantity),
-            size,
-            color,
-            price: isNaN(pricing.finalPrice) ? 0 : pricing.finalPrice / Number(quantity), // Unit price
-            originalPrice: isNaN(pricing.originalPrice) ? 0 : pricing.originalPrice / Number(quantity),
-            totalPrice: isNaN(pricing.finalPrice) ? 0 : pricing.finalPrice,
-            discount: isNaN(pricing.discount) ? 0 : pricing.discount,
-            image: variant && variant.images.length > 0 ? variant.images[0] : product.images[0]
+          ...product.toObject(),
+          variant: variant,
+          quantity: Number(quantity),
+          size,
+          color,
+          price: isNaN(pricing.finalPrice) ? 0 : pricing.finalPrice / Number(quantity), // Unit price
+          originalPrice: isNaN(pricing.originalPrice) ? 0 : pricing.originalPrice / Number(quantity),
+          totalPrice: isNaN(pricing.finalPrice) ? 0 : pricing.finalPrice,
+          discount: isNaN(pricing.discount) ? 0 : pricing.discount,
+          image: variant && variant.images.length > 0 ? variant.images[0] : product.images[0]
         });
 
-        const deliveryCharge = product.hasCustomShipping ? 
-                              (product.shippingPrice * Number(quantity)) : 
-                              ((pricing.originalPrice || 0) < 2000 ? 100 : 0);
+        const deliveryCharge = product.hasCustomShipping ?
+          (product.shippingPrice * Number(quantity)) :
+          ((pricing.originalPrice || 0) < 2000 ? 100 : 0);
         summary = {
-            subtotal: isNaN(pricing.originalPrice) ? 0 : pricing.originalPrice,
-            discount: isNaN(pricing.discount) ? 0 : pricing.discount,
-            deliveryCharge: deliveryCharge,
-            total: isNaN(pricing.finalPrice) ? deliveryCharge : pricing.finalPrice + deliveryCharge
+          subtotal: roundToTwoDecimals(isNaN(pricing.originalPrice) ? 0 : pricing.originalPrice),
+          discount: roundToTwoDecimals(isNaN(pricing.discount) ? 0 : pricing.discount),
+          deliveryCharge: roundToTwoDecimals(deliveryCharge),
+          total: roundToTwoDecimals(isNaN(pricing.finalPrice) ? deliveryCharge : pricing.finalPrice + deliveryCharge)
         };
-        
+
         // Clear temp cart after loading? Maybe not, keep until order placed.
         // req.session.tempCart = null; (Wait until order placement)
 
       } else {
         // 2. Handle Regular Cart
         const cart = await cartModel.findOne({ userId });
-        
+
         if (!cart || cart.items.length === 0) {
-            return res.redirect('/cart');
+          return res.redirect('/cart');
         }
 
         // Prepare items for pricing service
         const itemsToCalculate = [];
-        
+
         // Enrich items
         for (const item of cart.items) {
-           const product = await productModel.findById(item.productId);
-           if (!product) continue;
-           
-           // Try to find variant match using proper attributes map
-           const attributeQuery = {};
-           if (item.size) attributeQuery['attributes.SIZE'] = item.size.toUpperCase();
-           if (item.color) attributeQuery['attributes.COLOR'] = item.color.toUpperCase();
-           
-           const variant = await Variant.findOne({
-               product: item.productId,
-               ...attributeQuery,
-               isActive: true
-           });
+          const product = await productModel.findById(item.productId);
+          if (!product) continue;
 
-           itemsToCalculate.push({
-               product,
-               variant,
-               quantity: item.quantity
-           });
+          // Try to find variant match using proper attributes map
+          const attributeQuery = {};
+          if (item.size) attributeQuery['attributes.SIZE'] = item.size.toUpperCase();
+          if (item.color) attributeQuery['attributes.COLOR'] = item.color.toUpperCase();
 
-           cartItems.push({
-               ...product.toObject(),
-               variant,
-               quantity: item.quantity,
-               size: item.size,
-               color: item.color,
-               // Fallback images
-               images: product.images
-           });
+          const variant = await Variant.findOne({
+            product: item.productId,
+            ...attributeQuery,
+            isActive: true
+          });
+
+          itemsToCalculate.push({
+            product,
+            variant,
+            quantity: item.quantity
+          });
+
+          let effectivePrice = product.price;
+          if (variant) {
+            if (variant.specialPrice) {
+              effectivePrice = variant.specialPrice;
+            } else if (variant.priceAdjustment) {
+              effectivePrice += variant.priceAdjustment;
+            }
+          }
+
+          cartItems.push({
+            ...product.toObject(),
+            variant,
+            quantity: item.quantity,
+            size: item.size,
+            color: item.color,
+            price: effectivePrice, // Use adjusted price for display
+            // Fallback images
+            images: product.images
+          });
         }
 
         // Prepare cart items for calculation
         const cartItemsToCalculate = cart.items.map(item => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            variantId: item.variantId
+          productId: item.productId,
+          quantity: item.quantity,
+          variantId: item.variantId
         }));
 
         // Calculate totals using pricing service with proper error handling
         const calculation = await pricingService.calculateCartTotal(itemsToCalculate, null, req.session.currentId);
-        
+
         // Calculate shipping charges
         let deliveryCharge = 0;
         let hasCustomShipping = false;
-        
+
         // Check if any products have custom shipping
         for (const item of itemsToCalculate) {
           if (item.product.hasCustomShipping) {
@@ -140,47 +153,47 @@ module.exports = {
             hasCustomShipping = true;
           }
         }
-        
+
         // If no custom shipping, use default logic
         if (!hasCustomShipping && (calculation.subtotal || 0) < 2000) {
           deliveryCharge = 100;
         }
-        
+
         summary = {
-            subtotal: isNaN(calculation.subtotal) ? 0 : calculation.subtotal,
-            discount: isNaN(calculation.offerDiscount + calculation.couponDiscount) ? 0 : calculation.offerDiscount + calculation.couponDiscount,
-            deliveryCharge: deliveryCharge,
-            total: isNaN(calculation.finalTotal) ? deliveryCharge : calculation.finalTotal + deliveryCharge
+          subtotal: roundToTwoDecimals(isNaN(calculation.subtotal) ? 0 : calculation.subtotal),
+          discount: roundToTwoDecimals(isNaN(calculation.offerDiscount + calculation.couponDiscount) ? 0 : calculation.offerDiscount + calculation.couponDiscount),
+          deliveryCharge: roundToTwoDecimals(deliveryCharge),
+          total: roundToTwoDecimals(isNaN(calculation.finalTotal) ? deliveryCharge : calculation.finalTotal + deliveryCharge)
         };
       }
 
       // 3. Get Wallet Balance
       let walletBalance = 0;
       try {
-          // Try to get wallet balance from user model or separate wallet model
-          if (user && user.wallet !== undefined) {
-              walletBalance = user.wallet || 0;
-          } else {
-              // Try separate wallet model
-              const walletModel = require("../models/walletModel");
-              const wallet = await walletModel.findOne({ userId });
-              if (wallet) walletBalance = wallet.balance || 0;
-          }
+        // Try to get wallet balance from user model or separate wallet model
+        if (user && user.wallet !== undefined) {
+          walletBalance = user.wallet || 0;
+        } else {
+          // Try separate wallet model
+          const walletModel = require("../models/walletModel");
+          const wallet = await walletModel.findOne({ userId });
+          if (wallet) walletBalance = wallet.balance || 0;
+        }
       } catch (e) {
-          console.warn("Wallet fetch failed, defaulting to 0:", e.message);
-          walletBalance = 0;
+        console.warn("Wallet fetch failed, defaulting to 0:", e.message);
+        walletBalance = 0;
       }
 
       console.log(`Checkout loaded for user ${userId}. Total: ${summary.total}`);
 
-      res.render("checkout", { 
-          cartItems, 
-          deliveryCharge: summary.deliveryCharge,
-          subtotal: summary.subtotal,
-          total: summary.total,
-          walletBalance,
-          discount: summary.discount, // Pass discount for display
-          isBuyNow // Pass flag if needed
+      res.render("checkout", {
+        cartItems,
+        deliveryCharge: summary.deliveryCharge,
+        subtotal: summary.subtotal,
+        total: summary.total,
+        walletBalance,
+        discount: summary.discount, // Pass discount for display
+        isBuyNow // Pass flag if needed
       });
 
     } catch (err) {

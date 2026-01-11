@@ -40,58 +40,58 @@ module.exports = {
       }
 
       const itemsList = Array.isArray(parsedItem) ? parsedItem : [parsedItem];
-      
+
       // 1. Validate Items & Calculate Prices
       const processedItems = [];
       for (const prod of itemsList) {
         if (!prod._id || !prod.quantity || !prod.size || !prod.color) {
-            return res.status(400).json({ val: false, msg: "Invalid product data" });
+          return res.status(400).json({ val: false, msg: "Invalid product data" });
         }
 
         // Get product details
         const product = await productModel.findById(prod._id);
         if (!product) {
-            return res.status(404).json({ val: false, msg: "Product not found" });
+          return res.status(404).json({ val: false, msg: "Product not found" });
         }
 
         // Find Variant using proper attributes map
         const attributeQuery = {};
         if (prod.size) attributeQuery['attributes.SIZE'] = prod.size.toUpperCase();
         if (prod.color) attributeQuery['attributes.COLOR'] = prod.color.toUpperCase();
-        
-        const variant = await Variant.findOne({ 
-            product: prod._id,
-            ...attributeQuery,
-            isActive: true
+
+        const variant = await Variant.findOne({
+          product: prod._id,
+          ...attributeQuery,
+          isActive: true
         });
 
         if (!variant) {
-            return res.status(404).json({ val: false, msg: `Variant not found: ${prod.size} - ${prod.color}` });
+          return res.status(404).json({ val: false, msg: `Variant not found: ${prod.size} - ${prod.color}` });
         }
 
         // Check Stock Availability
         const stockAvailable = await stockService.checkAvailability(variant._id, prod.quantity);
         if (!stockAvailable) {
-            return res.status(400).json({ 
-                val: false, 
-                msg: `Insufficient stock for ${prod.size}/${prod.color}. Please check availability.` 
-            });
+          return res.status(400).json({
+            val: false,
+            msg: `Insufficient stock for ${prod.size}/${prod.color}. Please check availability.`
+          });
         }
 
         // Calculate pricing with offers
-        const pricingResult = await pricingService.calculateBestOffer(product, Number(prod.quantity), userId);
+        const pricingResult = await pricingService.calculateBestOffer(product, Number(prod.quantity), userId, variant);
 
         processedItems.push({
-            product: new mongoose.Types.ObjectId(prod._id),
-            variant: variant._id,
-            quantity: Number(prod.quantity),
-            originalPrice: Math.round(pricingResult.originalPrice / Number(prod.quantity) * 100) / 100, // Original unit price
-            offerPrice: Math.round(pricingResult.finalPrice / Number(prod.quantity) * 100) / 100, // Unit price after offers
-            totalPrice: Math.round(pricingResult.finalPrice * 100) / 100, // Total price for this item
-            discount: Math.round(pricingResult.discount * 100) / 100, // Total discount for this item
-            appliedOffer: pricingResult.offer ? pricingResult.offer._id : null,
-            size: prod.size,
-            color: prod.color,
+          product: new mongoose.Types.ObjectId(prod._id),
+          variant: variant._id,
+          quantity: Number(prod.quantity),
+          originalPrice: Math.round(pricingResult.originalPrice / Number(prod.quantity) * 100) / 100, // Original unit price
+          offerPrice: Math.round(pricingResult.finalPrice / Number(prod.quantity) * 100) / 100, // Unit price after offers
+          totalPrice: Math.round(pricingResult.finalPrice * 100) / 100, // Total price for this item
+          discount: Math.round(pricingResult.discount * 100) / 100, // Total discount for this item
+          appliedOffer: pricingResult.offer ? pricingResult.offer._id : null,
+          size: prod.size,
+          color: prod.color,
         });
       }
 
@@ -100,7 +100,7 @@ module.exports = {
 
       // Calculate Total with Shipping
       let shippingCost = 0;
-      
+
       // Calculate shipping for each product
       for (const item of processedItems) {
         const product = await productModel.findById(item.product);
@@ -108,7 +108,7 @@ module.exports = {
           shippingCost += roundToTwoDecimals((product.shippingPrice || 0) * item.quantity);
         }
       }
-      
+
       // If no custom shipping, use default logic
       if (shippingCost === 0) {
         const subtotal = processedItems.reduce((sum, i) => sum + i.totalPrice, 0);
@@ -116,31 +116,31 @@ module.exports = {
           shippingCost = 100;
         }
       }
-      
+
       const totalAmount = roundToTwoDecimals(processedItems.reduce(
         (sum, i) => sum + i.totalPrice, 0
       ) + shippingCost);
-      
+
       const originalTotal = roundToTwoDecimals(processedItems.reduce(
         (sum, i) => sum + (i.originalPrice * i.quantity), 0
       ) + shippingCost);
-      
+
       const totalOfferDiscount = roundToTwoDecimals(processedItems.reduce(
         (sum, i) => sum + i.discount, 0
       ));
 
       // Clear Cart (if from cart)
       if (Array.isArray(parsedItem)) {
-          await cartModel.deleteMany({ userId });
+        await cartModel.deleteMany({ userId });
       } else {
-          await cartModel.deleteOne({ userId, "items.product": parsedItem._id });
+        await cartModel.deleteOne({ userId, "items.product": parsedItem._id });
       }
 
       // 2. Address & Coupon Application
       const user = await userModel.findOne({ _id: userId });
       const address = user.address.find(a => a._id.toString() === selectedAddressId);
       if (!address) {
-          return res.status(400).json({ val: false, msg: "Invalid address ID" });
+        return res.status(400).json({ val: false, msg: "Invalid address ID" });
       }
 
       let finalAmount = totalAmount;
@@ -149,15 +149,15 @@ module.exports = {
 
       if (isOfferApplied && code) {
         try {
-            const couponResult = await pricingService.applyCoupon(code, totalAmount, userId, processedItems);
-            couponDiscount = roundToTwoDecimals(couponResult.discount);
-            finalAmount = roundToTwoDecimals(couponResult.finalAmount);
-            if (couponDetails) {
-                couponDetails.discountApplied = couponDiscount;
-                couponDetails.couponId = couponResult.coupon._id;
-            }
+          const couponResult = await pricingService.applyCoupon(code, totalAmount, userId, processedItems);
+          couponDiscount = roundToTwoDecimals(couponResult.discount);
+          finalAmount = roundToTwoDecimals(couponResult.finalAmount);
+          if (couponDetails) {
+            couponDetails.discountApplied = couponDiscount;
+            couponDetails.couponId = couponResult.coupon._id;
+          }
         } catch (error) {
-            return res.status(400).json({ val: false, msg: error.message });
+          return res.status(400).json({ val: false, msg: error.message });
         }
       }
 
@@ -165,163 +165,165 @@ module.exports = {
 
       // 3. Payment Processing
       if (selectedPayment === "cash_on_delivery") {
-          if (amountToSend > 1000) {
-              return res.status(400).json({ val: false, msg: "COD only available for orders under ₹1000" });
+        if (amountToSend > 1000) {
+          return res.status(400).json({ val: false, msg: "COD only available for orders under ₹1000" });
+        }
+
+        const order = await orderModel.create({
+          orderId: orderId++,
+          user: userId,
+          items: processedItems,
+          subtotal: roundToTwoDecimals(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
+          shippingCost: roundToTwoDecimals(shippingCost),
+          totalDiscount: roundToTwoDecimals(totalOfferDiscount),
+          totalAmount: amountToSend,
+          paymentMethod: selectedPayment,
+          shippingAddress: address,
+          coupon: couponDetails,
+          orderedAt: new Date(),
+          paymentStatus: "pending",
+          orderStatus: "order_placed",
+          statusHistory: [{
+            status: "order_placed",
+            message: "Order has been placed successfully",
+            updatedAt: new Date()
+          }]
+        });
+
+        // Track offer usage
+        for (const item of processedItems) {
+          if (item.appliedOffer) {
+            await pricingService.recordOfferUsage(item.appliedOffer._id);
           }
+        }
 
-          const order = await orderModel.create({
-              orderId: orderId++,
-              user: userId,
-              items: processedItems,
-              subtotal: roundToTwoDecimals(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
-              shippingCost: roundToTwoDecimals(shippingCost),
-              totalDiscount: roundToTwoDecimals(totalOfferDiscount),
-              totalAmount: amountToSend,
-              paymentMethod: selectedPayment,
-              shippingAddress: address,
-              coupon: couponDetails,
-              orderedAt: new Date(),
-              paymentStatus: "pending",
-              orderStatus: "order_placed",
-              statusHistory: [{ 
-                status: "order_placed", 
-                message: "Order has been placed successfully",
-                updatedAt: new Date() 
-              }]
-          });
+        // Track coupon usage if applied
+        if (couponDetails && couponDetails.couponId) {
+          await pricingService.recordCouponUsage(
+            couponDetails.couponId,
+            userId,
+            order._id,
+            couponDetails.discountApplied,
+            totalAmount
+          );
+        }
 
-          // Track offer usage
-          for (const item of processedItems) {
-              if (item.appliedOffer) {
-                  await pricingService.recordOfferUsage(item.appliedOffer._id);
-              }
-          }
+        // Deduct Stock
+        for (const item of processedItems) {
+          await stockService.deductStock(item.variant, item.quantity);
+        }
 
-          // Track coupon usage if applied
-          if (couponDetails && couponDetails.couponId) {
-              await pricingService.recordCouponUsage(
-                  couponDetails.couponId,
-                  userId,
-                  order._id,
-                  couponDetails.discountApplied,
-                  totalAmount
-              );
-          }
 
-          // Deduct Stock
-          for (const item of processedItems) {
-              await stockService.deductStock(item.variant, item.quantity);
-          }
-          
-
-          return res.status(200).json({ val: true, msg: "Order placed successfully" });
+        return res.status(200).json({ val: true, msg: "Order placed successfully" });
 
       } else if (selectedPayment === "razorpay") {
-          // Ensure amount is properly rounded to avoid floating point issues
-          const razorpayAmount = Math.round(amountToSend * 100); // Convert to paise and round
-          
-          const razorpayOrder = await razorpay.orders.create({
-              amount: razorpayAmount,
-              currency: "INR",
-              receipt: `order_rcptid_${Date.now()}`,
-              notes: { userId, addressId: selectedAddressId }
-          });
+        // Ensure amount is properly rounded to avoid floating point issues
+        // First round to 2 decimals, then convert to paise
+        const roundedAmount = roundToTwoDecimals(amountToSend);
+        const razorpayAmount = Math.round(roundedAmount * 100); // Convert to paise and round
 
-          const order = await orderModel.create({
-              orderId: orderId++,
-              user: userId,
-              items: processedItems,
-              subtotal: roundToTwoDecimals(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
-              shippingCost: roundToTwoDecimals(shippingCost),
-              totalDiscount: roundToTwoDecimals(totalOfferDiscount),
-              totalAmount: amountToSend, // Store the properly rounded amount
-              paymentMethod: selectedPayment,
-              shippingAddress: address,
-              coupon: couponDetails,
-              razorpayOrderId: razorpayOrder.id,
-              orderedAt: new Date(),
-              paymentStatus: "pending",
-              orderStatus: "order_placed",
-              statusHistory: [{ 
-                status: "order_placed", 
-                message: "Order has been placed successfully",
-                updatedAt: new Date() 
-              }]
-          });
+        const razorpayOrder = await razorpay.orders.create({
+          amount: razorpayAmount,
+          currency: "INR",
+          receipt: `order_rcptid_${Date.now()}`,
+          notes: { userId, addressId: selectedAddressId }
+        });
 
-          // Note: For Razorpay, we'll track usage after payment verification
-          // Store order ID for later tracking
-          req.session.pendingOrderId = order._id;
+        const order = await orderModel.create({
+          orderId: orderId++,
+          user: userId,
+          items: processedItems,
+          subtotal: roundToTwoDecimals(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
+          shippingCost: roundToTwoDecimals(shippingCost),
+          totalDiscount: roundToTwoDecimals(totalOfferDiscount),
+          totalAmount: roundedAmount, // Store the same rounded amount used for Razorpay
+          paymentMethod: selectedPayment,
+          shippingAddress: address,
+          coupon: couponDetails,
+          razorpayOrderId: razorpayOrder.id,
+          orderedAt: new Date(),
+          paymentStatus: "pending",
+          orderStatus: "order_placed",
+          statusHistory: [{
+            status: "order_placed",
+            message: "Order has been placed successfully",
+            updatedAt: new Date()
+          }]
+        });
 
-          return res.status(200).json({
-              val: true,
-              msg: "Razorpay order created",
-              order: razorpayOrder,
-              key: "rzp_test_P7m0ieN3xeK18I"
-          });
+        // Note: For Razorpay, we'll track usage after payment verification
+        // Store order ID for later tracking
+        req.session.pendingOrderId = order._id;
+
+        return res.status(200).json({
+          val: true,
+          msg: "Razorpay order created",
+          order: razorpayOrder,
+          key: "rzp_test_P7m0ieN3xeK18I"
+        });
 
       } else if (selectedPayment === "wallet") {
-          const wallet = await walletModel.findOne({ userId });
-          if (!wallet || wallet.balance < amountToSend) {
-              return res.status(400).json({ val: false, msg: "Insufficient wallet balance" });
+        const wallet = await walletModel.findOne({ userId });
+        if (!wallet || wallet.balance < amountToSend) {
+          return res.status(400).json({ val: false, msg: "Insufficient wallet balance" });
+        }
+
+        wallet.balance = Math.round((wallet.balance - amountToSend) * 100) / 100;
+        wallet.transactionHistory.push({
+          transactionType: "purchase",
+          transactionAmount: amountToSend,
+          transactionDate: new Date(),
+          description: `Purchase of order`
+        });
+        await wallet.save();
+
+        const order = await orderModel.create({
+          orderId: orderId++,
+          user: userId,
+          items: processedItems,
+          subtotal: roundToTwoDecimals(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
+          shippingCost: roundToTwoDecimals(shippingCost),
+          totalDiscount: roundToTwoDecimals(totalOfferDiscount),
+          totalAmount: amountToSend,
+          paymentMethod: selectedPayment,
+          shippingAddress: address,
+          coupon: couponDetails,
+          orderedAt: new Date(),
+          paymentStatus: "paid",
+          orderStatus: "order_placed",
+          statusHistory: [{
+            status: "order_placed",
+            message: "Order has been placed successfully",
+            updatedAt: new Date()
+          }]
+        });
+
+        // Track offer usage
+        for (const item of processedItems) {
+          if (item.appliedOffer) {
+            await pricingService.recordOfferUsage(item.appliedOffer._id);
           }
+        }
 
-          wallet.balance = Math.round((wallet.balance - amountToSend) * 100) / 100;
-          wallet.transactionHistory.push({
-              transactionType: "purchase",
-              transactionAmount: amountToSend,
-              transactionDate: new Date(),
-              description: `Purchase of order`
-          });
-          await wallet.save();
+        // Track coupon usage if applied
+        if (couponDetails && couponDetails.couponId) {
+          await pricingService.recordCouponUsage(
+            couponDetails.couponId,
+            userId,
+            order._id,
+            couponDetails.discountApplied,
+            totalAmount
+          );
+        }
 
-          const order = await orderModel.create({
-              orderId: orderId++,
-              user: userId,
-              items: processedItems,
-              subtotal: roundToTwoDecimals(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
-              shippingCost: roundToTwoDecimals(shippingCost),
-              totalDiscount: roundToTwoDecimals(totalOfferDiscount),
-              totalAmount: amountToSend,
-              paymentMethod: selectedPayment,
-              shippingAddress: address,
-              coupon: couponDetails,
-              orderedAt: new Date(),
-              paymentStatus: "paid",
-              orderStatus: "order_placed",
-              statusHistory: [{ 
-                status: "order_placed", 
-                message: "Order has been placed successfully",
-                updatedAt: new Date() 
-              }]
-          });
+        // Deduct Stock
+        for (const item of processedItems) {
+          await stockService.deductStock(item.variant, item.quantity);
+        }
 
-          // Track offer usage
-          for (const item of processedItems) {
-              if (item.appliedOffer) {
-                  await pricingService.recordOfferUsage(item.appliedOffer._id);
-              }
-          }
-
-          // Track coupon usage if applied
-          if (couponDetails && couponDetails.couponId) {
-              await pricingService.recordCouponUsage(
-                  couponDetails.couponId,
-                  userId,
-                  order._id,
-                  couponDetails.discountApplied,
-                  totalAmount
-              );
-          }
-
-          // Deduct Stock
-          for (const item of processedItems) {
-              await stockService.deductStock(item.variant, item.quantity);
-          }
-
-          return res.status(200).json({ val: true, msg: "Order placed successfully with Wallet" });
+        return res.status(200).json({ val: true, msg: "Order placed successfully with Wallet" });
       } else {
-          return res.status(400).json({ val: false, msg: "Invalid payment method" });
+        return res.status(400).json({ val: false, msg: "Invalid payment method" });
       }
 
     } catch (err) {
@@ -509,32 +511,32 @@ module.exports = {
       if (!validStatuses.includes(newStatus)) {
         return res.status(400).json({ message: "Invalid status" });
       }
-      
+
       const order = await orderModel.findOne({ _id: orderId });
       if (!order) {
         return res.status(404).json({ message: "Order not found" });
       }
-      
+
       // Handle COD payment status update
       if (order.paymentMethod === "cash_on_delivery" && newStatus === "delivered") {
         order.paymentStatus = "paid";
       }
-      
+
       // Ensure required fields have default values for backward compatibility
       if (!order.subtotal) {
         order.subtotal = order.totalAmount || 0;
       }
-      
+
       // Ensure item fields have default values
       order.items.forEach(item => {
         if (!item.originalPrice) item.originalPrice = item.offerPrice || 0;
         if (!item.offerPrice) item.offerPrice = item.originalPrice || 0;
         if (!item.totalPrice) item.totalPrice = (item.offerPrice || 0) * (item.quantity || 1);
       });
-      
+
       // Use the new updateStatus method
       order.updateStatus(newStatus, location || '', message || `Order status updated to ${newStatus}`, 'admin');
-      
+
       await order.save();
 
       return res.json({
@@ -554,7 +556,7 @@ module.exports = {
   async verifyPayment(req, res) {
     const { paymentId, orderId, signature, retryOrderId } = req.body;
     const userId = req.session.currentId;
-    
+
     try {
       if (!paymentId || !orderId || !signature) {
         return res.status(400).json({ val: false, msg: "Missing required fields" });
@@ -589,18 +591,18 @@ module.exports = {
         // So `req.body.orderId` IS `razorpay_order_id`.
         order = await orderModel.findOne({ razorpayOrderId: orderId });
         if (!order) {
-           // Fallback to original logic if razorpayOrderId not found (legacy orders)
-           order = await orderModel.findOne({ user: userId }).sort({ orderedAt: -1 });
+          // Fallback to original logic if razorpayOrderId not found (legacy orders)
+          order = await orderModel.findOne({ user: userId }).sort({ orderedAt: -1 });
         }
       }
 
       if (!order) {
-          return res.status(404).json({ val: false, msg: "Order not found" });
+        return res.status(404).json({ val: false, msg: "Order not found" });
       }
 
       // Check if already paid to avoid double deduction
       if (order.paymentStatus === 'paid') {
-          return res.status(200).json({ val: true, msg: "Order already paid", orderId: order._id });
+        return res.status(200).json({ val: true, msg: "Order already paid", orderId: order._id });
       }
 
       order.paymentStatus = "paid";
@@ -608,40 +610,40 @@ module.exports = {
 
       // Track offer and coupon usage after successful payment
       for (const item of order.items) {
-          if (item.appliedOffer) {
-              await pricingService.recordOfferUsage(item.appliedOffer._id);
-          }
+        if (item.appliedOffer) {
+          await pricingService.recordOfferUsage(item.appliedOffer._id);
+        }
       }
 
       // Track coupon usage if applied
       if (order.coupon && order.coupon.couponId) {
-          await pricingService.recordCouponUsage(
-              order.coupon.couponId,
-              userId,
-              order._id,
-              order.coupon.discountApplied,
-              order.totalAmount + (order.coupon.discountApplied || 0)
-          );
+        await pricingService.recordCouponUsage(
+          order.coupon.couponId,
+          userId,
+          order._id,
+          order.coupon.discountApplied,
+          order.totalAmount + (order.coupon.discountApplied || 0)
+        );
       }
 
       // Deduct Stock (Important!)
       // Need to find variant IDs. If stored in items (new orders), use that.
       // If not (legacy), finding variant is hard. But refactored placeOrder stores variantId.
       for (const item of order.items) {
-          if (item.variant) {
-              await stockService.deductStock(item.variant, item.quantity);
-          } else {
-             // Fallback for legacy items: map product/size/color to variant
-             // This is best effort.
-             const variant = await Variant.findOne({
-                 product: item.product,
-                 'attributes.size': item.size,
-                 'attributes.color': item.color
-             });
-             if (variant) {
-                 await stockService.deductStock(variant._id, item.quantity);
-             }
+        if (item.variant) {
+          await stockService.deductStock(item.variant, item.quantity);
+        } else {
+          // Fallback for legacy items: map product/size/color to variant
+          // This is best effort.
+          const variant = await Variant.findOne({
+            product: item.product,
+            'attributes.size': item.size,
+            'attributes.color': item.color
+          });
+          if (variant) {
+            await stockService.deductStock(variant._id, item.quantity);
           }
+        }
       }
 
       res.status(200).json({
@@ -699,15 +701,15 @@ module.exports = {
         .populate("items.product")
         .populate("items.appliedOffer")
         .lean();
-      
+
       if (!order) {
         return res.status(404).json("Order not found");
       }
 
       res.setHeader('Content-Disposition', `attachment; filename=invoice-${order.orderId}.pdf`);
       res.setHeader('Content-Type', 'application/pdf');
-  
-      const pdfDoc = new PDFDocument({ 
+
+      const pdfDoc = new PDFDocument({
         margin: 50,
         size: 'A4',
         info: {
@@ -735,16 +737,16 @@ module.exports = {
       const accentColor = '#3498db';
       const successColor = '#27ae60';
       const lightGray = '#ecf0f1';
-      
+
       // Header Section with Company Logo Area
       pdfDoc.rect(0, 0, 612, 120).fill('#34495e');
-      
+
       // Company Name and Logo Area
       pdfDoc.fillColor('white')
         .fontSize(32)
         .font('Helvetica-Bold')
         .text('MALE FASHION', 50, 30);
-      
+
       pdfDoc.fillColor('#bdc3c7')
         .fontSize(12)
         .font('Helvetica')
@@ -756,14 +758,14 @@ module.exports = {
         .fontSize(28)
         .font('Helvetica-Bold')
         .text('INVOICE', 400, 30);
-      
+
       pdfDoc.fillColor('#7f8c8d')
         .fontSize(11)
         .font('Helvetica')
         .text(`Invoice #: ${order.orderId}`, 400, 65)
         .text(`Date: ${new Date(order.orderedAt).toLocaleDateString('en-IN', {
           day: '2-digit',
-          month: '2-digit', 
+          month: '2-digit',
           year: 'numeric'
         })}`, 400, 80)
         .text(`Time: ${new Date(order.orderedAt).toLocaleTimeString('en-IN', {
@@ -955,14 +957,14 @@ module.exports = {
 
       // Footer Section
       currentY += 80;
-      
+
       // Thank you message
       pdfDoc.rect(50, currentY, 512, 60).fill('#34495e');
       pdfDoc.fillColor('white')
         .fontSize(16)
         .font('Helvetica-Bold')
         .text('Thank you for choosing Male Fashion!', 0, currentY + 15, { align: 'center', width: 612 });
-      
+
       pdfDoc.fillColor('#bdc3c7')
         .fontSize(10)
         .font('Helvetica')
@@ -987,28 +989,28 @@ module.exports = {
   async adminReturnRequest(req, res) {
     const { orderId } = req.params;
     const { status } = req.body;
-  
+
     try {
       const order = await orderModel.findOne({ _id: orderId });
       if (!order) {
         return res.status(400).json({ val: false, msg: "Order not found" });
       }
-  
+
       if (status === "approved") {
         order.orderStatus = "returned";
         order.returnRequest.adminStatus = "approved";
         order.items.forEach((item) => {
           item.itemStatus = "returned";
         });
- 
+
         order.statusHistory.push({
           status: "returned",
           updatedAt: new Date(),
         });
-  
+
         const refundAmount = order.totalAmount;
         const userId = order.user;
-  
+
         let wallet = await walletModel.findOne({ userId });
         if (!wallet) {
           wallet = await walletModel.create({
@@ -1033,7 +1035,7 @@ module.exports = {
           });
           await wallet.save();
         }
-  
+
         await order.save();
         return res
           .status(200)
@@ -1069,7 +1071,7 @@ module.exports = {
 
       // Ensure amount is properly rounded to avoid floating point issues
       const razorpayAmount = Math.round(order.totalAmount * 100);
-      
+
       const razorpayOrder = await razorpay.orders.create({
         amount: razorpayAmount,
         currency: "INR",
@@ -1303,35 +1305,35 @@ module.exports = {
   async trackOrder(req, res) {
     const { orderId } = req.params;
     const userId = req.session.currentId;
-    
+
     // Check if user is logged in
     if (!userId) {
       return res.redirect('/login');
     }
-    
+
     try {
       const order = await orderModel
         .findOne({ _id: orderId, user: userId })
         .populate('items.product')
         .populate('items.appliedOffer')
         .lean();
-      
+
       if (!order) {
         return res.status(404).render('404');
       }
-      
+
       // Ensure order has required fields with defaults
       if (!order.subtotal) {
         order.subtotal = order.totalAmount || 0;
       }
-      
+
       // Ensure items have required fields
       order.items.forEach(item => {
         if (!item.originalPrice) item.originalPrice = item.offerPrice || 0;
         if (!item.offerPrice) item.offerPrice = item.originalPrice || 0;
         if (!item.totalPrice) item.totalPrice = (item.offerPrice || 0) * (item.quantity || 1);
       });
-      
+
       // Define status progression for tracking
       const statusFlow = [
         { key: 'processing', label: 'Processing', icon: 'fas fa-cog' },
@@ -1342,16 +1344,16 @@ module.exports = {
         { key: 'out_for_delivery', label: 'Out for Delivery', icon: 'fas fa-shipping-fast' },
         { key: 'delivered', label: 'Delivered', icon: 'fas fa-home' }
       ];
-      
+
       // Find current status index
       const currentStatusIndex = statusFlow.findIndex(s => s.key === order.orderStatus);
-      
+
       // Mark completed statuses and include status history data
       // Only show steps up to current status, and only show location/message for steps that actually happened
       const trackingSteps = statusFlow.map((step, index) => {
         const statusEntry = order.statusHistory.find(h => h.status === step.key);
         const hasActuallyHappened = statusEntry !== undefined;
-        
+
         return {
           ...step,
           completed: index <= currentStatusIndex && hasActuallyHappened,
@@ -1361,7 +1363,7 @@ module.exports = {
           message: hasActuallyHappened ? statusEntry.message : null
         };
       });
-      
+
       res.render('orderTracking', {
         order,
         trackingSteps,

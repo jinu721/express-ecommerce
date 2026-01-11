@@ -26,7 +26,6 @@ module.exports = {
         req.session.currentId = user._id;
         req.session.userRole = user.role;
         
-        // Set admin session if user is admin
         if (user.role === 'admin') {
           req.session.AdminloggedIn = true;
           return res.redirect("/admin/dashboard");

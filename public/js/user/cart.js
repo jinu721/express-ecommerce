@@ -1,39 +1,39 @@
 const deleteIconCart = document.querySelectorAll('.deleteIconCart');
 
 deleteIconCart.forEach(elem => {
-    elem.addEventListener('click', async (e) => {
-      const cartItemId = e.target.getAttribute('data-id');
-      
-      // Use our iOS-style confirmation dialog
-      const confirmed = await Toast.confirm({
-        title: 'Remove from Cart',
-        message: 'Are you sure you want to remove this item from your cart?',
-        confirmText: 'Remove',
-        cancelText: 'Cancel',
-        type: 'warning'
-      });
+  elem.addEventListener('click', async (e) => {
+    const cartItemId = e.target.getAttribute('data-id');
 
-      if (confirmed) {
-        try {
-          const response = await fetch(`/delete-from-cart/${cartItemId}`, {
-            method: 'DELETE',
-          });
-          const data = await response.json();
-
-          if (!data.val) {
-            Toast.error('Failed to Remove', data.msg);
-          } else {
-            Toast.success('Removed', 'Item removed from cart successfully');
-            setTimeout(() => {
-              window.location.href = '/cart';
-            }, 1500);
-          }
-        } catch (err) {
-          console.error('Delete cart item error:', err);
-          Toast.error('Network Error', 'Failed to remove item. Please try again.');
-        }
-      }
+    // Use our iOS-style confirmation dialog
+    const confirmed = await Toast.confirm({
+      title: 'Remove from Cart',
+      message: 'Are you sure you want to remove this item from your cart?',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      type: 'warning'
     });
+
+    if (confirmed) {
+      try {
+        const response = await fetch(`/delete-from-cart/${cartItemId}`, {
+          method: 'DELETE',
+        });
+        const data = await response.json();
+
+        if (!data.val) {
+          Toast.error('Failed to Remove', data.msg);
+        } else {
+          Toast.success('Removed', 'Item removed from cart successfully');
+          setTimeout(() => {
+            window.location.href = '/cart';
+          }, 1500);
+        }
+      } catch (err) {
+        console.error('Delete cart item error:', err);
+        Toast.error('Network Error', 'Failed to remove item. Please try again.');
+      }
+    }
+  });
 });
 // function renderCart(cart, products) {
 //     const cartContainer = document.querySelector('.cart.section--lg.container');
@@ -160,7 +160,7 @@ document.querySelectorAll('.quantity').forEach(input => {
     e.target.disabled = true;
     const totalElement = document.querySelector(`.Total[data-id="${itemId}"]`);
     const originalTotal = totalElement.textContent;
-    totalElement.textContent = 'Updating...';
+    totalElement.innerHTML = '<div class="loader-dots"><span></span><span></span><span></span></div>';
 
     try {
       const response = await fetch(`/update-cart-item/${itemId}`, {
@@ -172,7 +172,7 @@ document.querySelectorAll('.quantity').forEach(input => {
       });
       const data = await response.json();
       console.log('Cart update response:', data);
-      
+
       if (data.val) {
         e.target.setAttribute('data-prev-quantity', newQuantity);
         // Round the values to avoid floating point issues

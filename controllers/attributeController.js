@@ -2,10 +2,6 @@ const Attribute = require('../models/attributeModel');
 const Category = require('../models/categoryModel');
 
 module.exports = {
-  /**
-   * Get all attributes
-   * GET /admin/attributes
-   */
   async getAllAttributes(req, res) {
     try {
       const { category, active } = req.query;
@@ -33,10 +29,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Get attributes for a specific category
-   * GET /api/categories/:categoryId/attributes
-   */
   async getCategoryAttributes(req, res) {
     try {
       const { categoryId } = req.params;
@@ -65,15 +57,11 @@ module.exports = {
     }
   },
 
-  /**
-   * Create new attribute
-   * POST /admin/attributes
-   */
+
   async createAttribute(req, res) {
     try {
       const { name, displayName, type, values, category, isRequired } = req.body;
 
-      // Check if attribute already exists for this category
       const existing = await Attribute.findOne({
         name: name.toUpperCase(),
         category: category || null
@@ -113,16 +101,11 @@ module.exports = {
     }
   },
 
-  /**
-   * Update attribute
-   * PUT /admin/attributes/:attributeId
-   */
   async updateAttribute(req, res) {
     try {
       const { attributeId } = req.params;
       const updates = req.body;
 
-      // Don't allow changing name after creation
       delete updates.name;
 
       const attribute = await Attribute.findByIdAndUpdate(
@@ -153,10 +136,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Delete attribute
-   * DELETE /admin/attributes/:attributeId
-   */
   async deleteAttribute(req, res) {
     try {
       const { attributeId } = req.params;
@@ -184,10 +163,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Add value to attribute
-   * POST /admin/attributes/:attributeId/values
-   */
   async addAttributeValue(req, res) {
     try {
       const { attributeId } = req.params;
@@ -201,7 +176,6 @@ module.exports = {
         });
       }
 
-      // Check if value already exists
       const existingValue = attribute.values.find(v => v.value === value);
       if (existingValue) {
         return res.status(400).json({
@@ -235,10 +209,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Update attribute value
-   * PUT /admin/attributes/:attributeId/values/:valueId
-   */
   async updateAttributeValue(req, res) {
     try {
       const { attributeId, valueId } = req.params;
@@ -260,7 +230,6 @@ module.exports = {
         });
       }
 
-      // Update the value
       Object.assign(attribute.values[valueIndex], updates);
       await attribute.save();
 
@@ -279,10 +248,7 @@ module.exports = {
     }
   },
 
-  /**
-   * Delete attribute value
-   * DELETE /admin/attributes/:attributeId/values/:valueId
-   */
+
   async deleteAttributeValue(req, res) {
     try {
       const { attributeId, valueId } = req.params;
@@ -313,10 +279,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Render attribute management page
-   * GET /admin/attributes/manage
-   */
   async renderAttributeManagement(req, res) {
     try {
       const attributes = await Attribute.find({})
@@ -338,10 +300,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Bulk create default attributes for clothing
-   * POST /admin/attributes/bulk/clothing
-   */
   async createClothingAttributes(req, res) {
     try {
       const clothingAttributes = [

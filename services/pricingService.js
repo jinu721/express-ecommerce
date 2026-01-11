@@ -11,7 +11,7 @@ const roundToTwoDecimals = (value) => Math.round((value + Number.EPSILON) * 100)
  * Handles offer and coupon calculations for ecommerce system
  */
 class PricingService {
-  
+
   /**
    * Calculate the best offer for a product (SIMPLIFIED)
    * @param {Object} product - Product object
@@ -23,14 +23,14 @@ class PricingService {
   async calculateBestOffer(product, quantity = 1, userId = null, variant = null) {
     try {
       const currentDate = new Date();
-      
+
       console.log('=== DEBUGGING FESTIVAL OFFER ===');
       console.log('Product:', product.name);
       console.log('Current Date:', currentDate);
-      
+
       // Calculate the base price considering variant - FIX NaN ISSUE
       let basePrice = 0;
-      
+
       // Try multiple price sources with validation
       if (product.basePrice && !isNaN(product.basePrice) && product.basePrice > 0) {
         basePrice = product.basePrice;
@@ -55,9 +55,9 @@ class PricingService {
           error: 'No valid price found'
         };
       }
-      
+
       console.log('Base Price:', basePrice);
-      
+
       if (variant) {
         // Apply variant price logic
         if (variant.specialPrice && variant.specialPrice > 0) {
@@ -68,16 +68,16 @@ class PricingService {
           const adjustment = variant.priceAdjustment || 0;
           basePrice = basePrice + adjustment;
         }
-        
+
         // Ensure variant price is valid
         if (isNaN(basePrice) || basePrice < 0) {
           console.warn(`Invalid variant price for ${variant.sku}: ${basePrice}`);
           basePrice = product.basePrice || product.price || 0;
         }
       }
-      
+
       const totalBasePrice = basePrice * quantity;
-      
+
       // Ensure total price is valid
       if (isNaN(totalBasePrice) || totalBasePrice < 0) {
         console.error(`Invalid total price calculation: ${basePrice} * ${quantity} = ${totalBasePrice}`);
@@ -92,15 +92,15 @@ class PricingService {
           error: 'Invalid pricing data'
         };
       }
-      
+
       // Get all applicable offers
       const offers = await this.getApplicableOffers(product, currentDate);
-      
+
       console.log('Found Offers:', offers.length);
       offers.forEach(offer => {
         console.log('- Offer:', offer.name, 'Type:', offer.offerType, 'Discount:', offer.discountValue + (offer.discountType === 'PERCENTAGE' ? '%' : '₹'));
       });
-      
+
       if (offers.length === 0) {
         console.log('No offers found, returning original price');
         return {
@@ -112,25 +112,25 @@ class PricingService {
           hasOffer: false
         };
       }
-      
+
       // Sort offers by priority (highest first), then by creation date (latest first)
       // Give festival offers extra priority boost
       offers.sort((a, b) => {
         // Festival offers get priority boost
         const aPriority = a.offerType === 'FESTIVAL' ? a.priority + 1000 : a.priority;
         const bPriority = b.offerType === 'FESTIVAL' ? b.priority + 1000 : b.priority;
-        
+
         if (bPriority !== aPriority) {
           return bPriority - aPriority; // Higher priority first
         }
         return new Date(b.createdAt) - new Date(a.createdAt); // Latest first for same priority
       });
-      
+
       // Apply the best offer (first in sorted list)
       const bestOffer = offers[0];
       const discount = this.calculateOfferDiscount(bestOffer, totalBasePrice);
       const finalPrice = Math.max(0, roundToTwoDecimals(totalBasePrice - discount));
-      
+
       // Calculate discount percentage for display
       let discountPercentage = 0;
       if (bestOffer.discountType === 'PERCENTAGE') {
@@ -138,7 +138,7 @@ class PricingService {
       } else if (discount > 0 && totalBasePrice > 0) {
         discountPercentage = Math.round((discount / totalBasePrice) * 100);
       }
-      
+
       // Ensure all values are valid numbers and properly rounded
       return {
         originalPrice: roundToTwoDecimals(totalBasePrice),
@@ -165,7 +165,7 @@ class PricingService {
       };
     }
   }
-  
+
   /**
    * Calculate pricing for a product with all its variants
    * @param {Object} product - Product object
@@ -177,7 +177,7 @@ class PricingService {
     try {
       // Calculate base product pricing (without variants)
       const baseOfferResult = await this.calculateBestOffer(product, 1, userId, null);
-      
+
       // Calculate pricing for each variant
       const variantPricing = await Promise.all(variants.map(async (variant) => {
         const variantOfferResult = await this.calculateBestOffer(product, 1, userId, variant);
@@ -191,19 +191,19 @@ class PricingService {
           variantPrice: variantOfferResult.variantPrice
         };
       }));
-      
+
       // Find the minimum and maximum prices among variants
       let minPrice = baseOfferResult.finalPrice;
       let maxPrice = baseOfferResult.finalPrice;
       let hasVariantPricing = false;
-      
+
       if (variantPricing.length > 0) {
         const variantPrices = variantPricing.map(v => v.finalPrice);
         minPrice = Math.min(...variantPrices);
         maxPrice = Math.max(...variantPrices);
         hasVariantPricing = true;
       }
-      
+
       return {
         basePrice: baseOfferResult.originalPrice,
         baseFinalPrice: baseOfferResult.finalPrice,
@@ -245,7 +245,7 @@ class PricingService {
       console.log('=== GET APPLICABLE OFFERS DEBUG ===');
       console.log('Product ID:', product._id);
       console.log('Current Date:', currentDate);
-      
+
       // First, let's check if there are ANY festival offers at all
       const allFestivalOffers = await offerModel.find({ offerType: 'FESTIVAL' });
       console.log('ALL Festival offers in DB:', allFestivalOffers.length);
@@ -260,44 +260,54 @@ class PricingService {
           isDateValid: offer.startDate <= currentDate && offer.endDate >= currentDate
         });
       });
-      
+
       const query = {
         isActive: true,
         startDate: { $lte: currentDate },
         endDate: { $gte: currentDate },
         $or: []
       };
-      
-      // Product-specific offers (only if product is in applicableProducts array)
+
+      // 1. Product specific
       query.$or.push({
         offerType: 'PRODUCT',
         applicableProducts: product._id
       });
-      
-      // Category offers (only if product's category is in applicableCategories array)
+
+      // 2. Category specific
       if (product.category) {
         query.$or.push({
           offerType: 'CATEGORY',
           applicableCategories: product.category._id || product.category
         });
       }
-      
-      // Brand offers (only if product's brand is in applicableBrands array)
+
+      // 3. Brand specific
       if (product.brand) {
         query.$or.push({
           offerType: 'BRAND',
           applicableBrands: product.brand._id || product.brand
         });
       }
-      
-      // Festival offers (apply to all products when no specific targeting)
-      // Simplified approach: Festival offers apply to all products regardless of arrays
+
+      // 4. Festival / Global specific (The Special Case)
+      // This matches if type is FESTIVAL OR if it has NO targeting at all (empty arrays)
       query.$or.push({
         offerType: 'FESTIVAL'
       });
-      
-      console.log('Query:', JSON.stringify(query, null, 2));
-      
+
+      // Also catch any offer (even if matched as PRODUCT/CATEGORY) that has NO targeting arrays set
+      // This handles the case: "I created an offer but didn't select any products/categories"
+      query.$or.push({
+        $and: [
+          { $or: [{ applicableProducts: { $exists: false } }, { applicableProducts: { $size: 0 } }] },
+          { $or: [{ applicableCategories: { $exists: false } }, { applicableCategories: { $size: 0 } }] },
+          { $or: [{ applicableBrands: { $exists: false } }, { applicableBrands: { $size: 0 } }] }
+        ]
+      });
+
+      console.log('Final Offer Query:', JSON.stringify(query, null, 2));
+
       // Check usage limits
       const usageLimitQuery = {
         $or: [
@@ -305,35 +315,30 @@ class PricingService {
           { $expr: { $lt: ['$usedCount', '$usageLimit'] } }
         ]
       };
-      
+
       // Combine queries
       const finalQuery = {
         $and: [query, usageLimitQuery]
       };
-      
+
       const offers = await offerModel.find(finalQuery)
         .sort({ priority: -1, createdAt: -1 });
-      
-      console.log('Raw offers found:', offers.length);
-      offers.forEach(offer => {
-        console.log('- Raw Offer:', {
-          name: offer.name,
-          type: offer.offerType,
-          isActive: offer.isActive,
-          startDate: offer.startDate,
-          endDate: offer.endDate,
-          discountValue: offer.discountValue,
-          discountType: offer.discountType
-        });
-      });
-      
+
+      // Filter out any offers that claimed to be PRODUCT/CATEGORY/BRAND type but failed the targeting check
+      // (The empty array check above might pull them in, which is what we want for global, 
+      // but we should ensure they are truly intended to be global or are FESTIVAL type)
+      // Actually, if an offer has empty arrays, it effectively targets nothing unless we interpret it as global.
+      // The user REQUESTED that if they don't add applicable products, it should be global.
+      // So we accept all found offers.
+
+      console.log('Offers found:', offers.length);
       return offers;
     } catch (error) {
       console.error('Error getting applicable offers:', error);
       return [];
     }
   }
-  
+
   /**
    * Calculate discount amount for an offer
    * @param {Object} offer - Offer object
@@ -345,12 +350,12 @@ class PricingService {
     if (orderValue < offer.minOrderValue) {
       return 0;
     }
-    
+
     let discount = 0;
-    
+
     if (offer.discountType === 'PERCENTAGE') {
       discount = (orderValue * offer.discountValue) / 100;
-      
+
       // Apply max discount cap if specified
       if (offer.maxDiscountAmount && discount > offer.maxDiscountAmount) {
         discount = offer.maxDiscountAmount;
@@ -358,12 +363,12 @@ class PricingService {
     } else if (offer.discountType === 'FIXED_AMOUNT') {
       discount = offer.discountValue;
     }
-    
+
     // Ensure discount doesn't exceed order value and round to 2 decimal places
     const finalDiscount = Math.min(discount, orderValue);
     return Math.round(finalDiscount * 100) / 100;
   }
-  
+
   /**
    * Apply coupon to order
    * @param {String} couponCode - Coupon code
@@ -375,7 +380,7 @@ class PricingService {
   async applyCoupon(couponCode, orderValue, userId, cartItems = []) {
     try {
       const currentDate = new Date();
-      
+
       // Find and validate coupon
       const coupon = await couponModel.findOne({
         code: couponCode.toUpperCase(),
@@ -383,33 +388,33 @@ class PricingService {
         startDate: { $lte: currentDate },
         expiryDate: { $gte: currentDate }
       });
-      
+
       if (!coupon) {
         throw new Error('Invalid or expired coupon code');
       }
-      
+
       // Check usage limits
       if (coupon.usageLimit && coupon.usedCount >= coupon.usageLimit) {
         throw new Error('Coupon usage limit exceeded');
       }
-      
+
       // Check user-specific usage limit
       if (userId) {
         const userUsageCount = await couponUsageModel.countDocuments({
           coupon: coupon._id,
           user: userId
         });
-        
+
         if (userUsageCount >= coupon.usagePerUser) {
           throw new Error('You have already used this coupon the maximum number of times');
         }
       }
-      
+
       // Check minimum order value
       if (orderValue < coupon.minOrderValue) {
         throw new Error(`Minimum order value of ₹${coupon.minOrderValue} required for this coupon`);
       }
-      
+
       // Check product/category restrictions
       if (coupon.applicableProducts.length > 0 || coupon.applicableCategories.length > 0) {
         const isApplicable = await this.isCouponApplicableToCart(coupon, cartItems);
@@ -417,15 +422,15 @@ class PricingService {
           throw new Error('This coupon is not applicable to items in your cart');
         }
       }
-      
+
       // Check user restrictions
       if (coupon.applicableUsers.length > 0 && !coupon.applicableUsers.includes(userId)) {
         throw new Error('This coupon is not available for your account');
       }
-      
+
       // Calculate discount
       const discount = this.calculateCouponDiscount(coupon, orderValue);
-      
+
       return {
         success: true,
         coupon: coupon,
@@ -436,7 +441,7 @@ class PricingService {
       throw new Error(error.message);
     }
   }
-  
+
   /**
    * Calculate coupon discount
    * @param {Object} coupon - Coupon object
@@ -445,10 +450,10 @@ class PricingService {
    */
   calculateCouponDiscount(coupon, orderValue) {
     let discount = 0;
-    
+
     if (coupon.discountType === 'PERCENTAGE') {
       discount = (orderValue * coupon.discountValue) / 100;
-      
+
       // Apply max discount cap if specified
       if (coupon.maxDiscountAmount && discount > coupon.maxDiscountAmount) {
         discount = coupon.maxDiscountAmount;
@@ -456,11 +461,11 @@ class PricingService {
     } else if (coupon.discountType === 'FIXED_AMOUNT') {
       discount = coupon.discountValue;
     }
-    
+
     // Ensure discount doesn't exceed order value
     return Math.min(discount, orderValue);
   }
-  
+
   /**
    * Check if coupon is applicable to cart items
    * @param {Object} coupon - Coupon object
@@ -471,18 +476,18 @@ class PricingService {
     if (coupon.applicableProducts.length === 0 && coupon.applicableCategories.length === 0) {
       return true; // No restrictions
     }
-    
+
     for (const item of cartItems) {
       const product = await productModel.findById(item.productId);
       if (!product) continue;
-      
+
       // Check product restrictions
       if (coupon.applicableProducts.length > 0) {
         if (coupon.applicableProducts.includes(product._id)) {
           return true;
         }
       }
-      
+
       // Check category restrictions
       if (coupon.applicableCategories.length > 0) {
         if (coupon.applicableCategories.includes(product.category)) {
@@ -490,10 +495,10 @@ class PricingService {
         }
       }
     }
-    
+
     return false;
   }
-  
+
   /**
    * Record coupon usage
    * @param {String} couponId - Coupon ID
@@ -512,7 +517,7 @@ class PricingService {
         discountAmount: discountAmount,
         orderValue: orderValue
       });
-      
+
       // Increment coupon usage count
       await couponModel.findByIdAndUpdate(couponId, {
         $inc: { usedCount: 1 }
@@ -521,7 +526,7 @@ class PricingService {
       console.error('Error recording coupon usage:', error);
     }
   }
-  
+
   /**
    * Record offer usage
    * @param {String} offerId - Offer ID
@@ -535,7 +540,7 @@ class PricingService {
       console.error('Error recording offer usage:', error);
     }
   }
-  
+
   /**
    * Get available coupons for a user
    * @param {String} userId - User ID
@@ -545,49 +550,49 @@ class PricingService {
   async getAvailableCoupons(userId, orderValue = 0) {
     try {
       const currentDate = new Date();
-      
+
       const query = {
         isActive: true,
         startDate: { $lte: currentDate },
         expiryDate: { $gte: currentDate },
         minOrderValue: { $lte: orderValue }
       };
-      
+
       // Add usage limit check
       query.$or = [
         { usageLimit: null },
         { $expr: { $lt: ['$usedCount', '$usageLimit'] } }
       ];
-      
+
       let coupons = await couponModel.find(query)
         .select('code name description discountType discountValue maxDiscountAmount minOrderValue expiryDate')
         .sort({ discountValue: -1 });
-      
+
       // Filter out coupons user has already used maximum times
       if (userId) {
         const userUsages = await couponUsageModel.aggregate([
           { $match: { user: userId } },
           { $group: { _id: '$coupon', count: { $sum: 1 } } }
         ]);
-        
+
         const usageMap = {};
         userUsages.forEach(usage => {
           usageMap[usage._id.toString()] = usage.count;
         });
-        
+
         coupons = coupons.filter(coupon => {
           const usageCount = usageMap[coupon._id.toString()] || 0;
           return usageCount < coupon.usagePerUser;
         });
       }
-      
+
       return coupons;
     } catch (error) {
       console.error('Error getting available coupons:', error);
       return [];
     }
   }
-  
+
   /**
    * Get active offers for display
    * @param {String} type - Offer type filter
@@ -596,30 +601,30 @@ class PricingService {
   async getActiveOffers(type = null) {
     try {
       const currentDate = new Date();
-      
+
       const query = {
         isActive: true,
         startDate: { $lte: currentDate },
         endDate: { $gte: currentDate }
       };
-      
+
       if (type) {
         query.offerType = type.toUpperCase();
       }
-      
+
       const offers = await offerModel.find(query)
         .populate('applicableProducts', 'name')
         .populate('applicableCategories', 'name')
         .populate('applicableBrands', 'name')
         .sort({ priority: -1, createdAt: -1 });
-      
+
       return offers;
     } catch (error) {
       console.error('Error getting active offers:', error);
       return [];
     }
   }
-  
+
   /**
    * Calculate total cart value with offers and coupons
    * @param {Array} cartItems - Cart items with product, variant, quantity
@@ -632,22 +637,22 @@ class PricingService {
       let subtotal = 0;
       let totalOfferDiscount = 0;
       const itemBreakdown = [];
-      
+
       // Calculate offers for each item
       for (const item of cartItems) {
         const product = item.product || await productModel.findById(item.productId);
         if (!product) continue;
-        
+
         const offerResult = await this.calculateBestOffer(product, item.quantity, userId, item.variant);
-        
+
         // Ensure valid pricing with proper rounding
         const originalPrice = Math.round((isNaN(offerResult.originalPrice) ? 0 : offerResult.originalPrice) * 100) / 100;
         const finalPrice = Math.round((isNaN(offerResult.finalPrice) ? 0 : offerResult.finalPrice) * 100) / 100;
         const discount = Math.round((isNaN(offerResult.discount) ? 0 : offerResult.discount) * 100) / 100;
-        
+
         subtotal += originalPrice;
         totalOfferDiscount += discount;
-        
+
         itemBreakdown.push({
           product: product,
           quantity: item.quantity,
@@ -657,15 +662,15 @@ class PricingService {
           offer: offerResult.offer
         });
       }
-      
+
       // Round intermediate calculations
       subtotal = Math.round(subtotal * 100) / 100;
       totalOfferDiscount = Math.round(totalOfferDiscount * 100) / 100;
       const afterOffers = Math.round(Math.max(0, subtotal - totalOfferDiscount) * 100) / 100;
-      
+
       let couponDiscount = 0;
       let coupon = null;
-      
+
       // Apply coupon if provided
       if (couponCode) {
         try {
@@ -677,10 +682,10 @@ class PricingService {
           console.log('Coupon application failed:', error.message);
         }
       }
-      
+
       const finalTotal = Math.round(Math.max(0, afterOffers - couponDiscount) * 100) / 100;
       const totalSavings = Math.round((totalOfferDiscount + couponDiscount) * 100) / 100;
-      
+
       return {
         subtotal: subtotal,
         offerDiscount: totalOfferDiscount,
