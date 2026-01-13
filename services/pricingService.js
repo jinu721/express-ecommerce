@@ -11,76 +11,38 @@ class PricingService {
     try {
       const currentDate = new Date();
 
-      console.log('=== DEBUGGING FESTIVAL OFFER ===');
-      console.log('Product:', product.name);
-      console.log('Current Date:', currentDate);
-
       let basePrice = 0;
-
       if (product.basePrice && !isNaN(product.basePrice) && product.basePrice > 0) {
         basePrice = product.basePrice;
       } else if (product.price && !isNaN(product.price) && product.price > 0) {
         basePrice = product.price;
-      } else if (product.sizes && product.sizes.price && !isNaN(product.sizes.price) && product.sizes.price > 0) {
+      } else if (product.sizes && product.sizes.price && !isNaN(product.sizes.price)) {
         basePrice = product.sizes.price;
-      } else {
-        console.error(`No valid price found for product ${product.name || product._id}:`, {
-          basePrice: product.basePrice,
-          price: product.price,
-          sizesPrice: product.sizes?.price
-        });
+      }
+
+      if (variant) {
+        if (variant.specialPrice && variant.specialPrice > 0) {
+          basePrice = variant.specialPrice;
+        } else {
+          basePrice += (variant.priceAdjustment || 0);
+        }
+      }
+
+      const totalBasePrice = basePrice * quantity;
+      if (isNaN(totalBasePrice) || totalBasePrice <= 0) {
         return {
           originalPrice: 0,
           finalPrice: 0,
           discount: 0,
           discountPercentage: 0,
           offer: null,
-          hasOffer: false,
-          error: 'No valid price found'
-        };
-      }
-
-      console.log('Base Price:', basePrice);
-
-      if (variant) {
-        if (variant.specialPrice && variant.specialPrice > 0) {
-          basePrice = variant.specialPrice;
-        } else {
-          const adjustment = variant.priceAdjustment || 0;
-          basePrice = basePrice + adjustment;
-        }
-
-        if (isNaN(basePrice) || basePrice < 0) {
-          console.warn(`Invalid variant price for ${variant.sku}: ${basePrice}`);
-          basePrice = product.basePrice || product.price || 0;
-        }
-      }
-
-      const totalBasePrice = basePrice * quantity;
-
-      if (isNaN(totalBasePrice) || totalBasePrice < 0) {
-        console.error(`Invalid total price calculation: ${basePrice} * ${quantity} = ${totalBasePrice}`);
-        const fallbackPrice = 0;
-        return {
-          originalPrice: fallbackPrice,
-          finalPrice: fallbackPrice,
-          discount: 0,
-          discountPercentage: 0,
-          offer: null,
-          hasOffer: false,
-          error: 'Invalid pricing data'
+          hasOffer: false
         };
       }
 
       const offers = await this.getApplicableOffers(product, currentDate);
 
-      console.log('Found Offers:', offers.length);
-      offers.forEach(offer => {
-        console.log('- Offer:', offer.name, 'Type:', offer.offerType, 'Discount:', offer.discountValue + (offer.discountType === 'PERCENTAGE' ? '%' : '₹'));
-      });
-
-      if (offers.length === 0) {
-        console.log('No offers found, returning original price');
+      if (!offers || offers.length === 0) {
         return {
           originalPrice: roundToTwoDecimals(totalBasePrice),
           finalPrice: roundToTwoDecimals(totalBasePrice),
@@ -91,185 +53,101 @@ class PricingService {
         };
       }
 
-      offers.sort((a, b) => {
-        const aPriority = a.offerType === 'FESTIVAL' ? a.priority + 1000 : a.priority;
-        const bPriority = b.offerType === 'FESTIVAL' ? b.priority + 1000 : b.priority;
-
-        if (bPriority !== aPriority) {
-          return bPriority - aPriority; 
-        }
-        return new Date(b.createdAt) - new Date(a.createdAt); 
+      const offerResults = offers.map(offer => {
+        const discount = this.calculateOfferDiscount(offer, totalBasePrice);
+        return {
+          offer,
+          discount,
+          priority: offer.offerType === 'FESTIVAL' ? (offer.priority || 0) + 1000 : (offer.priority || 0)
+        };
       });
-      const bestOffer = offers[0];
-      const discount = this.calculateOfferDiscount(bestOffer, totalBasePrice);
-      const finalPrice = Math.max(0, roundToTwoDecimals(totalBasePrice - discount));
 
-      let discountPercentage = 0;
-      if (bestOffer.discountType === 'PERCENTAGE') {
-        discountPercentage = bestOffer.discountValue;
-      } else if (discount > 0 && totalBasePrice > 0) {
-        discountPercentage = Math.round((discount / totalBasePrice) * 100);
+      offerResults.sort((a, b) => {
+        if (b.discount !== a.discount) return b.discount - a.discount;
+        return b.priority - a.priority;
+      });
+
+      const best = offerResults[0];
+
+      if (!best || best.discount <= 0) {
+        return {
+          originalPrice: roundToTwoDecimals(totalBasePrice),
+          finalPrice: roundToTwoDecimals(totalBasePrice),
+          discount: 0,
+          discountPercentage: 0,
+          offer: null,
+          hasOffer: false
+        };
       }
+
+      const finalPrice = Math.max(0, roundToTwoDecimals(totalBasePrice - best.discount));
+      const discountPercentage = Math.round((best.discount / totalBasePrice) * 100);
 
       return {
         originalPrice: roundToTwoDecimals(totalBasePrice),
         finalPrice: roundToTwoDecimals(finalPrice),
-        discount: roundToTwoDecimals(discount),
-        discountPercentage: isNaN(discountPercentage) ? 0 : discountPercentage,
-        offer: bestOffer,
-        hasOffer: discount > 0,
-        isPercentageOffer: bestOffer.discountType === 'PERCENTAGE'
+        discount: roundToTwoDecimals(best.discount),
+        discountPercentage: discountPercentage,
+        offer: best.offer,
+        hasOffer: true,
+        isPercentageOffer: best.offer.discountType === 'PERCENTAGE'
       };
     } catch (error) {
-      console.error('Error calculating best offer:', error);
-      const fallbackPrice = (product.basePrice || product.price || 0) * quantity;
-      const safeFallbackPrice = isNaN(fallbackPrice) ? 0 : fallbackPrice;
+      console.error('Error in calculateBestOffer:', error);
+      const fallback = (product.basePrice || product.price || 0) * quantity;
       return {
-        originalPrice: safeFallbackPrice,
-        finalPrice: safeFallbackPrice,
+        originalPrice: fallback,
+        finalPrice: fallback,
         discount: 0,
         discountPercentage: 0,
         offer: null,
-        hasOffer: false,
-        isPercentageOffer: false,
-        error: error.message
+        hasOffer: false
       };
     }
   }
-  async calculateProductPricing(product, variants = [], userId = null) {
-    try {
-      const baseOfferResult = await this.calculateBestOffer(product, 1, userId, null);
-      const variantPricing = await Promise.all(variants.map(async (variant) => {
-        const variantOfferResult = await this.calculateBestOffer(product, 1, userId, variant);
-        return {
-          variantId: variant._id,
-          variant: variant,
-          originalPrice: variantOfferResult.originalPrice,
-          finalPrice: variantOfferResult.finalPrice,
-          discount: variantOfferResult.discount,
-          offer: variantOfferResult.offer,
-          variantPrice: variantOfferResult.variantPrice
-        };
-      }));
-      let minPrice = baseOfferResult.finalPrice;
-      let maxPrice = baseOfferResult.finalPrice;
-      let hasVariantPricing = false;
-      if (variantPricing.length > 0) {
-        const variantPrices = variantPricing.map(v => v.finalPrice);
-        minPrice = Math.min(...variantPrices);
-        maxPrice = Math.max(...variantPrices);
-        hasVariantPricing = true;
-      }
-
-      return {
-        basePrice: baseOfferResult.originalPrice,
-        baseFinalPrice: baseOfferResult.finalPrice,
-        baseDiscount: baseOfferResult.discount,
-        baseOffer: baseOfferResult.offer,
-        minPrice: minPrice,
-        maxPrice: maxPrice,
-        hasVariantPricing: hasVariantPricing,
-        variantPricing: variantPricing,
-        displayPrice: minPrice,
-        priceRange: minPrice !== maxPrice ? `₹${minPrice} - ₹${maxPrice}` : `₹${minPrice}`
-      };
-    } catch (error) {
-      console.error('Error calculating product pricing:', error);
-      const fallbackPrice = product.basePrice || product.price;
-      return {
-        basePrice: fallbackPrice,
-        baseFinalPrice: fallbackPrice,
-        baseDiscount: 0,
-        baseOffer: null,
-        minPrice: fallbackPrice,
-        maxPrice: fallbackPrice,
-        hasVariantPricing: false,
-        variantPricing: [],
-        displayPrice: fallbackPrice,
-        priceRange: `₹${fallbackPrice}`
-      };
-    }
-  }
-
 
   async getApplicableOffers(product, currentDate) {
     try {
-      console.log('=== GET APPLICABLE OFFERS DEBUG ===');
-      console.log('Product ID:', product._id);
-      console.log('Current Date:', currentDate);
+      const allActiveOffers = await offerModel.find({ isActive: true });
+      const allOffers = allActiveOffers.filter(o => {
+        const isStarted = o.startDate <= currentDate;
+        const isNotExpired = o.endDate >= currentDate;
+        const isUsageOk = !o.usageLimit || (o.usedCount < o.usageLimit);
 
-      const allFestivalOffers = await offerModel.find({ offerType: 'FESTIVAL' });
-      console.log('ALL Festival offers in DB:', allFestivalOffers.length);
-      allFestivalOffers.forEach(offer => {
-        console.log('- Festival Offer:', {
-          name: offer.name,
-          isActive: offer.isActive,
-          startDate: offer.startDate,
-          endDate: offer.endDate,
-          discountValue: offer.discountValue,
-          discountType: offer.discountType,
-          isDateValid: offer.startDate <= currentDate && offer.endDate >= currentDate
-        });
+        return isStarted && isNotExpired && isUsageOk;
       });
 
-      const query = {
-        isActive: true,
-        startDate: { $lte: currentDate },
-        endDate: { $gte: currentDate },
-        $or: []
-      };
+      const applicableOffers = allOffers.filter(offer => {
+        if (offer.offerType === 'FESTIVAL') {
+          return true;
+        }
 
-      query.$or.push({
-        offerType: 'PRODUCT',
-        applicableProducts: product._id
+        const productId = product._id.toString();
+        if (offer.offerType === 'PRODUCT' && offer.applicableProducts.some(id => id.toString() === productId)) {
+          return true;
+        }
+
+        const categoryId = (product.category?._id || product.category)?.toString();
+        if (categoryId && offer.offerType === 'CATEGORY' && offer.applicableCategories.some(id => id.toString() === categoryId)) {
+          return true;
+        }
+
+        const brandId = (product.brand?._id || product.brand)?.toString();
+        if (brandId && offer.offerType === 'BRAND' && offer.applicableBrands.some(id => id.toString() === brandId)) {
+          return true;
+        }
+
+        if (offer.applicableProducts.length === 0 &&
+          offer.applicableCategories.length === 0 &&
+          offer.applicableBrands.length === 0) {
+          return true;
+        }
+
+        return false;
       });
 
-      if (product.category) {
-        query.$or.push({
-          offerType: 'CATEGORY',
-          applicableCategories: product.category._id || product.category
-        });
-      }
-
-      if (product.brand) {
-        query.$or.push({
-          offerType: 'BRAND',
-          applicableBrands: product.brand._id || product.brand
-        });
-      }
-
-      query.$or.push({
-        offerType: 'FESTIVAL'
-      });
-
-      query.$or.push({
-        $and: [
-          { $or: [{ applicableProducts: { $exists: false } }, { applicableProducts: { $size: 0 } }] },
-          { $or: [{ applicableCategories: { $exists: false } }, { applicableCategories: { $size: 0 } }] },
-          { $or: [{ applicableBrands: { $exists: false } }, { applicableBrands: { $size: 0 } }] }
-        ]
-      });
-
-      console.log('Final Offer Query:', JSON.stringify(query, null, 2));
-
-      const usageLimitQuery = {
-        $or: [
-          { usageLimit: null },
-          { $expr: { $lt: ['$usedCount', '$usageLimit'] } }
-        ]
-      };
-
-      const finalQuery = {
-        $and: [query, usageLimitQuery]
-      };
-
-      const offers = await offerModel.find(finalQuery)
-        .sort({ priority: -1, createdAt: -1 });
-
-      console.log('Offers found:', offers.length);
-      return offers;
+      return applicableOffers;
     } catch (error) {
-      console.error('Error getting applicable offers:', error);
       return [];
     }
   }
@@ -497,6 +375,28 @@ class PricingService {
     }
   }
 
+  async getActiveFestivalOffer() {
+    try {
+      const currentDate = new Date();
+
+      const festivalOffer = await offerModel.findOne({
+        offerType: 'FESTIVAL',
+        isActive: true,
+        startDate: { $lte: currentDate },
+        endDate: { $gte: currentDate },
+        $or: [
+          { usageLimit: null },
+          { $expr: { $lt: ['$usedCount', '$usageLimit'] } }
+        ]
+      }).sort({ priority: -1, createdAt: -1 });
+
+      return festivalOffer;
+    } catch (error) {
+      console.error('Error getting active festival offer:', error);
+      return null;
+    }
+  }
+
   async calculateCartTotal(cartItems, couponCode = null, userId = null) {
     try {
       let subtotal = 0;
@@ -552,7 +452,7 @@ class PricingService {
         afterOffers: afterOffers,
         couponDiscount: couponDiscount,
         finalTotal: finalTotal,
-        total: finalTotal, 
+        total: finalTotal,
         totalSavings: totalSavings,
         itemBreakdown: itemBreakdown,
         appliedCoupon: coupon

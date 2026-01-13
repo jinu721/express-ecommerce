@@ -81,10 +81,10 @@
             <p class="details__brand">Brand: <span><%= product.brand?.name || 'No Brand' %></span></p>
             
             <div class="details__price flex">
-              <% if(hasOffer) { %>
-                <span class="new__price offerPriceProduct">&#8377;<%= isNaN(discountedPrice) ? '0' : Math.round(discountedPrice) %></span>
-                <span class="old__price">&#8377;<%= isNaN(displayPrice) ? '0' : Math.round(displayPrice) %></span>
-                <% if(isPercentageOffer) { %>
+              <% if(typeof hasOffer !== 'undefined' && hasOffer && typeof discountedPrice !== 'undefined' && discountedPrice) { %>
+                <span class="new__price offerPriceProduct">&#8377;<%= Math.round(discountedPrice) %></span>
+                <span class="old__price">&#8377;<%= Math.round(displayPrice) %></span>
+                <% if(typeof discountPercentage !== 'undefined' && discountPercentage > 0) { %>
                   <span class="save__price"><%= discountPercentage %>% Off</span>
                 <% } %>
                 <% if(typeof isFestivalOffer !== 'undefined' && isFestivalOffer) { %>
@@ -93,7 +93,7 @@
                   </span>
                 <% } %>
               <% } else { %>
-                <span class="new__price">&#8377;<%= isNaN(displayPrice) ? '0' : Math.round(displayPrice) %></span>
+                <span class="new__price">&#8377;<%= Math.round(displayPrice) %></span>
               <% } %>
             </div>
             

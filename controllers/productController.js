@@ -13,7 +13,21 @@ const path = require("path");
 module.exports = {
   async homeLoad(req, res) {
     try {
-      const products = await productModel.find({ isDeleted: false });
+      const productsRaw = await productModel.find({ isDeleted: false });
+
+      const products = await Promise.all(productsRaw.map(async (product) => {
+        const offerResult = await pricingService.calculateBestOffer(product, 1, req.session.currentId);
+        return {
+          ...product.toObject(),
+          originalPrice: offerResult.originalPrice,
+          finalPrice: offerResult.finalPrice,
+          discount: offerResult.discount,
+          discountPercentage: offerResult.discountPercentage,
+          hasOffer: offerResult.hasOffer,
+          offer: offerResult.offer,
+          isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
+        };
+      }));
 
       const category = await categoryModel.find();
       const topSellingProducts = await orderModel.aggregate([
@@ -43,36 +57,10 @@ module.exports = {
         },
       ]);
 
-      const festivalOffers = await pricingService.getActiveOffers('FESTIVAL');
-      const activeFestivalOffer = festivalOffers.length > 0 ? festivalOffers[0] : null;
+      const activeFestivalOffer = await pricingService.getActiveFestivalOffer();
 
-      const hotReleasesWithOffers = await Promise.all(products.slice(0, 5).map(async (product) => {
-        const offerResult = await pricingService.calculateBestOffer(product, 1, req.session.currentId);
-        return {
-          ...product.toObject(),
-          originalPrice: offerResult.originalPrice,
-          finalPrice: offerResult.finalPrice,
-          discount: offerResult.discount,
-          discountPercentage: offerResult.discount > 0 ? Math.round((offerResult.discount / offerResult.originalPrice) * 100) : 0,
-          hasOffer: offerResult.offer !== null,
-          offer: offerResult.offer,
-          isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
-        };
-      }));
-
-      const dealsAndOutfitsWithOffers = await Promise.all(products.slice(5, 10).map(async (product) => {
-        const offerResult = await pricingService.calculateBestOffer(product, 1, req.session.currentId);
-        return {
-          ...product.toObject(),
-          originalPrice: offerResult.originalPrice,
-          finalPrice: offerResult.finalPrice,
-          discount: offerResult.discount,
-          discountPercentage: offerResult.discount > 0 ? Math.round((offerResult.discount / offerResult.originalPrice) * 100) : 0,
-          hasOffer: offerResult.offer !== null,
-          offer: offerResult.offer,
-          isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
-        };
-      }));
+      const hotReleases = products.slice(0, 5);
+      const dealsAndOutfits = products.slice(5, 10);
 
       const topSellingWithOffers = await Promise.all(topSellingProducts.map(async (item) => {
         if (item.product) {
@@ -84,8 +72,9 @@ module.exports = {
               originalPrice: offerResult.originalPrice,
               finalPrice: offerResult.finalPrice,
               discount: offerResult.discount,
-              discountPercentage: offerResult.discount > 0 ? Math.round((offerResult.discount / offerResult.originalPrice) * 100) : 0,
-              hasOffer: offerResult.offer !== null,
+              discountPercentage: offerResult.discountPercentage,
+              hasOffer: offerResult.hasOffer,
+              offer: offerResult.offer,
               isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
             }
           };
@@ -96,8 +85,8 @@ module.exports = {
       res.render("index", {
         products: products,
         category: category,
-        hotReleases: hotReleasesWithOffers,
-        dealsAndOutfits: dealsAndOutfitsWithOffers,
+        hotReleases: hotReleases,
+        dealsAndOutfits: dealsAndOutfits,
         topSellingProducts: topSellingWithOffers,
         activeFestivalOffer: activeFestivalOffer
       });
@@ -145,18 +134,18 @@ module.exports = {
       }
 
       if (req.query.brand && req.query.brand.trim() !== "") {
-         const brandName = req.query.brand.trim();
-         const brandDoc = await Brand.findOne({ name: { $regex: new RegExp(`^${brandName}$`, 'i') } });
-         if (brandDoc) {
-             query.brand = brandDoc._id;
-         } else {
-             query.brand = null;
-         }
+        const brandName = req.query.brand.trim();
+        const brandDoc = await Brand.findOne({ name: { $regex: new RegExp(`^${brandName}$`, 'i') } });
+        if (brandDoc) {
+          query.brand = brandDoc._id;
+        } else {
+          query.brand = null;
+        }
       }
 
       let products = await productModel
         .find(query)
-        .populate('brand') 
+        .populate('brand')
         .populate('category')
         .skip(skip)
         .limit(limit)
@@ -164,7 +153,7 @@ module.exports = {
 
       const productsWithOffers = await Promise.all(products.map(async (product) => {
         const offerResult = await pricingService.calculateBestOffer(product, 1, req.session.currentId);
-        
+
         return {
           ...product.toObject(),
           originalPrice: offerResult.originalPrice,
@@ -185,7 +174,7 @@ module.exports = {
         const maxPrice = priceRange[1]
           ? parseInt(priceRange[1].replace("₹", "").trim(), 10)
           : Infinity;
-        
+
         filteredProducts = productsWithOffers.filter(product => {
           const priceToCheck = product.finalPrice;
           return priceToCheck >= minPrice && priceToCheck <= maxPrice;
@@ -198,14 +187,13 @@ module.exports = {
         filteredProducts.sort((a, b) => b.name.localeCompare(a.name));
       }
 
-      const festivalOffers = await pricingService.getActiveOffers('FESTIVAL');
-      const activeFestivalOffer = festivalOffers.length > 0 ? festivalOffers[0] : null;
+      const activeFestivalOffer = await pricingService.getActiveFestivalOffer();
 
       if (req.query.api) {
         return res.status(200).json({ products: filteredProducts, category: activeCategories });
       } else {
-        res.status(200).render("shop", { 
-          products: filteredProducts, 
+        res.status(200).render("shop", {
+          products: filteredProducts,
           category: activeCategories,
           activeFestivalOffer: activeFestivalOffer
         });
@@ -219,7 +207,7 @@ module.exports = {
     const productId = req.params.id;
     try {
       const product = await productModel.findOne({ _id: productId }).populate('brand').populate('category');
-      
+
       if (!product) {
         return res.status(404).render("404");
       }
@@ -228,21 +216,21 @@ module.exports = {
         userId: req.session.currentId,
         "items.productId": productId,
       });
-      
+
       const isAlreadyWishlist = !!wishlistData;
       let wishlistItemId = null;
-      
+
       if (wishlistData) {
         const wishlistItem = wishlistData.items.find(item => item.productId.toString() === productId);
         wishlistItemId = wishlistItem ? wishlistItem._id : null;
       }
 
-      const relatedQuery = { 
-        category: product.category._id, 
+      const relatedQuery = {
+        category: product.category._id,
         _id: { $ne: product._id },
         isDeleted: false
       };
-      
+
       if (product.brand) {
         relatedQuery.brand = product.brand._id || product.brand;
       }
@@ -254,7 +242,7 @@ module.exports = {
 
       const relatedProducts = await Promise.all(relatedProductsRaw.map(async (relatedProduct) => {
         const relatedOfferResult = await pricingService.calculateBestOffer(relatedProduct, 1, req.session.currentId);
-        
+
         return {
           ...relatedProduct.toObject(),
           originalPrice: relatedOfferResult.originalPrice,
@@ -275,12 +263,12 @@ module.exports = {
       });
 
       const variants = await Variant.find({ product: productId, isActive: true });
-      
+
       const offerResult = await pricingService.calculateBestOffer(product, 1, req.session.currentId);
-      
+
       const variantsForFrontend = await Promise.all(variants.map(async (v) => {
         const variantOfferResult = await pricingService.calculateBestOffer(product, 1, req.session.currentId, v);
-        
+
         return {
           ...v.toObject(),
           attributes: Object.fromEntries(v.attributes),
@@ -297,7 +285,9 @@ module.exports = {
           isPercentageOffer: variantOfferResult.isPercentageOffer
         };
       }));
-      
+
+      const activeFestivalOffer = await pricingService.getActiveFestivalOffer();
+
       res.status(200).render("details", {
         product,
         variants: variantsForFrontend,
@@ -308,6 +298,7 @@ module.exports = {
         hasOffer: offerResult.hasOffer,
         isPercentageOffer: offerResult.isPercentageOffer,
         isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL',
+        activeFestivalOffer: activeFestivalOffer,
         hasVariants: variants.length > 0,
         relatedProducts,
         category: product.category,
@@ -363,7 +354,7 @@ module.exports = {
       const categories = await categoryModel.find({ isDeleted: false })
         .select('_id name description')
         .sort({ name: 1 });
-      
+
       res.json({ items: categories });
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -376,7 +367,7 @@ module.exports = {
       const brands = await Brand.find({ isActive: true })
         .select('_id name description productCount')
         .sort({ name: 1 });
-      
+
       res.json({ items: brands });
     } catch (error) {
       console.error('Error fetching brands:', error);
@@ -390,7 +381,7 @@ module.exports = {
         description,
         category,
         tags,
-        brand, 
+        brand,
         price,
         cashOnDelivery,
         warranty,
@@ -433,8 +424,8 @@ module.exports = {
       const newProduct = await productModel.create({
         name,
         description,
-        basePrice, 
-        price: basePrice, 
+        basePrice,
+        price: basePrice,
         category: catDoc._id,
         brand: brandId,
         images: imagePaths,
@@ -442,8 +433,8 @@ module.exports = {
         cashOnDelivery,
         warranty,
         returnPolicy,
-        colors: [], 
-        sizes: {}   
+        colors: [],
+        sizes: {}
       });
 
       if (brandId) {
@@ -451,8 +442,8 @@ module.exports = {
         await Brand.findByIdAndUpdate(brandId, { productCount: count });
       }
 
-      res.status(200).json({ 
-        val: true, 
+      res.status(200).json({
+        val: true,
         msg: "Product created successfully! Use the 'Variants' button to add variants and manage stock.",
         productId: newProduct._id
       });
@@ -463,17 +454,17 @@ module.exports = {
   },
 
   async productDetails(req, res) {
-      try {
-          const { id } = req.params;
-          const product = await productModel.findOne({ _id: id });
-          if (!product) return res.status(404).json({ success: false, msg: "Product not found" });
-          
-          const variants = await Variant.find({ product: id, isActive: true });
-          res.json({ success: true, product, variants });
-      } catch (err) {
-          console.error(err);
-          res.status(500).json({ success: false, msg: "Server error" });
-      }
+    try {
+      const { id } = req.params;
+      const product = await productModel.findOne({ _id: id });
+      if (!product) return res.status(404).json({ success: false, msg: "Product not found" });
+
+      const variants = await Variant.find({ product: id, isActive: true });
+      res.json({ success: true, product, variants });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ success: false, msg: "Server error" });
+    }
   },
 
   async productUpdateLoad(req, res) {
@@ -507,18 +498,18 @@ module.exports = {
     try {
       const Variant = require('../models/variantModel');
       const variantCount = await Variant.countDocuments({ product: id });
-      
+
       if (variantCount > 0) {
-        return res.status(400).json({ 
-          val: false, 
-          msg: `Cannot delete product with ${variantCount} variants. Please delete variants first.` 
+        return res.status(400).json({
+          val: false,
+          msg: `Cannot delete product with ${variantCount} variants. Please delete variants first.`
         });
       }
 
       const product = await productModel.findById(id);
-      
+
       await productModel.findByIdAndDelete(id);
-      
+
       if (product && product.brand) {
         const count = await productModel.countDocuments({ brand: product.brand, isDeleted: false });
         const Brand = require('../models/brandModel');
@@ -537,10 +528,10 @@ module.exports = {
     try {
       const variants = await Variant.find({ product: id, 'attributes.size': size, isActive: true });
       let totalStock = variants.length > 0 ? variants.reduce((sum, v) => sum + v.stock, 0) : 0;
-      
+
       if (totalStock === 0) {
-         const product = await productModel.findById(id);
-         if (product && product.sizes && product.sizes[size]) totalStock = product.sizes[size].stock;
+        const product = await productModel.findById(id);
+        if (product && product.sizes && product.sizes[size]) totalStock = product.sizes[size].stock;
       }
       res.status(200).json({ val: true, stock: totalStock });
     } catch (err) {
@@ -553,11 +544,11 @@ module.exports = {
       const { productIndex } = req.body;
       const { productId } = req.params;
       if (!req.file) return res.status(400).json({ val: false, msg: "No file was uploaded" });
-      
+
       const filePath = path.relative(path.join(__dirname, "..", "public"), req.file.path);
       const product = await productModel.findOne({ _id: productId });
       if (!product) return res.status(404).json({ val: false, msg: "Product not found" });
-      
+
       product.images[productIndex] = filePath;
       await product.save();
       return res.status(200).json({ val: true, msg: "Product image updated successfully" });
@@ -607,24 +598,24 @@ module.exports = {
       hasCustomShipping,
       shippingPrice,
     } = req.body;
-    
+
     const { productId } = req.params;
     try {
       const basePrice = Number(price);
       cashOnDelivery = cashOnDelivery === true || cashOnDelivery === "true";
       hasCustomShipping = hasCustomShipping === true || hasCustomShipping === "true";
       const customShippingPrice = hasCustomShipping && shippingPrice ? Number(shippingPrice) : null;
-      
+
       const parsedTags = typeof tags === 'string' ? tags.split("#").filter((tag) => tag.trim() !== "") : tags;
-      
+
       const catDoc = await CategoryModel.findOne({ $or: [{ name: category }, { _id: category }] });
       const product = await productModel.findOne({ _id: productId });
-      
+
       if (!product) {
         return res.status(404).json({ val: false, msg: "Product not found" });
       }
 
-      let brandId = product.brand; 
+      let brandId = product.brand;
       if (brand) {
         if (brand.match(/^[0-9a-fA-F]{24}$/)) {
           brandId = brand;
@@ -638,7 +629,7 @@ module.exports = {
       }
 
       let imagePaths = [...product.images];
-      
+
       if (req.files && Object.keys(req.files).length > 0) {
         for (const key in req.files) {
           if (key.startsWith('productImage')) {
@@ -646,15 +637,15 @@ module.exports = {
             if (imageIndex >= 0 && imageIndex < 4) {
               const file = req.files[key][0];
               const newImagePath = path.relative(path.join(__dirname, "..", "public"), file.path);
-              
+
               imagePaths[imageIndex] = newImagePath;
             }
           }
         }
       }
-      
+
       imagePaths = imagePaths.filter(img => img != null).slice(0, 4);
-      
+
       const updateData = {
         name,
         description,
@@ -669,18 +660,18 @@ module.exports = {
         returnPolicy,
         hasCustomShipping,
       };
-      
+
       if (hasCustomShipping && customShippingPrice !== null) {
         updateData.shippingPrice = customShippingPrice;
       } else if (!hasCustomShipping) {
         updateData.$unset = { shippingPrice: 1 };
       }
-      
+
       await product.updateOne(updateData);
 
-      return res.status(200).json({ 
-        val: true, 
-        msg: "Product updated successfully! Variants are managed separately via the 'Variants' button." 
+      return res.status(200).json({
+        val: true,
+        msg: "Product updated successfully! Variants are managed separately via the 'Variants' button."
       });
     } catch (err) {
       console.error(err);
@@ -740,9 +731,9 @@ module.exports = {
       const matchingBrands = await Brand.find({
         name: { $regex: key, $options: "i" }
       }).select('_id');
-      
+
       const brandIds = matchingBrands.map(brand => brand._id);
-      
+
       const searchQuery = {
         $or: [
           { name: { $regex: key, $options: "i" } },
@@ -750,24 +741,24 @@ module.exports = {
         ],
         isDeleted: false
       };
-      
+
       if (brandIds.length > 0) {
         searchQuery.$or.push({ brand: { $in: brandIds } });
       }
-      
+
       const results = await productModel
         .find(searchQuery)
         .populate('brand', 'name')
         .populate('category', 'name')
         .limit(10);
-        
+
       if (!results || results.length === 0) {
         return res.status(200).json({ val: false, msg: "No items found" });
       }
-      
+
       const resultsWithOffers = await Promise.all(results.map(async (product) => {
         const offerResult = await pricingService.calculateBestOffer(product, 1, req.session.currentId);
-        
+
         return {
           ...product.toObject(),
           originalPrice: offerResult.originalPrice,
@@ -780,7 +771,7 @@ module.exports = {
           isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
         };
       }));
-      
+
       res.status(200).json({ val: true, results: resultsWithOffers });
     } catch (err) {
       console.log(err);
@@ -872,7 +863,7 @@ module.exports = {
 
   async getProductPopupData(req, res) {
     const { id } = req.params;
-    
+
     const getColorHex = (colorName) => {
       const colorMap = {
         'red': '#ff0000',
@@ -888,24 +879,24 @@ module.exports = {
         'gray': '#808080',
         'grey': '#808080'
       };
-      
+
       return colorMap[colorName.toLowerCase()] || '#cccccc';
     };
-    
+
     try {
       const product = await productModel.findById(id)
         .populate('brand', 'name')
         .populate('category', 'name');
-      
+
       if (!product) {
-        return res.status(404).json({ 
-          success: false, 
-          message: 'Product not found' 
+        return res.status(404).json({
+          success: false,
+          message: 'Product not found'
         });
       }
 
       const offerResult = await pricingService.calculateBestOffer(product, 1, req.session.currentId);
-      
+
       const productData = {
         ...product.toObject(),
         originalPrice: offerResult.originalPrice,
@@ -917,19 +908,19 @@ module.exports = {
       };
 
       const variants = await Variant.find({ product: id, isActive: true });
-      
+
       console.log(`Found ${variants.length} variants for product ${id}`);
-      
+
       let attributes = [];
       if (variants.length > 0) {
         const attributeMap = new Map();
-        
+
         variants.forEach(variant => {
           if (variant.attributes) {
-            const attrs = variant.attributes instanceof Map ? 
-              Object.fromEntries(variant.attributes) : 
+            const attrs = variant.attributes instanceof Map ?
+              Object.fromEntries(variant.attributes) :
               variant.attributes;
-              
+
             Object.keys(attrs).forEach(key => {
               if (!attributeMap.has(key)) {
                 attributeMap.set(key, new Set());
@@ -938,7 +929,7 @@ module.exports = {
             });
           }
         });
-        
+
         attributes = Array.from(attributeMap.entries()).map(([key, values]) => ({
           name: key,
           displayName: key.charAt(0).toUpperCase() + key.slice(1).toLowerCase(),
@@ -950,17 +941,17 @@ module.exports = {
             hexCode: key.toLowerCase() === 'color' ? getColorHex(value) : null
           }))
         }));
-        
+
         console.log('Extracted attributes:', attributes);
       }
 
       const formattedVariants = await Promise.all(variants.map(async (v) => {
-        const attrs = v.attributes instanceof Map ? 
-          Object.fromEntries(v.attributes) : 
+        const attrs = v.attributes instanceof Map ?
+          Object.fromEntries(v.attributes) :
           v.attributes || {};
-        
+
         const variantOfferResult = await pricingService.calculateBestOffer(product, 1, req.session.currentId, v);
-        
+
         return {
           ...v.toObject(),
           attributes: attrs,
@@ -986,9 +977,9 @@ module.exports = {
 
     } catch (error) {
       console.error('Error fetching product popup data:', error);
-      res.status(500).json({ 
-        success: false, 
-        message: 'Failed to load product data' 
+      res.status(500).json({
+        success: false,
+        message: 'Failed to load product data'
       });
     }
   },

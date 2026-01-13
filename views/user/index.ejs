@@ -111,7 +111,13 @@
                     <i class="fi fi-rs-heart"></i>
                   </a>
                 </div>
-                <div class="product__badge light-green">-22%</div>
+                <div class="product__badge <%= data.isFestivalOffer ? 'festival-badge' : 'light-green' %>">
+                  <% if (data.isFestivalOffer) { %>
+                    FESTIVAL
+                  <% } else { %>
+                    -22%
+                  <% } %>
+                </div>
               </div>
               <div class="product__content">
                 <%  category.forEach((x)=>{ %>
@@ -130,12 +136,12 @@
                   <i class="fi fi-rs-star"></i>
                 </div>
                 <div class="product__price flex">
-                  <% if(data.offerPrice!==0){ %>
-                    <span class="new__price">&#8377;<%= data.offerPrice %></span>
-                    <span class="old__price">&#8377;<%= data.price %></span>
-                    <% }else{ %>
-                    <span class="new__price">&#8377;<%= data.price %></span>
-                    <% } %>
+                  <% if(data.hasOffer && data.finalPrice < data.originalPrice){ %>
+                    <span class="new__price">&#8377;<%= Math.round(data.finalPrice) %></span>
+                    <span class="old__price">&#8377;<%= Math.round(data.originalPrice) %></span>
+                  <% } else { %>
+                    <span class="new__price">&#8377;<%= Math.round(data.originalPrice) %></span>
+                  <% } %>
                 </div>
                 <a
                   href="#"
@@ -173,11 +179,16 @@
                     <h4 class="showcase__title"><%= product.name %></h4>
                   </a>
                   <div class="showcase__price flex">
-                    <span class="new__price">&#8377;<%= product.price %></span>
-                    <% if (product.oldPrice) { %>
-                      <span class="old__price">&#8377;<%= product.oldPrice %></span>
+                    <% if (product.hasOffer && product.finalPrice < product.originalPrice) { %>
+                      <span class="new__price">&#8377;<%= product.finalPrice %></span>
+                      <span class="old__price">&#8377;<%= product.originalPrice %></span>
+                    <% } else { %>
+                      <span class="new__price">&#8377;<%= product.originalPrice %></span>
                     <% } %>
                   </div>
+                  <% if (product.isFestivalOffer && product.offer) { %>
+                    <span class="festival-badge"><i class="fi fi-rs-star"></i> <%= product.offer.festivalName || 'Festival' %> Offer</span>
+                  <% } %>
                 </div>
               </div>
             <% }); %>
@@ -195,11 +206,16 @@
                     <h4 class="showcase__title"><%= product.name %></h4>
                   </a>
                   <div class="showcase__price flex">
-                    <span class="new__price">&#8377;<%= product.price %></span>
-                    <% if (product.oldPrice) { %>
-                      <span class="old__price">&#8377;<%= product.oldPrice %></span>
+                    <% if (product.hasOffer && product.finalPrice < product.originalPrice) { %>
+                      <span class="new__price">&#8377;<%= product.finalPrice %></span>
+                      <span class="old__price">&#8377;<%= product.originalPrice %></span>
+                    <% } else { %>
+                      <span class="new__price">&#8377;<%= product.originalPrice %></span>
                     <% } %>
                   </div>
+                  <% if (product.isFestivalOffer && product.offer) { %>
+                    <span class="festival-badge"><i class="fi fi-rs-star"></i> <%= product.offer.festivalName || 'Festival' %> Offer</span>
+                  <% } %>
                 </div>
               </div>
             <% }); %>
@@ -217,11 +233,16 @@
                     <h4 class="showcase__title"><%= item.product.name %></h4>
                   </a>
                   <div class="showcase__price flex">
-                    <span class="new__price">&#8377;<%= item.product.price %></span>
-                    <% if (item.product.oldPrice) { %>
-                      <span class="old__price">&#8377;<%= item.product.oldPrice %></span>
+                    <% if (item.product.hasOffer && item.product.finalPrice < item.product.originalPrice) { %>
+                      <span class="new__price">&#8377;<%= item.product.finalPrice %></span>
+                      <span class="old__price">&#8377;<%= item.product.originalPrice %></span>
+                    <% } else { %>
+                      <span class="new__price">&#8377;<%= item.product.originalPrice %></span>
                     <% } %>
                   </div>
+                  <% if (item.product.isFestivalOffer && item.product.offer) { %>
+                    <span class="festival-badge"><i class="fi fi-rs-star"></i> <%= item.product.offer.festivalName || 'Festival' %> Offer</span>
+                  <% } %>
                 </div>
               </div>
             <% }); %>

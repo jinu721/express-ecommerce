@@ -10,12 +10,12 @@ module.exports = {
       const { page = 1, type = 'all' } = req.query;
       const limit = 10;
       const skip = (page - 1) * limit;
-      
+
       let query = {};
       if (type !== 'all') {
         query.offerType = type.toUpperCase();
       }
-      
+
       const offers = await offerModel.find(query)
         .populate('applicableProducts', 'name price')
         .populate('applicableCategories', 'name')
@@ -24,10 +24,10 @@ module.exports = {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);
-      
+
       const totalOffers = await offerModel.countDocuments(query);
       const totalPages = Math.ceil(totalOffers / limit);
-      
+
       res.render('offerManagement', {
         offers,
         currentPage: Number(page),
@@ -47,7 +47,7 @@ module.exports = {
       });
     }
   },
-  
+
   async createOffer(req, res) {
     try {
       const {
@@ -67,28 +67,28 @@ module.exports = {
         usageLimit,
         priority
       } = req.body;
-      
+
       if (!name || !description || !offerType || !discountType || !discountValue || !startDate || !endDate) {
         return res.status(400).json({
           success: false,
           message: 'All required fields must be provided'
         });
       }
-      
+
       if (new Date(startDate) >= new Date(endDate)) {
         return res.status(400).json({
           success: false,
           message: 'End date must be after start date'
         });
       }
-      
+
       if (discountType === 'PERCENTAGE' && (discountValue < 0 || discountValue > 100)) {
         return res.status(400).json({
           success: false,
           message: 'Percentage discount must be between 0 and 100'
         });
       }
-      
+
       const offerData = {
         name,
         description,
@@ -101,33 +101,38 @@ module.exports = {
         priority: Number(priority) || 1,
         createdBy: req.session.currentId
       };
-      
+
       if (maxDiscountAmount) {
         offerData.maxDiscountAmount = Number(maxDiscountAmount);
       }
-      
+
       if (usageLimit) {
         offerData.usageLimit = Number(usageLimit);
       }
-      
+
       if (festivalName) {
         offerData.festivalName = festivalName.toUpperCase();
       }
-      
-      if (applicableProducts && applicableProducts.length > 0) {
-        offerData.applicableProducts = Array.isArray(applicableProducts) ? applicableProducts : [applicableProducts];
+
+      if (offerType.toUpperCase() === 'FESTIVAL') {
+        const allCategories = await categoryModel.find({ isDeleted: false }, '_id');
+        offerData.applicableCategories = allCategories.map(cat => cat._id);
+      } else {
+        if (applicableProducts && applicableProducts.length > 0) {
+          offerData.applicableProducts = Array.isArray(applicableProducts) ? applicableProducts : [applicableProducts];
+        }
+
+        if (applicableCategories && applicableCategories.length > 0) {
+          offerData.applicableCategories = Array.isArray(applicableCategories) ? applicableCategories : [applicableCategories];
+        }
+
+        if (applicableBrands && applicableBrands.length > 0) {
+          offerData.applicableBrands = Array.isArray(applicableBrands) ? applicableBrands : [applicableBrands];
+        }
       }
-      
-      if (applicableCategories && applicableCategories.length > 0) {
-        offerData.applicableCategories = Array.isArray(applicableCategories) ? applicableCategories : [applicableCategories];
-      }
-      
-      if (applicableBrands && applicableBrands.length > 0) {
-        offerData.applicableBrands = Array.isArray(applicableBrands) ? applicableBrands : [applicableBrands];
-      }
-      
+
       const offer = await offerModel.create(offerData);
-      
+
       res.status(201).json({
         success: true,
         message: 'Offer created successfully',
@@ -142,12 +147,12 @@ module.exports = {
       });
     }
   },
-  
+
   async updateOffer(req, res) {
     try {
       const { id } = req.params;
       const updateData = { ...req.body };
-      
+
       Object.keys(updateData).forEach(key => {
         if (Array.isArray(updateData[key]) && updateData[key].length === 0) {
           delete updateData[key];
@@ -162,16 +167,23 @@ module.exports = {
           updateData[key] = updateData[key].toUpperCase();
         }
       });
-      
+
+      if (updateData.offerType === 'FESTIVAL') {
+        const allCategories = await categoryModel.find({ isDeleted: false }, '_id');
+        updateData.applicableCategories = allCategories.map(cat => cat._id);
+        updateData.applicableProducts = [];
+        updateData.applicableBrands = [];
+      }
+
       const offer = await offerModel.findByIdAndUpdate(id, updateData, { new: true });
-      
+
       if (!offer) {
         return res.status(404).json({
           success: false,
           message: 'Offer not found'
         });
       }
-      
+
       res.json({
         success: true,
         message: 'Offer updated successfully',
@@ -186,22 +198,22 @@ module.exports = {
       });
     }
   },
-  
+
   async toggleOfferStatus(req, res) {
     try {
       const { id } = req.params;
       const offer = await offerModel.findById(id);
-      
+
       if (!offer) {
         return res.status(404).json({
           success: false,
           message: 'Offer not found'
         });
       }
-      
+
       offer.isActive = !offer.isActive;
       await offer.save();
-      
+
       res.json({
         success: true,
         message: `Offer ${offer.isActive ? 'activated' : 'deactivated'} successfully`,
@@ -215,19 +227,19 @@ module.exports = {
       });
     }
   },
-  
+
   async deleteOffer(req, res) {
     try {
       const { id } = req.params;
       const offer = await offerModel.findByIdAndDelete(id);
-      
+
       if (!offer) {
         return res.status(404).json({
           success: false,
           message: 'Offer not found'
         });
       }
-      
+
       res.json({
         success: true,
         message: 'Offer deleted successfully'
@@ -240,7 +252,7 @@ module.exports = {
       });
     }
   },
-  
+
   async getOffer(req, res) {
     try {
       const { id } = req.params;
@@ -248,14 +260,14 @@ module.exports = {
         .populate('applicableProducts', 'name price')
         .populate('applicableCategories', 'name')
         .populate('applicableBrands', 'name');
-      
+
       if (!offer) {
         return res.status(404).json({
           success: false,
           message: 'Offer not found'
         });
       }
-      
+
       res.json({
         success: true,
         offer
@@ -268,7 +280,7 @@ module.exports = {
       });
     }
   },
-  
+
   async getOfferFormData(req, res) {
     try {
       const [products, categories, brands] = await Promise.all([
@@ -276,18 +288,18 @@ module.exports = {
         categoryModel.find({ isDeleted: false }, 'name').sort({ name: 1 }),
         brandModel.find({ isActive: true }, 'name').sort({ name: 1 })
       ]);
-      
+
       console.log('Form data loaded:', {
         productsCount: products.length,
         categoriesCount: categories.length,
         brandsCount: brands.length
-      }); 
-      
+      });
+
       const festivals = [
-        'DIWALI', 'ONAM', 'CHRISTMAS', 'NEW_YEAR', 'HOLI', 
+        'DIWALI', 'ONAM', 'CHRISTMAS', 'NEW_YEAR', 'HOLI',
         'EID', 'DUSSEHRA', 'VALENTINE', 'MOTHERS_DAY', 'FATHERS_DAY'
       ];
-      
+
       res.json({
         success: true,
         data: {
@@ -305,12 +317,12 @@ module.exports = {
       });
     }
   },
-  
+
   async getActiveOffers(req, res) {
     try {
       const { type } = req.query;
       const offers = await pricingService.getActiveOffers(type);
-      
+
       res.json({
         success: true,
         offers
