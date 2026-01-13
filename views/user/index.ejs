@@ -112,8 +112,8 @@
                   </a>
                 </div>
                 <div class="product__badge <%= data.isFestivalOffer ? 'festival-badge' : 'light-green' %>">
-                  <% if (data.isFestivalOffer) { %>
-                    FESTIVAL
+                  <% if(typeof data.isFestivalOffer !== 'undefined' && data.isFestivalOffer && typeof data.festivalName !== 'undefined' && data.festivalName) { %>
+                    <%= data.festivalName %>
                   <% } else { %>
                     -22%
                   <% } %>
@@ -186,8 +186,8 @@
                       <span class="new__price">&#8377;<%= product.originalPrice %></span>
                     <% } %>
                   </div>
-                  <% if (product.isFestivalOffer && product.offer) { %>
-                    <span class="festival-badge"><i class="fi fi-rs-star"></i> <%= product.offer.festivalName || 'Festival' %> Offer</span>
+                  <% if (product.isFestivalOffer) { %>
+                    <span class="festival-badge"><%= product.festivalName || 'Festival' %> Offer</span>
                   <% } %>
                 </div>
               </div>
@@ -213,8 +213,8 @@
                       <span class="new__price">&#8377;<%= product.originalPrice %></span>
                     <% } %>
                   </div>
-                  <% if (product.isFestivalOffer && product.offer) { %>
-                    <span class="festival-badge"><i class="fi fi-rs-star"></i> <%= product.offer.festivalName || 'Festival' %> Offer</span>
+                  <% if (product.isFestivalOffer) { %>
+                    <span class="festival-badge"><%= product.festivalName || 'Festival' %> Offer</span>
                   <% } %>
                 </div>
               </div>
@@ -240,8 +240,8 @@
                       <span class="new__price">&#8377;<%= item.product.originalPrice %></span>
                     <% } %>
                   </div>
-                  <% if (item.product.isFestivalOffer && item.product.offer) { %>
-                    <span class="festival-badge"><i class="fi fi-rs-star"></i> <%= item.product.offer.festivalName || 'Festival' %> Offer</span>
+                  <% if (item.product.isFestivalOffer && item.product.festivalName) { %>
+                    <span class="festival-badge"><%= item.product.festivalName %> Offer</span>
                   <% } %>
                 </div>
               </div>

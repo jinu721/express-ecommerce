@@ -104,8 +104,8 @@
                           <div class="price-container">
                             <span class="table__price--original">&#8377;<%= Math.round(item.originalPrice) %></span>
                             <span class="table__price">&#8377;<%= Math.round(item.finalPrice) %></span>
-                            <% if (item.isFestivalOffer) { %>
-                              <small class="festival-badge">🎄 Festival</small>
+                            <% if (item.isFestivalOffer && item.festivalName) { %>
+                              <small class="festival-badge"><%= item.festivalName %></small>
                             <% } %>
                           </div>
                         <% } else { %>

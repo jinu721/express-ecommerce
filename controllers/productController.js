@@ -25,7 +25,8 @@ module.exports = {
           discountPercentage: offerResult.discountPercentage,
           hasOffer: offerResult.hasOffer,
           offer: offerResult.offer,
-          isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
+          isFestivalOffer: offerResult.isFestivalOffer,
+          festivalName: offerResult.festivalName
         };
       }));
 
@@ -75,7 +76,8 @@ module.exports = {
               discountPercentage: offerResult.discountPercentage,
               hasOffer: offerResult.hasOffer,
               offer: offerResult.offer,
-              isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
+              isFestivalOffer: offerResult.isFestivalOffer,
+              festivalName: offerResult.festivalName
             }
           };
         }
@@ -252,7 +254,8 @@ module.exports = {
           hasOffer: relatedOfferResult.hasOffer,
           offer: relatedOfferResult.offer,
           isPercentageOffer: relatedOfferResult.isPercentageOffer,
-          isFestivalOffer: relatedOfferResult.offer && relatedOfferResult.offer.offerType === 'FESTIVAL'
+          isFestivalOffer: relatedOfferResult.isFestivalOffer,
+          festivalName: relatedOfferResult.festivalName
         };
       }));
 
@@ -282,7 +285,9 @@ module.exports = {
           discountPercentage: variantOfferResult.discountPercentage,
           offer: variantOfferResult.offer,
           hasOffer: variantOfferResult.hasOffer,
-          isPercentageOffer: variantOfferResult.isPercentageOffer
+          isPercentageOffer: variantOfferResult.isPercentageOffer,
+          isFestivalOffer: variantOfferResult.isFestivalOffer,
+          festivalName: variantOfferResult.festivalName
         };
       }));
 
@@ -297,7 +302,8 @@ module.exports = {
         bestOffer: offerResult.offer,
         hasOffer: offerResult.hasOffer,
         isPercentageOffer: offerResult.isPercentageOffer,
-        isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL',
+        isFestivalOffer: offerResult.isFestivalOffer,
+        festivalName: offerResult.festivalName,
         activeFestivalOffer: activeFestivalOffer,
         hasVariants: variants.length > 0,
         relatedProducts,
@@ -962,7 +968,8 @@ module.exports = {
           discountPercentage: variantOfferResult.discountPercentage,
           hasOffer: variantOfferResult.hasOffer,
           offer: variantOfferResult.offer,
-          isPercentageOffer: variantOfferResult.isPercentageOffer
+          isFestivalOffer: variantOfferResult.isFestivalOffer,
+          festivalName: variantOfferResult.festivalName
         };
       }));
 

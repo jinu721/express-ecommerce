@@ -76,7 +76,8 @@ module.exports = {
           totalFinalPrice: offerResult.finalPrice,
           discount: offerResult.discount,
           hasOffer: offerResult.hasOffer,
-          isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
+          isFestivalOffer: offerResult.isFestivalOffer,
+          festivalName: offerResult.festivalName
         };
       }));
 

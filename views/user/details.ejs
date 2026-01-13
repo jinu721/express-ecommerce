@@ -87,9 +87,9 @@
                 <% if(typeof discountPercentage !== 'undefined' && discountPercentage > 0) { %>
                   <span class="save__price"><%= discountPercentage %>% Off</span>
                 <% } %>
-                <% if(typeof isFestivalOffer !== 'undefined' && isFestivalOffer) { %>
+                <% if(typeof isFestivalOffer !== 'undefined' && isFestivalOffer && typeof festivalName !== 'undefined' && festivalName) { %>
                   <span class="festival-offer-tag">
-                    <i class="fas fa-star"></i> Festival Offer
+                    <%= festivalName %> Offer
                   </span>
                 <% } %>
               <% } else { %>

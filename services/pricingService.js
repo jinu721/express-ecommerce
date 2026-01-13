@@ -90,7 +90,9 @@ class PricingService {
         discountPercentage: discountPercentage,
         offer: best.offer,
         hasOffer: true,
-        isPercentageOffer: best.offer.discountType === 'PERCENTAGE'
+        isPercentageOffer: best.offer.discountType === 'PERCENTAGE',
+        isFestivalOffer: best.offer.offerType === 'FESTIVAL',
+        festivalName: best.offer.festivalName ? best.offer.festivalName.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ') : null
       };
     } catch (error) {
       console.error('Error in calculateBestOffer:', error);

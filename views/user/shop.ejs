@@ -274,9 +274,7 @@
                     </button>
                   </div>
                   <% if (data.isFestivalOffer) { %>
-                    <div class="product__badge festival-badge">
-                      <i class="fas fa-star"></i> Festival
-                    </div>
+                    <span class="product__badge festival-badge"><%= data.festivalName || 'Festival' %> Offer</span>
                   <% } else { %>
                     <div class="product__badge light-pink">Hot</div>
                   <% } %>
