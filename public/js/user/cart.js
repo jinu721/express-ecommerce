@@ -175,11 +175,26 @@ document.querySelectorAll('.quantity').forEach(input => {
 
       if (data.val) {
         e.target.setAttribute('data-prev-quantity', newQuantity);
-        // Round the values to avoid floating point issues
         totalElement.textContent = Math.round(data.updatedTotal);
-        document.querySelectorAll('.cartTotalPrice').forEach(elem => {
-          elem.textContent = Math.round(data.cartTotal);
-        });
+
+        // Update subtotal
+        const subtotalElem = document.getElementById('cartSubtotal');
+        if (subtotalElem) subtotalElem.textContent = Math.round(data.cartTotal);
+
+        // Update delivery charge
+        const shippingContainer = document.getElementById('shippingAmountContainer');
+        if (shippingContainer) {
+          if (data.deliveryCharge > 0) {
+            shippingContainer.innerHTML = `<span class="cart__total-price">&#8377;<span id="deliveryCharge">${Math.round(data.deliveryCharge)}</span></span>`;
+          } else {
+            shippingContainer.innerHTML = `<span class="cart__total-price" id="deliveryCharge">Free</span>`;
+          }
+        }
+
+        // Update final total
+        const finalTotalElem = document.getElementById('cartFinalTotal');
+        if (finalTotalElem) finalTotalElem.textContent = Math.round(data.finalTotal);
+
         Toast.success('Cart Updated', 'Cart updated successfully');
       } else {
         e.target.value = previousQuantity;
