@@ -3,7 +3,6 @@ const couponModel = require('../models/couponModel');
 const couponUsageModel = require('../models/couponUsageModel');
 const productModel = require('../models/productModel');
 
-const roundToTwoDecimals = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 class PricingService {
 
@@ -44,8 +43,8 @@ class PricingService {
 
       if (!offers || offers.length === 0) {
         return {
-          originalPrice: roundToTwoDecimals(totalBasePrice),
-          finalPrice: roundToTwoDecimals(totalBasePrice),
+          originalPrice: Math.round(totalBasePrice),
+          finalPrice: Math.round(totalBasePrice),
           discount: 0,
           discountPercentage: 0,
           offer: null,
@@ -71,8 +70,8 @@ class PricingService {
 
       if (!best || best.discount <= 0) {
         return {
-          originalPrice: roundToTwoDecimals(totalBasePrice),
-          finalPrice: roundToTwoDecimals(totalBasePrice),
+          originalPrice: Math.round(totalBasePrice),
+          finalPrice: Math.round(totalBasePrice),
           discount: 0,
           discountPercentage: 0,
           offer: null,
@@ -80,13 +79,13 @@ class PricingService {
         };
       }
 
-      const finalPrice = Math.max(0, roundToTwoDecimals(totalBasePrice - best.discount));
+      const finalPrice = Math.max(0, Math.round(totalBasePrice - best.discount));
       const discountPercentage = Math.round((best.discount / totalBasePrice) * 100);
 
       return {
-        originalPrice: roundToTwoDecimals(totalBasePrice),
-        finalPrice: roundToTwoDecimals(finalPrice),
-        discount: roundToTwoDecimals(best.discount),
+        originalPrice: Math.round(totalBasePrice),
+        finalPrice: Math.round(finalPrice),
+        discount: Math.round(best.discount),
         discountPercentage: discountPercentage,
         offer: best.offer,
         hasOffer: true,
@@ -172,7 +171,7 @@ class PricingService {
     }
 
     const finalDiscount = Math.min(discount, orderValue);
-    return Math.round(finalDiscount * 100) / 100;
+    return Math.round(finalDiscount);
   }
 
   async applyCoupon(couponCode, orderValue, userId, cartItems = []) {
@@ -411,9 +410,9 @@ class PricingService {
 
         const offerResult = await this.calculateBestOffer(product, item.quantity, userId, item.variant);
 
-        const originalPrice = Math.round((isNaN(offerResult.originalPrice) ? 0 : offerResult.originalPrice) * 100) / 100;
-        const finalPrice = Math.round((isNaN(offerResult.finalPrice) ? 0 : offerResult.finalPrice) * 100) / 100;
-        const discount = Math.round((isNaN(offerResult.discount) ? 0 : offerResult.discount) * 100) / 100;
+        const originalPrice = Math.round(isNaN(offerResult.originalPrice) ? 0 : offerResult.originalPrice);
+        const finalPrice = Math.round(isNaN(offerResult.finalPrice) ? 0 : offerResult.finalPrice);
+        const discount = Math.round(isNaN(offerResult.discount) ? 0 : offerResult.discount);
 
         subtotal += originalPrice;
         totalOfferDiscount += discount;
@@ -428,9 +427,9 @@ class PricingService {
         });
       }
 
-      subtotal = Math.round(subtotal * 100) / 100;
-      totalOfferDiscount = Math.round(totalOfferDiscount * 100) / 100;
-      const afterOffers = Math.round(Math.max(0, subtotal - totalOfferDiscount) * 100) / 100;
+      subtotal = Math.round(subtotal);
+      totalOfferDiscount = Math.round(totalOfferDiscount);
+      const afterOffers = Math.round(Math.max(0, subtotal - totalOfferDiscount));
 
       let couponDiscount = 0;
       let coupon = null;
@@ -438,15 +437,15 @@ class PricingService {
       if (couponCode) {
         try {
           const couponResult = await this.applyCoupon(couponCode, afterOffers, userId, cartItems);
-          couponDiscount = Math.round((couponResult.discount || 0) * 100) / 100;
+          couponDiscount = Math.round(couponResult.discount || 0);
           coupon = couponResult.coupon;
         } catch (error) {
           console.log('Coupon application failed:', error.message);
         }
       }
 
-      const finalTotal = Math.round(Math.max(0, afterOffers - couponDiscount) * 100) / 100;
-      const totalSavings = Math.round((totalOfferDiscount + couponDiscount) * 100) / 100;
+      const finalTotal = Math.round(Math.max(0, afterOffers - couponDiscount));
+      const totalSavings = Math.round(totalOfferDiscount + couponDiscount);
 
       return {
         subtotal: subtotal,

@@ -96,24 +96,23 @@ module.exports = {
           product: new mongoose.Types.ObjectId(prod._id),
           variant: variant._id,
           quantity: Number(prod.quantity),
-          originalPrice: Math.round(pricingResult.originalPrice / Number(prod.quantity) * 100) / 100,
-          offerPrice: Math.round(pricingResult.finalPrice / Number(prod.quantity) * 100) / 100,
-          totalPrice: Math.round(pricingResult.finalPrice * 100) / 100,
-          discount: Math.round(pricingResult.discount * 100) / 100,
+          originalPrice: Math.round(pricingResult.originalPrice / Number(prod.quantity)),
+          offerPrice: Math.round(pricingResult.finalPrice / Number(prod.quantity)),
+          totalPrice: Math.round(pricingResult.finalPrice),
+          discount: Math.round(pricingResult.discount),
           appliedOffer: pricingResult.offer ? pricingResult.offer._id : null,
           size: prod.size,
           color: prod.color,
         });
       }
 
-      const roundToTwoDecimals = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 
       let shippingCost = 0;
 
       for (const item of processedItems) {
         const product = await productModel.findById(item.product).session(session);
         if (product.hasCustomShipping) {
-          shippingCost += roundToTwoDecimals((product.shippingPrice || 0) * item.quantity);
+          shippingCost += Math.round((product.shippingPrice || 0) * item.quantity);
         }
       }
 
@@ -124,15 +123,15 @@ module.exports = {
         }
       }
 
-      const totalAmount = roundToTwoDecimals(processedItems.reduce(
+      const totalAmount = Math.round(processedItems.reduce(
         (sum, i) => sum + i.totalPrice, 0
       ) + shippingCost);
 
-      const originalTotal = roundToTwoDecimals(processedItems.reduce(
+      const originalTotal = Math.round(processedItems.reduce(
         (sum, i) => sum + (i.originalPrice * i.quantity), 0
       ) + shippingCost);
 
-      const totalOfferDiscount = roundToTwoDecimals(processedItems.reduce(
+      const totalOfferDiscount = Math.round(processedItems.reduce(
         (sum, i) => sum + i.discount, 0
       ));
 
@@ -157,8 +156,8 @@ module.exports = {
       if (isOfferApplied && code) {
         try {
           const couponResult = await pricingService.applyCoupon(code, totalAmount, userId, processedItems);
-          couponDiscount = roundToTwoDecimals(couponResult.discount);
-          finalAmount = roundToTwoDecimals(couponResult.finalAmount);
+          couponDiscount = Math.round(couponResult.discount);
+          finalAmount = Math.round(couponResult.finalAmount);
           if (couponDetails) {
             couponDetails.discountApplied = couponDiscount;
             couponDetails.couponId = couponResult.coupon._id;
@@ -170,7 +169,7 @@ module.exports = {
         }
       }
 
-      const amountToSend = roundToTwoDecimals(finalAmount);
+      const amountToSend = Math.round(finalAmount);
 
       if (selectedPayment === "cash_on_delivery") {
         if (amountToSend > 1000) {
@@ -183,9 +182,9 @@ module.exports = {
           orderId: orderId++,
           user: userId,
           items: processedItems,
-          subtotal: roundToTwoDecimals(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
-          shippingCost: roundToTwoDecimals(shippingCost),
-          totalDiscount: roundToTwoDecimals(totalOfferDiscount),
+          subtotal: Math.round(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
+          shippingCost: Math.round(shippingCost),
+          totalDiscount: Math.round(totalOfferDiscount),
           totalAmount: amountToSend,
           paymentMethod: selectedPayment,
           shippingAddress: address,
@@ -230,7 +229,7 @@ module.exports = {
         return res.status(200).json({ val: true, msg: "Order placed successfully" });
 
       } else if (selectedPayment === "razorpay") {
-        const roundedAmount = roundToTwoDecimals(amountToSend);
+        const roundedAmount = Math.round(amountToSend);
         const razorpayAmount = Math.round(roundedAmount * 100);
 
         const razorpayOrder = await razorpay.orders.create({
@@ -244,9 +243,9 @@ module.exports = {
           orderId: orderId++,
           user: userId,
           items: processedItems,
-          subtotal: roundToTwoDecimals(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
-          shippingCost: roundToTwoDecimals(shippingCost),
-          totalDiscount: roundToTwoDecimals(totalOfferDiscount),
+          subtotal: Math.round(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
+          shippingCost: Math.round(shippingCost),
+          totalDiscount: Math.round(totalOfferDiscount),
           totalAmount: roundedAmount,
           paymentMethod: selectedPayment,
           shippingAddress: address,
@@ -282,7 +281,7 @@ module.exports = {
           return res.status(400).json({ val: false, msg: "Insufficient wallet balance" });
         }
 
-        wallet.balance = Math.round((wallet.balance - amountToSend) * 100) / 100;
+        wallet.balance = Math.round(wallet.balance - amountToSend);
         wallet.transactionHistory.push({
           transactionType: "purchase",
           transactionAmount: amountToSend,
@@ -295,9 +294,9 @@ module.exports = {
           orderId: orderId++,
           user: userId,
           items: processedItems,
-          subtotal: roundToTwoDecimals(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
-          shippingCost: roundToTwoDecimals(shippingCost),
-          totalDiscount: roundToTwoDecimals(totalOfferDiscount),
+          subtotal: Math.round(processedItems.reduce((sum, i) => sum + i.totalPrice, 0)),
+          shippingCost: Math.round(shippingCost),
+          totalDiscount: Math.round(totalOfferDiscount),
           totalAmount: amountToSend,
           paymentMethod: selectedPayment,
           shippingAddress: address,
@@ -501,10 +500,14 @@ module.exports = {
       const order = await orderModel
         .findOne({ _id: orderId })
         .populate("items.product");
-      console.log(order);
-      res.status(404).render("orderView", { order });
+
+      if (!order) {
+        return res.status(404).render("404");
+      }
+      res.render("orderView", { order });
     } catch (err) {
       console.log(err);
+      res.status(500).send("Internal Server Error");
     }
   },
   async adminOrdersStatusUpdate(req, res) {
@@ -1289,8 +1292,8 @@ module.exports = {
       });
 
       const statusFlow = [
-        { key: 'processing', label: 'Processing', icon: 'fas fa-cog' },
         { key: 'order_placed', label: 'Order Placed', icon: 'fas fa-shopping-cart' },
+        { key: 'processing', label: 'Processing', icon: 'fas fa-cog' },
         { key: 'confirmed', label: 'Confirmed', icon: 'fas fa-check-circle' },
         { key: 'packed', label: 'Packed', icon: 'fas fa-box' },
         { key: 'shipped', label: 'Shipped', icon: 'fas fa-truck' },
@@ -1302,15 +1305,17 @@ module.exports = {
 
       const trackingSteps = statusFlow.map((step, index) => {
         const statusEntry = order.statusHistory.find(h => h.status === step.key);
-        const hasActuallyHappened = statusEntry !== undefined;
+        // Special case for processing: if it's placed, it's essentially processing even if no specific history entry exists yet
+        const hasActuallyHappened = statusEntry !== undefined || (step.key === 'processing' && currentStatusIndex >= 0);
 
         return {
           ...step,
-          completed: index <= currentStatusIndex && hasActuallyHappened,
+          completed: index <= currentStatusIndex,
           current: index === currentStatusIndex,
-          timestamp: hasActuallyHappened ? statusEntry.updatedAt : null,
-          location: hasActuallyHappened ? statusEntry.location : null,
-          message: hasActuallyHappened ? statusEntry.message : null
+          timestamp: statusEntry ? statusEntry.updatedAt : (step.key === 'processing' && currentStatusIndex >= 0 ? order.orderedAt : null),
+          location: statusEntry ? statusEntry.location : null,
+          message: statusEntry ? statusEntry.message : null,
+          key: step.key
         };
       });
 

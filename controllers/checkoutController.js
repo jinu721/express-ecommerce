@@ -9,7 +9,6 @@ const stockService = require("../services/stockService");
 const Variant = require("../models/variantModel");
 const Wallet = require("../models/walletModel");
 
-const roundToTwoDecimals = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 module.exports = {
   async checkoutPageLoad(req, res) {
@@ -41,7 +40,7 @@ module.exports = {
         });
 
         if (!product) {
-          return res.redirect('/shop'); 
+          return res.redirect('/shop');
         }
 
         const pricing = await pricingService.calculateBestOffer(product, Number(quantity), req.session.currentId, variant);
@@ -52,7 +51,7 @@ module.exports = {
           quantity: Number(quantity),
           size,
           color,
-          price: isNaN(pricing.finalPrice) ? 0 : pricing.finalPrice / Number(quantity), 
+          price: isNaN(pricing.finalPrice) ? 0 : pricing.finalPrice / Number(quantity),
           originalPrice: isNaN(pricing.originalPrice) ? 0 : pricing.originalPrice / Number(quantity),
           totalPrice: isNaN(pricing.finalPrice) ? 0 : pricing.finalPrice,
           discount: isNaN(pricing.discount) ? 0 : pricing.discount,
@@ -63,10 +62,10 @@ module.exports = {
           (product.shippingPrice * Number(quantity)) :
           ((pricing.originalPrice || 0) < 2000 ? 100 : 0);
         summary = {
-          subtotal: roundToTwoDecimals(isNaN(pricing.originalPrice) ? 0 : pricing.originalPrice),
-          discount: roundToTwoDecimals(isNaN(pricing.discount) ? 0 : pricing.discount),
-          deliveryCharge: roundToTwoDecimals(deliveryCharge),
-          total: roundToTwoDecimals(isNaN(pricing.finalPrice) ? deliveryCharge : pricing.finalPrice + deliveryCharge)
+          subtotal: Math.round(isNaN(pricing.originalPrice) ? 0 : pricing.originalPrice),
+          discount: Math.round(isNaN(pricing.discount) ? 0 : pricing.discount),
+          deliveryCharge: Math.round(deliveryCharge),
+          total: Math.round(isNaN(pricing.finalPrice) ? deliveryCharge : pricing.finalPrice + deliveryCharge)
         };
 
       } else {
@@ -113,7 +112,7 @@ module.exports = {
             quantity: item.quantity,
             size: item.size,
             color: item.color,
-            price: effectivePrice, 
+            price: effectivePrice,
             images: product.images
           });
         }
@@ -141,10 +140,10 @@ module.exports = {
         }
 
         summary = {
-          subtotal: roundToTwoDecimals(isNaN(calculation.subtotal) ? 0 : calculation.subtotal),
-          discount: roundToTwoDecimals(isNaN(calculation.offerDiscount + calculation.couponDiscount) ? 0 : calculation.offerDiscount + calculation.couponDiscount),
-          deliveryCharge: roundToTwoDecimals(deliveryCharge),
-          total: roundToTwoDecimals(isNaN(calculation.finalTotal) ? deliveryCharge : calculation.finalTotal + deliveryCharge)
+          subtotal: Math.round(isNaN(calculation.subtotal) ? 0 : calculation.subtotal),
+          discount: Math.round(isNaN(calculation.offerDiscount + calculation.couponDiscount) ? 0 : calculation.offerDiscount + calculation.couponDiscount),
+          deliveryCharge: Math.round(deliveryCharge),
+          total: Math.round(isNaN(calculation.finalTotal) ? deliveryCharge : calculation.finalTotal + deliveryCharge)
         };
       }
 

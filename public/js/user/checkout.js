@@ -612,19 +612,19 @@ function updateOrderTableWithDiscount(originalPrice, discountedPrice, discount) 
     discountRow.className = "discount-row";
     discountRow.innerHTML = `
       <td><span class="order__subtitle" style="color: #28a745;">Coupon Discount</span></td>
-      <td colspan="2"><span class="table__price" style="color: #28a745;">-&#8377;<span class="discount-amount">${Number(discount).toFixed(2)}</span></span></td>
+      <td colspan="2"><span class="table__price" style="color: #28a745;">-&#8377;<span class="discount-amount">${Math.round(discount)}</span></span></td>
     `;
 
     // Insert before the total row
     orderTable.insertBefore(discountRow, totalRow);
   } else {
     // Update existing discount row
-    discountRow.querySelector(".discount-amount").textContent = Number(discount).toFixed(2);
+    discountRow.querySelector(".discount-amount").textContent = Math.round(discount);
   }
 
   // Update total
   const totalElement = totalRow.querySelector(".order__grand-total");
-  totalElement.innerHTML = `&#8377;${Number(discountedPrice).toFixed(2)}`;
+  totalElement.innerHTML = `&#8377;${Math.round(discountedPrice)}`;
 }
 
 document.querySelector(".btncouponDelete").addEventListener("click", async (e) => {

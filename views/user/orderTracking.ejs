@@ -200,19 +200,28 @@
             padding-left: 40px;
         }
         
-        .timeline::before, .timeline-horizontal::before {
-            content: '';
-            position: absolute;
-            left: 11px;
-            top: 12px;
-            bottom: 12px;
-            width: 2px;
-            background: #e0e0e0;
-        }
-        
         .timeline-step, .timeline-item {
             position: relative;
             padding-bottom: 32px;
+        }
+
+        .timeline-step::before {
+            content: '';
+            position: absolute;
+            left: -29px;
+            top: 24px;
+            bottom: 0;
+            width: 2px;
+            background: #e0e0e0;
+            z-index: 0;
+        }
+
+        .timeline-step.step-completed::before {
+            background: #4caf50;
+        }
+
+        .timeline-step:last-child::before {
+            display: none;
         }
         
         .timeline-step:last-child, .timeline-item:last-child {
