@@ -1,18 +1,13 @@
 const walletModel = require("../models/walletModel");
 
 module.exports = {
-  // ~~~ Load Wallet Page ~~~
-  // Purpose: Retrieves the wallet information for the logged-in user.
-  // It also sorts the transaction history in descending order based on transaction date.
-  // Response: Returns the wallet details, including transaction history if found.
-  // If no wallet is found, returns an error message.
+
   async walletPageLoad(req, res) {
     const { currentId } = req.session;
     const { page = 1, limit = 10 } = req.query; 
     try {
       let wallet = await walletModel.findOne({ userId: currentId }).lean();
       
-      // If no wallet exists, create an empty wallet for the user
       if (!wallet) {
         const newWallet = await walletModel.create({
           userId: currentId,
@@ -43,7 +38,6 @@ module.exports = {
           totalPages: Math.ceil(totalTransactions / limit)
         });
       } else {
-        // Return empty wallet with no transactions
         res.status(200).json({
           val: true,
           wallet: {

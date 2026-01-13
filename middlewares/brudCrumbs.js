@@ -1,12 +1,5 @@
 
 
-// ~~~ Breadcrumb Middleware ~~~
-// Purpose: This middleware generates breadcrumb navigation links based on the current request URL path.
-// It constructs a breadcrumb trail using predefined labels and dynamic URL parameters.
-// Response: 
-// - Adds the generated breadcrumbs to `res.locals` so they can be accessed in views or templates.
-// - Each breadcrumb contains a label and a corresponding URL link.
-
 const breadcrumbLabels = {
     '/': 'Home',
     '/shop': 'Shop',

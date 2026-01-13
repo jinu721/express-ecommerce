@@ -1,9 +1,5 @@
 const mongoose = require('mongoose');
 
-/**
- * Inventory Model - Stock Movement Tracking
- * Tracks all stock movements for audit and analytics
- */
 const inventoryMovementSchema = new mongoose.Schema({
   variant: {
     type: mongoose.Schema.Types.ObjectId,
@@ -14,15 +10,15 @@ const inventoryMovementSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: [
-      'INITIAL_STOCK',    // Initial stock entry
-      'PURCHASE',         // Stock purchased/received
-      'SALE',            // Stock sold
-      'RETURN',          // Customer return
-      'ADJUSTMENT',      // Manual adjustment
-      'DAMAGE',          // Damaged goods
-      'TRANSFER',        // Transfer between warehouses
-      'RESERVATION',     // Stock reserved for order
-      'RELEASE'          // Reserved stock released
+      'INITIAL_STOCK',    
+      'PURCHASE',         
+      'SALE',            
+      'RETURN',          
+      'ADJUSTMENT',      
+      'DAMAGE',          
+      'TRANSFER',        
+      'RESERVATION',     
+      'RELEASE'          
     ],
     required: true
   },
@@ -39,7 +35,7 @@ const inventoryMovementSchema = new mongoose.Schema({
     required: true
   },
   reference: {
-    type: String, // Order ID, Purchase ID, etc.
+    type: String, 
     index: true
   },
   reason: {
@@ -59,7 +55,6 @@ const inventoryMovementSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes for efficient queries
 inventoryMovementSchema.index({ variant: 1, createdAt: -1 });
 inventoryMovementSchema.index({ type: 1, createdAt: -1 });
 inventoryMovementSchema.index({ reference: 1 });

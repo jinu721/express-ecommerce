@@ -4,17 +4,14 @@ const productModel = require("../models/productModel");
 const userModel = require("../models/userModel");
 const path = require("path");
 
-// New Services & Models
 const pricingService = require("../services/pricingService");
 const stockService = require("../services/stockService");
 const Variant = require("../models/variantModel");
-const Wallet = require("../models/walletModel"); // Assuming wallet model exists
+const Wallet = require("../models/walletModel");
 
-// Helper function for consistent rounding
 const roundToTwoDecimals = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 
 module.exports = {
-  // ~~~ Checkout Page Load (REFACTORED) ~~~
   async checkoutPageLoad(req, res) {
     try {
       const userId = req.session.currentId;
@@ -29,12 +26,10 @@ module.exports = {
         total: 0
       };
 
-      // 1. Handle Buy Now
       if (isBuyNow) {
         const { productId, quantity, size, color } = req.session.tempCart;
         const product = await productModel.findById(productId);
 
-        // Find Variant using proper attributes map
         const attributeQuery = {};
         if (size) attributeQuery['attributes.SIZE'] = size.toUpperCase();
         if (color) attributeQuery['attributes.COLOR'] = color.toUpperCase();
@@ -46,10 +41,9 @@ module.exports = {
         });
 
         if (!product) {
-          return res.redirect('/shop'); // Fallback
+          return res.redirect('/shop'); 
         }
 
-        // Calculate Price with proper variant handling
         const pricing = await pricingService.calculateBestOffer(product, Number(quantity), req.session.currentId, variant);
 
         cartItems.push({
@@ -58,7 +52,7 @@ module.exports = {
           quantity: Number(quantity),
           size,
           color,
-          price: isNaN(pricing.finalPrice) ? 0 : pricing.finalPrice / Number(quantity), // Unit price
+          price: isNaN(pricing.finalPrice) ? 0 : pricing.finalPrice / Number(quantity), 
           originalPrice: isNaN(pricing.originalPrice) ? 0 : pricing.originalPrice / Number(quantity),
           totalPrice: isNaN(pricing.finalPrice) ? 0 : pricing.finalPrice,
           discount: isNaN(pricing.discount) ? 0 : pricing.discount,
@@ -75,26 +69,19 @@ module.exports = {
           total: roundToTwoDecimals(isNaN(pricing.finalPrice) ? deliveryCharge : pricing.finalPrice + deliveryCharge)
         };
 
-        // Clear temp cart after loading? Maybe not, keep until order placed.
-        // req.session.tempCart = null; (Wait until order placement)
-
       } else {
-        // 2. Handle Regular Cart
         const cart = await cartModel.findOne({ userId });
 
         if (!cart || cart.items.length === 0) {
           return res.redirect('/cart');
         }
 
-        // Prepare items for pricing service
         const itemsToCalculate = [];
 
-        // Enrich items
         for (const item of cart.items) {
           const product = await productModel.findById(item.productId);
           if (!product) continue;
 
-          // Try to find variant match using proper attributes map
           const attributeQuery = {};
           if (item.size) attributeQuery['attributes.SIZE'] = item.size.toUpperCase();
           if (item.color) attributeQuery['attributes.COLOR'] = item.color.toUpperCase();
@@ -126,27 +113,22 @@ module.exports = {
             quantity: item.quantity,
             size: item.size,
             color: item.color,
-            price: effectivePrice, // Use adjusted price for display
-            // Fallback images
+            price: effectivePrice, 
             images: product.images
           });
         }
 
-        // Prepare cart items for calculation
         const cartItemsToCalculate = cart.items.map(item => ({
           productId: item.productId,
           quantity: item.quantity,
           variantId: item.variantId
         }));
 
-        // Calculate totals using pricing service with proper error handling
         const calculation = await pricingService.calculateCartTotal(itemsToCalculate, null, req.session.currentId);
 
-        // Calculate shipping charges
         let deliveryCharge = 0;
         let hasCustomShipping = false;
 
-        // Check if any products have custom shipping
         for (const item of itemsToCalculate) {
           if (item.product.hasCustomShipping) {
             deliveryCharge += (item.product.shippingPrice || 0) * item.quantity;
@@ -154,7 +136,6 @@ module.exports = {
           }
         }
 
-        // If no custom shipping, use default logic
         if (!hasCustomShipping && (calculation.subtotal || 0) < 2000) {
           deliveryCharge = 100;
         }
@@ -167,14 +148,11 @@ module.exports = {
         };
       }
 
-      // 3. Get Wallet Balance
       let walletBalance = 0;
       try {
-        // Try to get wallet balance from user model or separate wallet model
         if (user && user.wallet !== undefined) {
           walletBalance = user.wallet || 0;
         } else {
-          // Try separate wallet model
           const walletModel = require("../models/walletModel");
           const wallet = await walletModel.findOne({ userId });
           if (wallet) walletBalance = wallet.balance || 0;
@@ -192,8 +170,8 @@ module.exports = {
         subtotal: summary.subtotal,
         total: summary.total,
         walletBalance,
-        discount: summary.discount, // Pass discount for display
-        isBuyNow // Pass flag if needed
+        discount: summary.discount,
+        isBuyNow
       });
 
     } catch (err) {

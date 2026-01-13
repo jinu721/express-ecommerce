@@ -62,7 +62,7 @@ module.exports = {
           email,
           phone,
           password: hashedPass,
-          role: 'user' // Explicitly set role as user for new registrations
+          role: 'user'
         }); 
         req.session.loggedIn = true;
         req.session.currentUsername = username;
@@ -130,7 +130,6 @@ module.exports = {
           });
       }
 
-      // Set session variables for both user and admin
       req.session.loggedIn = true;
       req.session.currentUsername = user.username;
       req.session.currentEmail = user.email;
@@ -159,7 +158,7 @@ module.exports = {
         console.log("Error in logout :-" + err);
         return res.status(500).json({ val: false, msg: "Logout failed" });
       }
-      res.clearCookie('connect.sid'); // Clear session cookie
+      res.clearCookie('connect.sid'); 
       return res.status(200).json({ val: true, msg: "Logged out successfully" });
     });
   },

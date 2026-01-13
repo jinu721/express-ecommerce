@@ -28,7 +28,6 @@ const couponUsageSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Compound index to prevent duplicate usage tracking
 couponUsageSchema.index({ coupon: 1, user: 1, order: 1 }, { unique: true });
 couponUsageSchema.index({ coupon: 1 });
 couponUsageSchema.index({ user: 1 });

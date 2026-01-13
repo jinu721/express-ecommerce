@@ -29,7 +29,7 @@ const couponSchema = new mongoose.Schema({
   },
   maxDiscountAmount: {
     type: Number,
-    default: null // For percentage coupons
+    default: null 
   },
   minOrderValue: {
     type: Number,
@@ -37,7 +37,6 @@ const couponSchema = new mongoose.Schema({
     default: 0
   },
   
-  // Validity
   startDate: {
     type: Date,
     required: true
@@ -47,27 +46,24 @@ const couponSchema = new mongoose.Schema({
     required: true
   },
   
-  // Usage limits
   usageLimit: {
     type: Number,
-    default: null // null means unlimited
+    default: null
   },
   usagePerUser: {
     type: Number,
-    default: 1 // How many times one user can use this coupon
+    default: 1 
   },
   usedCount: {
     type: Number,
     default: 0
   },
   
-  // User restrictions
   applicableUsers: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Users'
-  }], // Empty array means all users
+  }], 
   
-  // Product/Category restrictions
   applicableProducts: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Products'
@@ -77,13 +73,11 @@ const couponSchema = new mongoose.Schema({
     ref: 'Category'
   }],
   
-  // Status
   isActive: {
     type: Boolean,
     default: true
   },
   
-  // Admin details
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Users',
@@ -93,12 +87,10 @@ const couponSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes
 couponSchema.index({ code: 1 });
 couponSchema.index({ isActive: 1, expiryDate: 1 });
 couponSchema.index({ startDate: 1, expiryDate: 1 });
 
-// Validate dates
 couponSchema.pre('save', function(next) {
   if (this.startDate >= this.expiryDate) {
     next(new Error('Expiry date must be after start date'));

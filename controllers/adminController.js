@@ -15,7 +15,6 @@ module.exports = {
     try {
       let start, end;
 
-      // Use moment for consistent date handling
       if (range === "daily") {
         start = moment().startOf("day").toDate();
         end = moment().endOf("day").toDate();
@@ -29,7 +28,6 @@ module.exports = {
         start = moment(startDate).startOf("day").toDate();
         end = moment(endDate).endOf("day").toDate();
       } else {
-        // Default to daily if invalid
         start = moment().startOf("day").toDate();
         end = moment().endOf("day").toDate();
       }
@@ -40,7 +38,6 @@ module.exports = {
       const Offer = require("../models/offerModel");
       const Variant = require("../models/variantModel");
 
-      // 1. Basic Stats (Counts)
       const [usersCount, productsCount, ordersCount, offersCount, brandsCount, lowStockCount] =
         await Promise.all([
           userModel.countDocuments({ isDeleted: false }),
@@ -54,14 +51,11 @@ module.exports = {
           Variant.countDocuments({ stock: { $lt: 10 }, isActive: true })
         ]);
 
-      // 2. Financial Stats (Revenue & Sales)
-      // Delivered orders that are paid (or COD delivered which implies payment)
       const salesStats = await orderModel.aggregate([
         {
           $match: {
             ...dateFilter,
             orderStatus: "delivered",
-            // Include both paid online orders and delivered COD orders
             $or: [
               { paymentStatus: "paid" },
               { paymentMethod: "cash_on_delivery" }
@@ -74,7 +68,6 @@ module.exports = {
             totalRevenue: { $sum: "$totalAmount" },
             count: { $sum: 1 },
             couponDiscounts: { $sum: { $ifNull: ["$coupon.discountApplied", 0] } }
-            // Note: totalDiscount field might not be reliable if not consistently set, better to rely on coupon or calc
           },
         },
       ]);
@@ -83,13 +76,12 @@ module.exports = {
       const totalSales = salesStats[0]?.count || 0;
       const couponDiscounts = salesStats[0]?.couponDiscounts || 0;
 
-      // 3. Pending Money (COD Pending)
       const pendingMoneyStats = await orderModel.aggregate([
         {
           $match: {
             ...dateFilter,
             paymentMethod: "cash_on_delivery",
-            paymentStatus: { $ne: "paid" }, // Any COD not marked as paid
+            paymentStatus: { $ne: "paid" },
             orderStatus: { $nin: ["cancelled", "returned", "delivered"] } // Exclude finalized states
           },
         },
@@ -102,7 +94,6 @@ module.exports = {
       ]);
       const totalPendingMoney = pendingMoneyStats[0]?.amount || 0;
 
-      // 4. Categories Overview
       const categoryData = await categoryModel.aggregate([
         { $match: { isDeleted: false } },
         {
@@ -124,7 +115,6 @@ module.exports = {
         { $limit: 8 }
       ]);
 
-      // 5. Top Selling Products
       const topSellingProducts = await orderModel.aggregate([
         { $match: { ...dateFilter, orderStatus: "delivered" } },
         { $unwind: "$items" },
@@ -154,7 +144,6 @@ module.exports = {
         },
       ]);
 
-      // 6. Top Selling Categories
       const topSellingCategories = await orderModel.aggregate([
         { $match: { ...dateFilter, orderStatus: "delivered" } },
         { $unwind: "$items" },
@@ -194,7 +183,6 @@ module.exports = {
         },
       ]);
 
-      // 7. Top Selling Brands
       const topSellingBrands = await orderModel.aggregate([
         { $match: { ...dateFilter, orderStatus: "delivered" } },
         { $unwind: "$items" },
@@ -235,18 +223,14 @@ module.exports = {
         },
       ]);
 
-      // 8. Revenue Trend
-      // Calculate days based on range
       let revenueDays = 7;
       if (range === "monthly") revenueDays = 30;
-      else if (range === "daily") revenueDays = 1; // Hourly breakdown for daily?
+      else if (range === "daily") revenueDays = 1;
       else if (range === "custom") {
         const diffTime = Math.abs(end - start);
         revenueDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
       }
 
-      // Group format depends on range (Daily for month/week, Hourly for day?? or just stick to daily)
-      // Keeping it simple with daily grouping
       const revenueTrend = await orderModel.aggregate([
         {
           $match: {
@@ -272,7 +256,6 @@ module.exports = {
         }
       ]);
 
-      // 9. Order Status Distribution
       const orderStatusDistribution = await orderModel.aggregate([
         { $match: dateFilter },
         {
@@ -358,7 +341,6 @@ module.exports = {
             totalSales: { $sum: 1 },
             itemsSold: { $sum: { $sum: "$items.quantity" } },
             totalDiscount: { $sum: { $ifNull: ["$coupon.discountApplied", 0] } }
-            // Note: Use coupon.discountApplied for consistency
           },
         },
       ]);
@@ -394,10 +376,8 @@ module.exports = {
           { header: 'Date', key: 'date', width: 15 }
         ];
 
-        // Style header
         worksheet.getRow(1).font = { bold: true };
 
-        // Add Summary Section at Top
         worksheet.addRow({});
         worksheet.addRow(['SUMMARY']);
         worksheet.addRow(['Total Revenue', `₹${salesData.totalRevenue.toFixed(2)}`]);
@@ -429,7 +409,6 @@ module.exports = {
         res.end();
 
       } else {
-        // PDF fallback
         const PDFDocument = require('pdfkit');
         const pdfDoc = new PDFDocument({ margin: 30 });
 
@@ -451,7 +430,6 @@ module.exports = {
 
         pdfDoc.text("Order Details:", { underline: true }).moveDown();
 
-        // Simple table header for PDF
         const yStart = pdfDoc.y;
         pdfDoc.text("Order ID", 30, yStart);
         pdfDoc.text("Customer", 150, yStart);

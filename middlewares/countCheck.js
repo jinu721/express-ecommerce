@@ -1,14 +1,6 @@
 const cartModel = require('../models/cartModel');
 const wishlistModel = require('../models/wishlistModel');
 
-
-// ~~~ Count Check Middleware ~~~
-// Purpose: This middleware checks the counts of cart items, wishlist items, and notifications for the logged-in user.
-// It updates `res.locals` with these counts so they can be accessed in views or templates.
-// Response: 
-// - Adds the cart, wishlist, and notification counts to `res.locals`.
-// - The counts are updated for each user based on their session data.
-
 const countCheck = async (req, res, next) => {
     try {
         if (req.session.loggedIn) {

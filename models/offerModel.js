@@ -27,14 +27,13 @@ const offerSchema = new mongoose.Schema({
   },
   maxDiscountAmount: {
     type: Number,
-    default: null // For percentage discounts, cap the max discount
+    default: null
   },
   minOrderValue: {
     type: Number,
     default: 0
   },
   
-  // Applicability
   applicableProducts: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Products'
@@ -48,13 +47,11 @@ const offerSchema = new mongoose.Schema({
     ref: 'Brand'
   }],
   
-  // Festival specific
   festivalName: {
     type: String,
     enum: ['DIWALI', 'ONAM', 'CHRISTMAS', 'NEW_YEAR', 'HOLI', 'EID', 'DUSSEHRA', 'VALENTINE', 'MOTHERS_DAY', 'FATHERS_DAY']
   },
   
-  // Validity
   startDate: {
     type: Date,
     required: true
@@ -64,27 +61,24 @@ const offerSchema = new mongoose.Schema({
     required: true
   },
   
-  // Status and limits
   isActive: {
     type: Boolean,
     default: true
   },
   usageLimit: {
     type: Number,
-    default: null // null means unlimited
+    default: null
   },
   usedCount: {
     type: Number,
     default: 0
   },
   
-  // Priority for offer selection (higher number = higher priority)
   priority: {
     type: Number,
     default: 1
   },
   
-  // Admin details
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Users',
@@ -94,13 +88,11 @@ const offerSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes for better performance
 offerSchema.index({ offerType: 1, isActive: 1 });
 offerSchema.index({ startDate: 1, endDate: 1 });
 offerSchema.index({ applicableProducts: 1 });
 offerSchema.index({ applicableCategories: 1 });
 
-// Validate dates
 offerSchema.pre('save', function(next) {
   if (this.startDate >= this.endDate) {
     next(new Error('End date must be after start date'));

@@ -1,20 +1,5 @@
 const mongoose = require("mongoose");
 
-/**
- * Product Schema (REFACTORED)
- * 
- * Changes from original:
- * - Removed: offerPrice (now handled by Offer model)
- * - Removed: sizes (now handled by Variant model)
- * - Removed: colors array (now handled by Variant model)
- * - Changed: brand from String to ObjectId reference
- * - Added: basePrice (renamed from price for clarity)
- * - Added: productType for better categorization
- * 
- * Stock is now managed at the Variant level
- * Pricing is calculated by PricingService using Offers
- */
-
 const productSchema = new mongoose.Schema({
   name: { 
     type: String, 
@@ -37,27 +22,24 @@ const productSchema = new mongoose.Schema({
     min: 0
   },
   
-  // Deprecated fields (keep for backward compatibility during migration)
   price: { 
-    type: Number // DEPRECATED: Use basePrice
+    type: Number 
   },
   offerPrice: { 
-    type: Number // DEPRECATED: Use Offer model
+    type: Number 
   },
   sizes: {
-    type: Object // DEPRECATED: Use Variant model
+    type: Object 
   },
   colors: [{ 
-    type: String // DEPRECATED: Use Variant model
+    type: String 
   }],
   
-  // Media
   images: [{ 
     type: String,
     required: true
   }],
   
-  // Categorization
   category: {
     type: mongoose.Schema.ObjectId,
     ref: 'Category',
@@ -79,7 +61,6 @@ const productSchema = new mongoose.Schema({
     default: 'OTHER'
   },
   
-  // Features
   cashOnDelivery: { 
     type: Boolean,
     default: true
@@ -91,7 +72,6 @@ const productSchema = new mongoose.Schema({
     type: String 
   },
   
-  // Shipping Configuration
   hasCustomShipping: {
     type: Boolean,
     default: false
@@ -102,7 +82,6 @@ const productSchema = new mongoose.Schema({
     min: 0
   },
   
-  // Reviews and ratings
   rating: { 
     type: Number, 
     default: 0,
@@ -139,7 +118,6 @@ const productSchema = new mongoose.Schema({
     }
   ],
   
-  // Status
   isDeleted: { 
     type: Boolean, 
     default: false 
@@ -149,7 +127,6 @@ const productSchema = new mongoose.Schema({
     default: false
   },
   
-  // Metadata
   viewCount: {
     type: Number,
     default: 0
@@ -162,18 +139,15 @@ const productSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes for performance
 productSchema.index({ name: 'text', tags: 'text' });
 productSchema.index({ isDeleted: 1, category: 1 });
 productSchema.index({ isDeleted: 1, brand: 1 });
 
-// Auto-generate slug from name
 productSchema.pre('save', function(next) {
   if (this.isModified('name')) {
     this.slug = this.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
   }
   
-  // Backward compatibility: sync price with basePrice
   if (this.isModified('basePrice') && !this.price) {
     this.price = this.basePrice;
   }
@@ -181,7 +155,6 @@ productSchema.pre('save', function(next) {
   next();
 });
 
-// Method to calculate average rating
 productSchema.methods.updateRating = function() {
   if (this.reviews.length === 0) {
     this.rating = 0;

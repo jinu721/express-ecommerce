@@ -6,7 +6,6 @@ const pricingService = require("../services/pricingService");
 const stockService = require("../services/stockService");
 
 module.exports = {
-  // ~~~ Get Wishlist API ~~~
   async getWishlistAPI(req, res) {
     const { currentId } = req.session;
     try {
@@ -41,7 +40,6 @@ module.exports = {
       const productIds = wishlist.items.map((item) => item.productId);
       const products = await productModel.find({ _id: { $in: productIds } });
       
-      // Calculate offer prices for wishlist products
       const productsWithOffers = await Promise.all(products.map(async (product) => {
         const offerResult = await pricingService.calculateBestOffer(product, 1, currentId);
         return {
@@ -68,7 +66,6 @@ module.exports = {
     }
   },
 
-  // ~~~ Remove Item from Wishlist ~~~
   async removeFromWishlist(req, res) {
     const { wishlistItemId } = req.params;
     const { currentId } = req.session;
@@ -90,7 +87,6 @@ module.exports = {
     }
   },
 
-  // ~~~ Add Item to Wishlist (Updated - No Variant Required) ~~~
   async addToWishlist(req, res) {
     const { productId } = req.params;
     const { size = 'N/A', color = 'N/A', variantId, attributes = {} } = req.body;
@@ -120,7 +116,6 @@ module.exports = {
         });
       }
 
-      // Check duplicate - for wishlist, we only check product (no variant required)
       const existingItem = wishlist.items.find((item) => 
         item.productId.toString() === productId
       );
@@ -148,7 +143,6 @@ module.exports = {
     }
   },
 
-  // ~~~ Add Item from Wishlist to Cart (Refactored) ~~~
   async addToCartFromWishlist(req, res) {
     const { wishlistItemId, variantId: requestVariantId, quantity: requestQuantity, attributes: requestAttributes } = req.body;
 
@@ -167,24 +161,20 @@ module.exports = {
       const product = await productModel.findById(productId);
       if (!product) return res.status(404).json({ val: false, msg: "Product not found" });
 
-      // Use request data if provided (from variant popup), otherwise use wishlist item data
       const finalQuantity = requestQuantity || itemQuantity;
       const finalVariantId = requestVariantId || itemVariantId;
       const finalAttributes = requestAttributes || {};
 
-      // Resolve Variant
       let variant = null;
       if (finalVariantId) {
           variant = await Variant.findById(finalVariantId);
       } else if (Object.keys(finalAttributes).length > 0) {
-          // Find variant by attributes from popup selection
           const query = { product: productId, isActive: true };
           for (const [key, value] of Object.entries(finalAttributes)) {
               query[`attributes.${key}`] = value;
           }
           variant = await Variant.findOne(query);
       } else if (size !== 'N/A' || color !== 'N/A') {
-          // Try to find variant by wishlist item attributes only if they're not N/A
           variant = await Variant.findOne({
               product: productId,
               'attributes.SIZE': size !== 'N/A' ? size : undefined,
@@ -192,7 +182,6 @@ module.exports = {
           });
       }
 
-      // Check if product has variants but no variant was found
       const hasVariants = await Variant.countDocuments({ product: productId, isActive: true });
       
       if (hasVariants > 0 && !variant && !requestVariantId) {
@@ -204,7 +193,6 @@ module.exports = {
           });
       }
 
-      // Check Stock
       const stockAttributes = Object.keys(finalAttributes).length > 0 ? finalAttributes : {};
       if (!stockAttributes.SIZE && size && size !== 'N/A') stockAttributes.SIZE = size;
       if (!stockAttributes.COLOR && color && color !== 'N/A') stockAttributes.COLOR = color;
@@ -214,10 +202,8 @@ module.exports = {
           return res.status(400).json({ val: false, msg: `Stock unavailable: ${stockCheck.reason}` });
       }
 
-      // Calculate Price
       const pricing = await pricingService.calculateBestOffer(product, finalQuantity, req.session.currentId, variant);
 
-      // Add to Cart Logic (Simplified from cartController)
       let cart = await cartModel.findOne({ userId: req.session.currentId });
       const newItemData = {
           productId,
@@ -243,15 +229,12 @@ module.exports = {
 
           if (existingIndex > -1) {
               cart.items[existingIndex].quantity += finalQuantity;
-              cart.items[existingIndex].total += newItemData.total; // Approx, should recalculate but ok for this flow
+              cart.items[existingIndex].total += newItemData.total; 
           } else {
               cart.items.push(newItemData);
           }
-           // Use service to recalculate entire cart total efficiently or manual sum
-           // For robust consistency, ideally call calculateCartTotal here too, but simple sum is okay for step 1
        }
        
-       // Correct Total Calculation
        const populatedItems = await Promise.all(cart.items.map(async i => {
           const v = i.variantId ? await Variant.findById(i.variantId) : null;
           const p = await productModel.findById(i.productId);
@@ -262,7 +245,6 @@ module.exports = {
        
        await cart.save();
 
-      // Remove from Wishlist
       wishlist.items.pull({ _id: wishlistItemId });
       await wishlist.save();
 

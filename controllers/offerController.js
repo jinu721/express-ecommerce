@@ -5,7 +5,6 @@ const brandModel = require('../models/brandModel');
 const pricingService = require('../services/pricingService');
 
 module.exports = {
-  // Load offers management page
   async offersLoad(req, res) {
     try {
       const { page = 1, type = 'all' } = req.query;
@@ -49,7 +48,6 @@ module.exports = {
     }
   },
   
-  // Create new offer
   async createOffer(req, res) {
     try {
       const {
@@ -70,7 +68,6 @@ module.exports = {
         priority
       } = req.body;
       
-      // Validation
       if (!name || !description || !offerType || !discountType || !discountValue || !startDate || !endDate) {
         return res.status(400).json({
           success: false,
@@ -105,7 +102,6 @@ module.exports = {
         createdBy: req.session.currentId
       };
       
-      // Add optional fields
       if (maxDiscountAmount) {
         offerData.maxDiscountAmount = Number(maxDiscountAmount);
       }
@@ -118,7 +114,6 @@ module.exports = {
         offerData.festivalName = festivalName.toUpperCase();
       }
       
-      // Handle applicability arrays
       if (applicableProducts && applicableProducts.length > 0) {
         offerData.applicableProducts = Array.isArray(applicableProducts) ? applicableProducts : [applicableProducts];
       }
@@ -148,13 +143,11 @@ module.exports = {
     }
   },
   
-  // Update offer
   async updateOffer(req, res) {
     try {
       const { id } = req.params;
       const updateData = { ...req.body };
       
-      // Remove empty arrays and convert types
       Object.keys(updateData).forEach(key => {
         if (Array.isArray(updateData[key]) && updateData[key].length === 0) {
           delete updateData[key];
@@ -194,7 +187,6 @@ module.exports = {
     }
   },
   
-  // Toggle offer status
   async toggleOfferStatus(req, res) {
     try {
       const { id } = req.params;
@@ -224,7 +216,6 @@ module.exports = {
     }
   },
   
-  // Delete offer
   async deleteOffer(req, res) {
     try {
       const { id } = req.params;
@@ -250,7 +241,6 @@ module.exports = {
     }
   },
   
-  // Get offer details
   async getOffer(req, res) {
     try {
       const { id } = req.params;
@@ -279,22 +269,19 @@ module.exports = {
     }
   },
   
-  // Get data for offer creation form
   async getOfferFormData(req, res) {
     try {
-      console.log('Loading offer form data...'); // Debug log
-      
       const [products, categories, brands] = await Promise.all([
         productModel.find({ isDeleted: false }, 'name price').sort({ name: 1 }),
         categoryModel.find({ isDeleted: false }, 'name').sort({ name: 1 }),
-        brandModel.find({ isActive: true }, 'name').sort({ name: 1 }) // Changed to isActive: true
+        brandModel.find({ isActive: true }, 'name').sort({ name: 1 })
       ]);
       
       console.log('Form data loaded:', {
         productsCount: products.length,
         categoriesCount: categories.length,
         brandsCount: brands.length
-      }); // Debug log
+      }); 
       
       const festivals = [
         'DIWALI', 'ONAM', 'CHRISTMAS', 'NEW_YEAR', 'HOLI', 
@@ -319,7 +306,6 @@ module.exports = {
     }
   },
   
-  // Get active offers for frontend display
   async getActiveOffers(req, res) {
     try {
       const { type } = req.query;

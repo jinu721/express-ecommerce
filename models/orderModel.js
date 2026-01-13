@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-// ~~~ Enhanced Order Schema with Advanced Tracking ~~~
 const orderSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
@@ -25,17 +24,17 @@ const orderSchema = new mongoose.Schema({
       },
       originalPrice: {
         type: Number,
-        required: false, // Made optional for backward compatibility
+        required: false,
         default: 0,
       },
       offerPrice: {
         type: Number,
-        required: false, // Made optional for backward compatibility  
+        required: false,   
         default: 0,
       },
       totalPrice: {
         type: Number,
-        required: false, // Made optional for backward compatibility
+        required: false,
         default: 0,
       },
       discount: {
@@ -85,7 +84,7 @@ const orderSchema = new mongoose.Schema({
   },
   subtotal: {
     type: Number,
-    required: false, // Made optional for backward compatibility
+    required: false, 
     default: 0,
   },
   shippingCost: {
@@ -133,7 +132,6 @@ const orderSchema = new mongoose.Schema({
     landMark: { type: String },
     pinCode: { type: String, required: true },
   },
-  // Enhanced tracking information
   trackingInfo: {
     trackingNumber: String,
     carrier: String,
@@ -163,7 +161,6 @@ const orderSchema = new mongoose.Schema({
     refundAmount: { type: Number },
     refundDate: { type: Date },
   },
-  // Enhanced status history with location tracking
   statusHistory: [
     {
       status: {
@@ -184,24 +181,20 @@ const orderSchema = new mongoose.Schema({
       },
     },
   ],
-  // Additional fields for better order management
   expectedDeliveryDate: Date,
   actualDeliveryDate: Date,
   deliveryInstructions: String,
-  notes: String, // Admin notes
+  notes: String,
 }, {
   timestamps: true,
 });
 
-// Add methods for status updates
 orderSchema.methods.updateStatus = function(newStatus, location = '', message = '', updatedBy = 'system') {
   this.orderStatus = newStatus;
   
-  // Update timestamp fields
   const now = new Date();
   switch(newStatus) {
     case 'processing':
-      // Processing is the initial status, no specific timestamp needed
       break;
     case 'confirmed':
       this.confirmedAt = now;
@@ -224,7 +217,6 @@ orderSchema.methods.updateStatus = function(newStatus, location = '', message = 
       break;
   }
   
-  // Add to status history
   this.statusHistory.push({
     status: newStatus,
     location,
@@ -233,7 +225,6 @@ orderSchema.methods.updateStatus = function(newStatus, location = '', message = 
     updatedBy
   });
   
-  // Update item statuses
   this.items.forEach(item => {
     if (item.itemStatus !== 'cancelled' && item.itemStatus !== 'returned') {
       item.itemStatus = newStatus;

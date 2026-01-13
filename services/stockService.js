@@ -1,24 +1,12 @@
 const Variant = require('../models/variantModel');
 const InventoryMovement = require('../models/inventoryModel');
 
-/**
- * Stock Service (REDESIGNED)
- * Handles all stock-related operations with dynamic attributes
- * Ensures atomic stock updates and prevents overselling
- */
+
 class StockService {
   
-  /**
-   * Check stock availability for a product with dynamic attributes
-   * @param {Object} product - Product object
-   * @param {Object} variant - Variant object (optional)
-   * @param {Number} quantity - Requested quantity
-   * @param {Object} attributes - Attribute map (fallback if no variant)
-   * @returns {Object} Stock check result
-   */
+
   async checkStock(product, variant = null, quantity = 1, attributes = {}) {
     try {
-      // If variant provided, use it directly
       if (variant) {
         return {
           available: variant.isInStock(quantity),
@@ -28,15 +16,12 @@ class StockService {
         };
       }
 
-      // If no variant but attributes provided, find variant
       if (Object.keys(attributes).length > 0) {
-        // Build query for individual attribute fields
         const query = {
           product: product._id,
           isActive: true
         };
         
-        // Add individual attribute queries
         for (const [key, value] of Object.entries(attributes)) {
           query[`attributes.${key}`] = value;
         }
@@ -60,7 +45,6 @@ class StockService {
         };
       }
 
-      // No variant system - check if product has any variants
       const hasVariants = await Variant.countDocuments({ product: product._id, isActive: true });
       
       if (hasVariants > 0) {
@@ -72,8 +56,7 @@ class StockService {
         };
       }
 
-      // Product without variants - use legacy stock or assume available
-      const legacyStock = product.sizes?.stock || 999; // Fallback for products without variants
+      const legacyStock = product.sizes?.stock || 999; 
       return {
         available: legacyStock >= quantity,
         reason: legacyStock >= quantity ? 'Available' : `Only ${legacyStock} items available`,
@@ -92,14 +75,6 @@ class StockService {
     }
   }
 
-  /**
-   * Reserve stock for an order
-   * @param {String} variantId - Variant ID
-   * @param {Number} quantity - Quantity to reserve
-   * @param {String} reference - Order/Cart reference
-   * @param {String} userId - User performing action
-   * @returns {Object} Reservation result
-   */
   async reserveStock(variantId, quantity, reference = null, userId = null) {
     try {
       const variant = await Variant.findById(variantId);
@@ -117,7 +92,6 @@ class StockService {
 
       if (!updated) return { success: false, message: 'Stock reservation failed - insufficient stock' };
       
-      // Record inventory movement
       await this.recordInventoryMovement(
         variantId,
         'RESERVATION',
@@ -138,14 +112,7 @@ class StockService {
     }
   }
 
-  /**
-   * Release reserved stock
-   * @param {String} variantId - Variant ID
-   * @param {Number} quantity - Quantity to release
-   * @param {String} reference - Order/Cart reference
-   * @param {String} userId - User performing action
-   * @returns {Object} Release result
-   */
+
   async releaseStock(variantId, quantity, reference = null, userId = null) {
     try {
       const variant = await Variant.findById(variantId);
@@ -162,7 +129,6 @@ class StockService {
         await updated.save();
       }
 
-      // Record inventory movement
       await this.recordInventoryMovement(
         variantId,
         'RELEASE',
@@ -183,14 +149,7 @@ class StockService {
     }
   }
 
-  /**
-   * Deduct stock (final sale)
-   * @param {String} variantId - Variant ID
-   * @param {Number} quantity - Quantity to deduct
-   * @param {String} reference - Order reference
-   * @param {String} userId - User performing action
-   * @returns {Object} Deduction result
-   */
+
   async deductStock(variantId, quantity, reference = null, userId = null) {
     try {
       const updated = await Variant.findOneAndUpdate(
@@ -205,7 +164,6 @@ class StockService {
 
       if (!updated) return { success: false, message: 'Stock deduction failed - insufficient stock' };
 
-      // Record inventory movement
       await this.recordInventoryMovement(
         variantId,
         'SALE',
@@ -230,15 +188,7 @@ class StockService {
     }
   }
 
-  /**
-   * Restore stock (returns, cancellations)
-   * @param {String} variantId - Variant ID
-   * @param {Number} quantity - Quantity to restore
-   * @param {String} reference - Order reference
-   * @param {String} userId - User performing action
-   * @param {String} reason - Reason for restoration
-   * @returns {Object} Restoration result
-   */
+
   async restoreStock(variantId, quantity, reference = null, userId = null, reason = 'Stock restored') {
     try {
       const variant = await Variant.findById(variantId);
@@ -250,7 +200,6 @@ class StockService {
         { new: true }
       );
 
-      // Record inventory movement
       await this.recordInventoryMovement(
         variantId,
         'RETURN',
@@ -271,9 +220,6 @@ class StockService {
     }
   }
 
-  /**
-   * Record inventory movement for audit trail
-   */
   async recordInventoryMovement(variantId, type, quantity, previousStock, newStock, reference, reason, userId) {
     try {
       await InventoryMovement.create({
@@ -291,9 +237,7 @@ class StockService {
     }
   }
 
-  /**
-   * Helper to emit stock update
-   */
+
   async checkAvailability(variantId, quantity = 1) {
     try {
       const variant = await Variant.findById(variantId);
@@ -375,9 +319,6 @@ class StockService {
     }
   }
 
-  /**
-   * Get stock history for a variant
-   */
   async getStockHistory(variantId, limit = 50) {
     try {
       const movements = await InventoryMovement.find({ variant: variantId })

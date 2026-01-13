@@ -5,7 +5,6 @@ const pricingService = require("../services/pricingService");
 const stockService = require("../services/stockService");
 
 module.exports = {
-  // ~~~ Cart Page Load ~~~
   async cartPageLoad(req, res) {
     try {
       let cart = await cartModel
@@ -21,7 +20,6 @@ module.exports = {
         });
       }
 
-      // Filter out deleted products
       cart.items = cart.items.filter((item) => item.productId && !item.productId.isDeleted);
       
       if (cart.items.length === 0) {
@@ -33,16 +31,12 @@ module.exports = {
         });
       }
 
-      // Populate variants if needed (though pricing service handles calculations)
-      // Populate variants if needed and recalculate pricing
       const populatedItems = await Promise.all(cart.items.map(async item => {
           const variant = item.variantId ? await Variant.findById(item.variantId) : null;
           const product = await productModel.findById(item.productId);
           
-          // Calculate current pricing for this item
           const pricing = await pricingService.calculateBestOffer(product, item.quantity, req.session.currentId, variant);
           
-          // Update item pricing if needed
           const expectedPrice = pricing.finalPrice / item.quantity;
           if (Math.abs(item.price - expectedPrice) > 0.01) {
             item.price = expectedPrice;
@@ -57,11 +51,9 @@ module.exports = {
           };
       }));
 
-      // Recalculate Total on Load to ensure accuracy
       const cartTotalInfo = await pricingService.calculateCartTotal(populatedItems, null, req.session.currentId);
       const newTotal = cartTotalInfo.finalTotal || cartTotalInfo.total || 0;
       
-      // Update cart total in DB if changed
       if (Math.abs(cart.cartTotal - newTotal) > 0.01) {
           cart.cartTotal = Math.round(newTotal * 100) / 100;
           await cart.save();
@@ -70,7 +62,6 @@ module.exports = {
       const productIds = cart.items.map((item) => item.productId._id);
       const products = await productModel.find({ _id: { $in: productIds } });
       
-      // Calculate offer prices for cart items
       const cartItemsWithOffers = await Promise.all(cart.items.map(async (item) => {
         const product = products.find(p => p._id.toString() === item.productId._id.toString());
         if (!product) return item;
@@ -79,21 +70,19 @@ module.exports = {
         
         return {
           ...item.toObject(),
-          originalPrice: offerResult.originalPrice / item.quantity, // Unit price
-          finalPrice: offerResult.finalPrice / item.quantity, // Unit price after offers
-          totalOriginalPrice: offerResult.originalPrice, // Total original price
-          totalFinalPrice: offerResult.finalPrice, // Total price after offers
+          originalPrice: offerResult.originalPrice / item.quantity, 
+          finalPrice: offerResult.finalPrice / item.quantity, 
+          totalOriginalPrice: offerResult.originalPrice, 
+          totalFinalPrice: offerResult.finalPrice, 
           discount: offerResult.discount,
           hasOffer: offerResult.hasOffer,
           isFestivalOffer: offerResult.offer && offerResult.offer.offerType === 'FESTIVAL'
         };
       }));
       
-      // Calculate shipping charges
       let deliveryCharge = 0;
       let shippingDetails = { hasCustomShipping: false, customShippingTotal: 0 };
       
-      // Check if any products have custom shipping
       const productsWithShipping = await Promise.all(cart.items.map(async (item) => {
         const product = await productModel.findById(item.productId);
         return {
@@ -104,7 +93,6 @@ module.exports = {
         };
       }));
       
-      // Calculate custom shipping total
       const customShippingTotal = productsWithShipping.reduce((total, item) => {
         if (item.hasCustomShipping) {
           return total + (item.shippingPrice * item.quantity);
@@ -117,7 +105,6 @@ module.exports = {
         shippingDetails.hasCustomShipping = true;
         shippingDetails.customShippingTotal = customShippingTotal;
       } else {
-        // Default shipping logic
         if (cart.cartTotal < 2000) {
           deliveryCharge = 100;
         }
@@ -139,7 +126,6 @@ module.exports = {
     }
   },
 
-  // ~~~ Add to Cart (REDESIGNED) ~~~
   async addToCart(req, res) {
     const { productId, variantId, quantity, attributes, isBuyNow } = req.body;
     console.log("Add to Cart:", { productId, variantId, quantity, attributes });
@@ -154,12 +140,10 @@ module.exports = {
         return res.status(404).json({ val: false, msg: "Product not found" });
       }
 
-      // 1. Resolve Variant
       let variant = null;
       if (variantId) {
         variant = await Variant.findById(variantId);
       } else if (attributes && Object.keys(attributes).length > 0) {
-        // Find variant by attributes
         const attributeMap = new Map(Object.entries(attributes));
         variant = await Variant.findOne({
           product: productId,
@@ -168,34 +152,27 @@ module.exports = {
         });
       }
 
-      // 2. Check Stock
       const stockCheck = await stockService.checkStock(product, variant, quantity, attributes);
       if (!stockCheck.available) {
         return res.status(400).json({ val: false, msg: stockCheck.reason });
       }
 
-      // 3. Calculate Price using variant-aware pricing
       const pricing = await pricingService.calculateBestOffer(product, quantity, req.session.currentId, variant);
-      const pricePerItem = pricing.finalPrice / quantity; // Get per-item price
+      const pricePerItem = pricing.finalPrice / quantity; 
       
-      // Ensure valid pricing
       if (isNaN(pricePerItem) || pricePerItem <= 0) {
         console.error(`Invalid pricing calculation for product ${product.name}:`, pricing);
         return res.status(400).json({ val: false, msg: "Pricing calculation error. Please try again." });
       }
 
-      // 4. Update Cart
       let cart = await cartModel.findOne({ userId: req.session.currentId });
       
-      // Prepare item data with proper variant integration
       const newItemData = {
         productId,
         variantId: variant ? variant._id : null,
         quantity,
-        // Map variant attributes to legacy fields for compatibility
         size: variant ? (variant.attributes.get('SIZE') || variant.attributes.get('size') || 'Standard') : 'Standard',
         color: variant ? (variant.attributes.get('COLOR') || variant.attributes.get('color') || 'Standard') : 'Standard',
-        // Store all attributes for future use
         attributes: variant ? Object.fromEntries(variant.attributes) : attributes || {},
         price: pricePerItem,
         total: pricePerItem * quantity
@@ -208,12 +185,10 @@ module.exports = {
           cartTotal: newItemData.total,
         });
       } else {
-        // Check if item exists - prioritize variant matching
         const existingItemIndex = cart.items.findIndex(item => {
           if (variant && item.variantId) {
             return item.variantId.toString() === variant._id.toString();
           } else if (variant) {
-            // Fallback: match by attributes if variantId missing
             const itemSize = item.size || 'Standard';
             const itemColor = item.color || 'Standard';
             const variantSize = variant.attributes.get('SIZE') || variant.attributes.get('size') || 'Standard';
@@ -222,7 +197,6 @@ module.exports = {
                    itemSize === variantSize && 
                    itemColor === variantColor;
           } else {
-            // No variant - match by product and legacy attributes
             return item.productId.toString() === productId && 
                    item.size === newItemData.size && 
                    item.color === newItemData.color;
@@ -230,7 +204,6 @@ module.exports = {
         });
 
         if (existingItemIndex > -1) {
-          // Check max quantity/stock for total amount
           const newTotalQuantity = cart.items[existingItemIndex].quantity + quantity;
           const stockReCheck = await stockService.checkStock(product, variant, newTotalQuantity, attributes);
           
@@ -246,7 +219,6 @@ module.exports = {
         }
       }
 
-      // Recalculate Cart Total using proper pricing service
       const populatedItems = await Promise.all(cart.items.map(async item => {
         const variant = item.variantId ? await Variant.findById(item.variantId) : null;
         const product = await productModel.findById(item.productId);
@@ -254,14 +226,13 @@ module.exports = {
           product: product, 
           variant: variant, 
           quantity: item.quantity,
-          productId: item.productId // Add for compatibility
+          productId: item.productId 
         };
       }));
       
       const cartTotalInfo = await pricingService.calculateCartTotal(populatedItems, null, req.session.currentId);
       cart.cartTotal = Math.round((cartTotalInfo.finalTotal || cartTotalInfo.total || 0) * 100) / 100;
       
-      // Ensure cart total is a valid number
       if (isNaN(cart.cartTotal)) {
         cart.cartTotal = 0;
       }
@@ -291,7 +262,6 @@ module.exports = {
     }
   },
 
-  // ~~~ Delete from Cart ~~~
   async deleteFromCart(req, res) {
     const { cartItemId } = req.params;
     try {
@@ -311,7 +281,6 @@ module.exports = {
         });
       }
 
-      // Recalculate Total
        const populatedItems = await Promise.all(cart.items.map(async item => {
         const v = item.variantId ? await Variant.findById(item.variantId) : null;
         const p = await productModel.findById(item.productId);
@@ -331,7 +300,6 @@ module.exports = {
     }
   },
 
-  // ~~~ Update Cart Item ~~~
   async updateCartItem(req, res) {
     const { itemId } = req.params;
     const { quantity } = req.body;
@@ -348,7 +316,6 @@ module.exports = {
       const product = await productModel.findById(item.productId);
       const variant = item.variantId ? await Variant.findById(item.variantId) : null;
 
-      // Check Stock
       const attributes = {};
       if (item.size && item.size !== 'N/A') attributes.SIZE = item.size;
       if (item.color && item.color !== 'N/A') attributes.COLOR = item.color;
@@ -358,10 +325,8 @@ module.exports = {
            return res.status(400).json({ val: false, msg: stockCheck.reason });
       }
 
-      // Update Quantity
       item.quantity = qty;
 
-      // Recalculate Price (Dynamic pricing might change with quantity e.g. bulk discount)
       const pricing = await pricingService.calculateBestOffer(product, qty, req.session.currentId);
       const unitPrice = Math.round(pricing.finalPrice / qty * 100) / 100; // Round to 2 decimal places
       const totalPrice = Math.round(unitPrice * qty * 100) / 100; // Round to 2 decimal places
@@ -369,9 +334,7 @@ module.exports = {
       item.price = unitPrice;
       item.total = totalPrice;
 
-      // Recalculate Total Cart
       const populatedItems = await Promise.all(cart.items.map(async i => {
-          // Optimization: if i is current item, use already fetched product/variant
           if (i._id.toString() === itemId) return { product, variant, quantity: qty };
           
           const v = i.variantId ? await Variant.findById(i.variantId) : null;

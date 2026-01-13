@@ -5,7 +5,6 @@ const categoryModel = require('../models/categoryModel');
 const pricingService = require('../services/pricingService');
 
 module.exports = {
-  // Load coupons management page
   async couponsLoad(req, res) {
     try {
       const { page = 1 } = req.query;
@@ -39,7 +38,6 @@ module.exports = {
     }
   },
   
-  // Create new coupon
   async createCoupon(req, res) {
     try {
       const {
@@ -59,7 +57,6 @@ module.exports = {
         applicableUsers
       } = req.body;
       
-      // Validation
       if (!code || !name || !description || !discountType || !discountValue || !startDate || !expiryDate) {
         return res.status(400).json({
           success: false,
@@ -81,7 +78,6 @@ module.exports = {
         });
       }
       
-      // Check if coupon code already exists
       const existingCoupon = await couponModel.findOne({ code: code.toUpperCase() });
       if (existingCoupon) {
         return res.status(400).json({
@@ -103,7 +99,6 @@ module.exports = {
         createdBy: req.session.currentId
       };
       
-      // Add optional fields
       if (maxDiscountAmount) {
         couponData.maxDiscountAmount = Number(maxDiscountAmount);
       }
@@ -112,7 +107,6 @@ module.exports = {
         couponData.usageLimit = Number(usageLimit);
       }
       
-      // Handle applicability arrays
       if (applicableProducts && applicableProducts.length > 0) {
         couponData.applicableProducts = Array.isArray(applicableProducts) ? applicableProducts : [applicableProducts];
       }
@@ -142,13 +136,11 @@ module.exports = {
     }
   },
   
-  // Update coupon
   async updateCoupon(req, res) {
     try {
       const { id } = req.params;
       const updateData = { ...req.body };
       
-      // Remove empty arrays and convert types
       Object.keys(updateData).forEach(key => {
         if (Array.isArray(updateData[key]) && updateData[key].length === 0) {
           delete updateData[key];
@@ -191,7 +183,6 @@ module.exports = {
     }
   },
   
-  // Toggle coupon status
   async toggleCouponStatus(req, res) {
     try {
       const { id } = req.params;
@@ -221,7 +212,6 @@ module.exports = {
     }
   },
   
-  // Delete coupon
   async deleteCoupon(req, res) {
     try {
       const { id } = req.params;
@@ -247,7 +237,6 @@ module.exports = {
     }
   },
   
-  // Get coupon details
   async getCoupon(req, res) {
     try {
       const { id } = req.params;
@@ -276,8 +265,6 @@ module.exports = {
     }
   },
   
-  // Validate coupon code (for frontend)
-  // Apply coupon with legacy response format
   async applyCoupon(req, res) {
     try {
       const { couponCode, totalPrice } = req.body;
@@ -316,7 +303,6 @@ module.exports = {
     }
   },
 
-  // Remove coupon with legacy response format
   async removeCoupon(req, res) {
     try {
       const { couponCode } = req.body;
@@ -328,9 +314,6 @@ module.exports = {
           msg: 'Coupon code is required'
         });
       }
-      
-      // For now, just return success since we're not storing applied coupons in session
-      // In a real implementation, you might want to clear session data or database records
       res.json({
         val: true,
         msg: 'Coupon removed successfully'
@@ -379,7 +362,6 @@ module.exports = {
     }
   },
   
-  // Get available coupons for user
   async getAvailableCoupons(req, res) {
     try {
       const { userId, orderValue = 0 } = req.query;
@@ -406,7 +388,6 @@ module.exports = {
     }
   },
   
-  // Get coupon usage analytics
   async getCouponAnalytics(req, res) {
     try {
       const { id } = req.params;

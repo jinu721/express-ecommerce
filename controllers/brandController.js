@@ -180,7 +180,6 @@ module.exports = {
     } catch (error) {
       console.error('Create brand error:', error);
       
-      // Delete uploaded file if brand creation fails
       if (req.file) {
         try {
           await fs.unlink(path.join('public', 'uploads', 'brands', req.file.filename));
@@ -197,10 +196,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Update brand (Admin)
-   * PUT /admin/brands/:brandId
-   */
   async updateBrand(req, res) {
     try {
       const { brandId } = req.params;
@@ -214,7 +209,6 @@ module.exports = {
         });
       }
 
-      // Check if new name conflicts with existing brand
       if (name && name !== brand.name) {
         const existingBrand = await Brand.findOne({ name });
         if (existingBrand) {
@@ -229,9 +223,7 @@ module.exports = {
       if (name) updates.name = name;
       if (description !== undefined) updates.description = description;
 
-      // Handle logo update
       if (req.file) {
-        // Delete old logo if exists
         if (brand.logo) {
           try {
             await fs.unlink(path.join('public', brand.logo));
@@ -256,7 +248,6 @@ module.exports = {
     } catch (error) {
       console.error('Update brand error:', error);
 
-      // Delete uploaded file if update fails
       if (req.file) {
         try {
           await fs.unlink(path.join('public', 'uploads', 'brands', req.file.filename));
@@ -273,10 +264,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Delete brand (Admin)
-   * DELETE /admin/brands/:brandId
-   */
   async deleteBrand(req, res) {
     try {
       const { brandId } = req.params;
@@ -289,7 +276,6 @@ module.exports = {
         });
       }
 
-      // Check if brand has products
       const productCount = await Product.countDocuments({ brand: brandId });
       if (productCount > 0) {
         return res.status(400).json({
@@ -298,7 +284,6 @@ module.exports = {
         });
       }
 
-      // Delete logo file if exists
       if (brand.logo) {
         try {
           await fs.unlink(path.join('public', brand.logo));
@@ -322,11 +307,6 @@ module.exports = {
       });
     }
   },
-
-  /**
-   * Toggle brand status (Admin)
-   * POST /admin/brands/:brandId/toggle
-   */
   async toggleBrandStatus(req, res) {
     try {
       const { brandId } = req.params;

@@ -5,7 +5,6 @@ const adminAuth = require('../middlewares/adminAuth');
 const multer = require('multer');
 const path = require('path');
 
-// Multer configuration for brand logo upload
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'public/uploads/brands/');
@@ -29,20 +28,11 @@ const upload = multer({
       cb(new Error('Only image files are allowed!'));
     }
   },
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  limits: { fileSize: 5 * 1024 * 1024 } 
 });
-
-/**
- * Brand Routes
- * Handles brand management
- */
-
-// Public routes
 router.get('/api/brands', brandController.listBrands);
 router.get('/api/brands/:brandId', brandController.getBrandDetails);
 router.get('/api/brands/:brandId/products', brandController.getBrandProducts);
-
-// Admin routes (protected)
 router.get('/admin/brands', brandController.adminListBrands);
 router.post('/admin/brands', upload.single('logo'), brandController.createBrand);
 router.put('/admin/brands/:brandId', upload.single('logo'), brandController.updateBrand);

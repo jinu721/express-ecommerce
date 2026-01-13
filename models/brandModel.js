@@ -1,10 +1,5 @@
 const mongoose = require('mongoose');
 
-/**
- * Brand Model
- * Represents product brands in the system
- * Allows centralized brand management and filtering
- */
 const brandSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -18,7 +13,7 @@ const brandSchema = new mongoose.Schema({
     lowercase: true
   },
   logo: {
-    type: String, // URL or path to brand logo
+    type: String, 
   },
   description: {
     type: String,
@@ -36,7 +31,6 @@ const brandSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Auto-generate slug from name
 brandSchema.pre('save', function(next) {
   if (this.isModified('name')) {
     this.slug = this.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');

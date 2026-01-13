@@ -3,17 +3,10 @@ const Product = require('../models/productModel');
 const Attribute = require('../models/attributeModel');
 const stockService = require('../services/stockService');
 
-/**
- * Variant Controller (REDESIGNED)
- * Handles variant CRUD operations and stock management
- * Supports dynamic attributes - not limited to size/color
- */
+
 
 module.exports = {
-  /**
-   * Get all variants for a product
-   * GET /api/products/:productId/variants
-   */
+
   async getProductVariants(req, res) {
     try {
       const { productId } = req.params;
@@ -28,7 +21,6 @@ module.exports = {
         .populate('product')
         .sort({ createdAt: 1 });
 
-      // Get product for pricing calculations
       const Product = require('../models/productModel');
       const product = await Product.findById(productId);
       
@@ -39,16 +31,14 @@ module.exports = {
         });
       }
 
-      // Add availability info, pricing, and convert Map to Object for JSON
       const pricingService = require('../services/pricingService');
       const variantsWithPricing = await Promise.all(variants.map(async (v) => {
-        // Calculate variant-specific pricing
         const offerResult = await pricingService.calculateBestOffer(product, 1, null, v);
         
         return {
           _id: v._id,
           sku: v.sku,
-          attributes: Object.fromEntries(v.attributes), // Convert Map to Object
+          attributes: Object.fromEntries(v.attributes), 
           attributeString: v.getAttributeString(),
           stock: v.stock,
           reserved: v.reserved,
@@ -59,7 +49,6 @@ module.exports = {
           specialPrice: v.specialPrice,
           images: v.images,
           isActive: v.isActive,
-          // Add pricing information
           originalPrice: offerResult.originalPrice,
           finalPrice: offerResult.finalPrice,
           discount: offerResult.discount,
@@ -85,10 +74,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Get available attributes for a product category
-   * GET /api/products/:productId/attributes
-   */
   async getProductAttributes(req, res) {
     try {
       const { productId } = req.params;
@@ -124,10 +109,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Get single variant details
-   * GET /api/variants/:variantId
-   */
   async getVariantDetails(req, res) {
     try {
       const { variantId } = req.params;
@@ -162,10 +143,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Find variant by attributes
-   * POST /api/products/:productId/variants/find
-   */
   async findVariantByAttributes(req, res) {
     try {
       const { productId } = req.params;
@@ -178,7 +155,6 @@ module.exports = {
         });
       }
 
-      // Convert attributes object to Map for querying
       const attributeMap = new Map(Object.entries(attributes));
 
       const variant = await Variant.findOne({
@@ -220,10 +196,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Get variant stock status
-   * GET /api/variants/:variantId/stock
-   */
   async getVariantStock(req, res) {
     try {
       const { variantId } = req.params;
@@ -245,16 +217,11 @@ module.exports = {
     }
   },
 
-  /**
-   * Create new variant (Admin)
-   * POST /admin/products/:productId/variants
-   */
   async createVariant(req, res) {
     try {
       const { productId } = req.params;
       const { attributes, stock, priceAdjustment, specialPrice, images } = req.body;
 
-      // Validate product exists
       const product = await Product.findById(productId);
       if (!product) {
         return res.status(404).json({
@@ -263,7 +230,6 @@ module.exports = {
         });
       }
 
-      // Validate attributes
       if (!attributes || Object.keys(attributes).length === 0) {
         return res.status(400).json({
           success: false,
@@ -271,10 +237,9 @@ module.exports = {
         });
       }
 
-      // Convert attributes to Map for proper comparison
       const attributeMap = new Map();
       for (const [key, value] of Object.entries(attributes)) {
-        if (value && value.trim()) { // Only add non-empty values
+        if (value && value.trim()) { 
           attributeMap.set(key.toUpperCase(), value.trim().toUpperCase());
         }
       }
@@ -286,7 +251,6 @@ module.exports = {
         });
       }
 
-      // Check if variant already exists with exact same attributes
       const existingVariant = await Variant.findOne({
         product: productId,
         $expr: {
@@ -306,10 +270,8 @@ module.exports = {
         });
       }
 
-      // Generate SKU
       const sku = await Variant.generateSKU(productId, attributes);
 
-      // Create variant
       const variant = await Variant.create({
         product: productId,
         sku,
@@ -322,7 +284,6 @@ module.exports = {
         isActive: true
       });
 
-      // Record initial stock movement
       if (stock > 0) {
         await stockService.recordInventoryMovement(
           variant._id,
@@ -355,22 +316,16 @@ module.exports = {
     }
   },
 
-  /**
-   * Update variant (Admin)
-   * PUT /admin/variants/:variantId
-   */
   async updateVariant(req, res) {
     try {
       const { variantId } = req.params;
       const updates = req.body;
 
-      // Don't allow updating product, SKU, stock, or reserved
       delete updates.product;
       delete updates.sku;
       delete updates.stock;
       delete updates.reserved;
 
-      // Handle attributes update
       if (updates.attributes) {
         updates.attributes = new Map(Object.entries(updates.attributes));
       }
@@ -407,10 +362,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Delete variant (Admin)
-   * DELETE /admin/variants/:variantId
-   */
   async deleteVariant(req, res) {
     try {
       const { variantId } = req.params;
@@ -438,10 +389,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Update variant stock (Admin)
-   * POST /admin/variants/:variantId/stock
-   */
   async updateVariantStock(req, res) {
     try {
       const { variantId } = req.params;
@@ -466,7 +413,6 @@ module.exports = {
       variant.stock = stock;
       await variant.save();
 
-      // Record inventory movement
       await stockService.recordInventoryMovement(
         variantId,
         'ADJUSTMENT',
@@ -500,10 +446,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Render bulk variant creation page
-   * GET /admin/products/:productId/variants/bulk
-   */
   async renderBulkVariants(req, res) {
     try {
       const { productId } = req.params;
@@ -513,7 +455,6 @@ module.exports = {
         return res.status(404).send('Product not found');
       }
 
-      // Get available attributes for this product's category (with fallback)
       let attributes = [];
       try {
         if (product.category && product.category._id) {
@@ -536,16 +477,11 @@ module.exports = {
     }
   },
 
-  /**
-   * Bulk create variants (Admin)
-   * POST /admin/products/:productId/variants/bulk
-   */
   async bulkCreateVariants(req, res) {
     try {
       const { productId } = req.params;
-      const { variants } = req.body; // Array of {attributes, stock, priceAdjustment}
+      const { variants } = req.body; 
 
-      // Validate product exists
       const product = await Product.findById(productId);
       if (!product) {
         return res.status(404).json({
@@ -574,7 +510,6 @@ module.exports = {
 
           const attributeMap = new Map(Object.entries(attributes));
 
-          // Check if exists
           const existing = await Variant.findOne({
             product: productId,
             attributes: attributeMap
@@ -588,7 +523,6 @@ module.exports = {
             continue;
           }
 
-          // Generate SKU and create
           const sku = await Variant.generateSKU(productId, attributes);
           const variant = await Variant.create({
             product: productId,
@@ -600,7 +534,6 @@ module.exports = {
             isActive: true
           });
 
-          // Record initial stock
           if (stock > 0) {
             await stockService.recordInventoryMovement(
               variant._id,
@@ -641,10 +574,6 @@ module.exports = {
     }
   },
   
-  /**
-   * Render Variant Management Page (Admin)
-   * GET /admin/products/:productId/variants/manage
-   */
   async renderVariantManagement(req, res) {
     try {
       const { productId } = req.params;
@@ -654,11 +583,9 @@ module.exports = {
         return res.status(404).send('Product not found');
       }
 
-      // Fetch variants
       const variants = await Variant.find({ product: productId })
         .sort({ createdAt: 1 });
 
-      // Get available attributes for this product's category (with fallback)
       let attributes = [];
       try {
         if (product.category && product.category._id) {
@@ -666,10 +593,8 @@ module.exports = {
         }
       } catch (attrError) {
         console.warn('Could not load attributes:', attrError.message);
-        // Continue without attributes - variant management will still work
       }
 
-      // Convert variants for display
       const displayVariants = variants.map(v => ({
         ...v.toObject(),
         attributes: Object.fromEntries(v.attributes),
@@ -693,10 +618,6 @@ module.exports = {
     }
   },
 
-  /**
-   * Get stock history for a variant (Admin)
-   * GET /admin/variants/:variantId/history
-   */
   async getStockHistory(req, res) {
     try {
       const { variantId } = req.params;

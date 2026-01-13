@@ -1,11 +1,6 @@
 const userModal = require('../models/userModel');
 
 
-// ~~~ Role Check Middleware ~~~
-// Purpose: This middleware checks if the user has the necessary role (admin) to access admin routes.
-// Response:
-// - If the user is not logged in or does not have the 'admin' role, they will be redirected to appropriate pages.
-
 let roleCheck = async (req, res, next) => {
     // const adminRoutes = [
     //     '/admin',
