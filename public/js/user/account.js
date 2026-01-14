@@ -12,525 +12,525 @@ if (document.readyState === 'loading') {
 function initializeAccountPage() {
   console.log("Initializing account page");
 
-const profileInfo = document.querySelector(".profile-info");
-const updateForm = document.querySelector(".updateform");
-const editButton = document.querySelector(".edit-profile");
+  const profileInfo = document.querySelector(".profile-info");
+  const updateForm = document.querySelector(".updateform");
+  const editButton = document.querySelector(".edit-profile");
 
-// Check if elements exist before proceeding
-if (!profileInfo || !updateForm || !editButton) {
-  console.error("Required elements not found on page");
-  console.log("profileInfo:", !!profileInfo, "updateForm:", !!updateForm, "editButton:", !!editButton);
-  return;
-}
-
-const updateButton = updateForm.querySelector(".updatebtn");
-
-const usernameField = updateForm.querySelector(".usernameUpdate");
-const emailField = updateForm.querySelector(".emailUpdate");
-const phoneField = updateForm.querySelector(".phoneUpdate") || null;
-
-const usernameError = document.querySelector(".error-msg-updateUsername");
-const emailError = document.querySelector(".error-msg-updateEmail");
-const phoneError = document.querySelector(".error-msg-updatePhone");
-
-const usernamePattern = /^[a-zA-Z0-9_]+$/;
-const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const phonePattern = /^\+[0-9]+$/;
-const passwordPattern =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-editButton.addEventListener("click", (e) => {
-  e.preventDefault();
-  profileInfo.style.display = "none";
-  updateForm.style.display = "grid";
-});
-
-updateButton.addEventListener("click", (e) => {
-  e.preventDefault();
-  let isValid = true;
-  if (!usernamePattern.test(usernameField.value)) {
-    usernameError.style.display = "block";
-    usernameError.textContent =
-      "Username must contain only letters, numbers, and underscores (_).";
-    isValid = false;
-  } else {
-    usernameError.style.display = "none";
+  // Check if elements exist before proceeding
+  if (!profileInfo || !updateForm || !editButton) {
+    console.error("Required elements not found on page");
+    console.log("profileInfo:", !!profileInfo, "updateForm:", !!updateForm, "editButton:", !!editButton);
+    return;
   }
-  // if (!emailPattern.test(emailField.value)) {
-  //   emailError.style.display = "block";
-  //   emailError.textContent = "Please enter a valid email address.";
-  //   isValid = false;
-  // } else {
-  //   emailError.style.display = "none";
-  // }
-  if (phoneField && phoneField.value.trim() !== "") {
-    if (!phonePattern.test(phoneField.value)) {
-      phoneError.style.display = "block";
-      phoneError.textContent =
-        "Phone number must start with '+' followed by numbers.";
+
+  const updateButton = updateForm.querySelector(".updatebtn");
+
+  const usernameField = updateForm.querySelector(".usernameUpdate");
+  const emailField = updateForm.querySelector(".emailUpdate");
+  const phoneField = updateForm.querySelector(".phoneUpdate") || null;
+
+  const usernameError = document.querySelector(".error-msg-updateUsername");
+  const emailError = document.querySelector(".error-msg-updateEmail");
+  const phoneError = document.querySelector(".error-msg-updatePhone");
+
+  const usernamePattern = /^[a-zA-Z0-9_]+$/;
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phonePattern = /^\+[0-9]+$/;
+  const passwordPattern =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  editButton.addEventListener("click", (e) => {
+    e.preventDefault();
+    profileInfo.style.display = "none";
+    updateForm.style.display = "grid";
+  });
+
+  updateButton.addEventListener("click", (e) => {
+    e.preventDefault();
+    let isValid = true;
+    if (!usernamePattern.test(usernameField.value)) {
+      usernameError.style.display = "block";
+      usernameError.textContent =
+        "Username must contain only letters, numbers, and underscores (_).";
       isValid = false;
+    } else {
+      usernameError.style.display = "none";
+    }
+    // if (!emailPattern.test(emailField.value)) {
+    //   emailError.style.display = "block";
+    //   emailError.textContent = "Please enter a valid email address.";
+    //   isValid = false;
+    // } else {
+    //   emailError.style.display = "none";
+    // }
+    if (phoneField && phoneField.value.trim() !== "") {
+      if (!phonePattern.test(phoneField.value)) {
+        phoneError.style.display = "block";
+        phoneError.textContent =
+          "Phone number must start with '+' followed by numbers.";
+        isValid = false;
+      } else {
+        phoneError.style.display = "none";
+      }
     } else {
       phoneError.style.display = "none";
     }
-  } else {
-    phoneError.style.display = "none";
-  }
 
-  if (isValid) {
-    const userInfo = {
-      username: usernameField.value,
-      // email: emailField.value,
-      phone: phoneField.value,
-    };
+    if (isValid) {
+      const userInfo = {
+        username: usernameField.value,
+        // email: emailField.value,
+        phone: phoneField.value,
+      };
 
-    let sendReq = async () => {
-      try {
-        const resData = await fetch("/update-profile", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(userInfo),
-        });
+      let sendReq = async () => {
+        try {
+          const resData = await fetch("/update-profile", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(userInfo),
+          });
 
-        const parsedData = await resData.json();
+          const parsedData = await resData.json();
 
-        if (!parsedData.val) {
-          if (parsedData.type === "username") {
-            usernameError.style.display = "block";
-            usernameError.textContent = parsedData.msg;
-          } else if (parsedData.type === "email") {
-            emailError.style.display = "block";
-            emailError.textContent = parsedData.msg;
-          } else if (parsedData.type === "phone") {
-            phoneError.style.display = "block";
-            phoneError.textContent = parsedData.msg;
+          if (!parsedData.val) {
+            if (parsedData.type === "username") {
+              usernameError.style.display = "block";
+              usernameError.textContent = parsedData.msg;
+            } else if (parsedData.type === "email") {
+              emailError.style.display = "block";
+              emailError.textContent = parsedData.msg;
+            } else if (parsedData.type === "phone") {
+              phoneError.style.display = "block";
+              phoneError.textContent = parsedData.msg;
+            }
+          } else {
+            usernameError.style.display = "none";
+            // emailError.style.display = "none";
+            phoneError.style.display = "none";
+            document.querySelector(".displayUsername").textContent =
+              parsedData.user.username;
+            // document.querySelector(".displayEmail").textContent =
+            //   parsedData.user.email;
+            document.querySelector(".displayPhone").textContent =
+              parsedData.user.phone;
+            profileInfo.style.display = "block";
+            updateForm.style.display = "none";
           }
-        } else {
-          usernameError.style.display = "none";
-          // emailError.style.display = "none";
-          phoneError.style.display = "none";
-          document.querySelector(".displayUsername").textContent =
-            parsedData.user.username;
-          // document.querySelector(".displayEmail").textContent =
-          //   parsedData.user.email;
-          document.querySelector(".displayPhone").textContent =
-            parsedData.user.phone;
-          profileInfo.style.display = "block";
-          updateForm.style.display = "none";
+        } catch (err) {
+          console.log("Error in updating profile:", err);
         }
-      } catch (err) {
-        console.log("Error in updating profile:", err);
-      }
-    };
-    sendReq();
-  }
-});
-
-// ~~~~~~~~~~~~~ My address section ~~~~~~~~~~~~~
-
-// create address section
-
-const countryInput = document.querySelector(".countryInp");
-const stateInput = document.querySelector(".stateInp");
-const districtInput = document.querySelector(".districtInp");
-const cityInput = document.querySelector(".cityInp");
-const streetInput = document.querySelector(".streetInp");
-const landmarkInput = document.querySelector(".landmarkInp");
-const housenoInput = document.querySelector(".housenoInp");
-const pincodeInput = document.querySelector(".pincodeInp");
-
-const errCountry = document.querySelector(".errCountryAddress");
-const errState = document.querySelector(".errStateAddress");
-const errDistrict = document.querySelector(".errDistrictAddress");
-const errCity = document.querySelector(".errCityAddress");
-const errStreet = document.querySelector(".errStreetAddress");
-const errLandmark = document.querySelector(".errLandmarkAddress");
-const errHouseno = document.querySelector(".errHousenoAddress");
-const errPincode = document.querySelector(".errPincodeAddress");
-
-const createButton = document.querySelector(".btnAddAddress");
-const buttonText = document.querySelector(".btnAddAddressText");
-const loader = document.querySelector(".btnAddAddressLoader");
-
-const addressFormCreate = document.querySelector(".address-form-create");
-const addressFormEdit = document.querySelector(".address-form-edit");
-const addressShow = document.querySelector(".address");
-const createAddressText = document.querySelector(".createAddress");
-
-const textPattern = /^[a-zA-Z\s]+$/;
-const pincodePattern = /^[0-9]{6}$/;
-
-const addressDisplaySection = document.querySelector(".addressDisplaySection");
-const addressCreateSection = document.querySelector(".address-form-create");
-const addressEditSection = document.querySelector(".address-form-edit");
-
-createAddressText.addEventListener("click", () => {
-  addressDisplaySection.style.display = "none";
-  addressEditSection.style.display = "none";
-  addressCreateSection.style.display = "block";
-});
-
-createButton.addEventListener("click", (e) => {
-  buttonText.style.display = "none";
-  loader.style.display = "flex";
-  e.preventDefault();
-  if (!countryInput.value.match(textPattern)) {
-    errCountry.style.display = "flex";
-    errState.style.display = "none";
-    errDistrict.style.display = "none";
-    errCity.style.display = "none";
-    errStreet.style.display = "none";
-    errLandmark.style.display = "none";
-    errHouseno.style.display = "none";
-    errPincode.style.display = "none";
-    errCountry.textContent = "Please enter a valid country name.";
-  } else if (!stateInput.value.match(textPattern)) {
-    errCountry.style.display = "none";
-    errState.style.display = "flex";
-    errDistrict.style.display = "none";
-    errCity.style.display = "none";
-    errStreet.style.display = "none";
-    errLandmark.style.display = "none";
-    errHouseno.style.display = "none";
-    errPincode.style.display = "none";
-    errState.textContent = "Please enter a valid state name.";
-  } else if (!districtInput.value.match(textPattern)) {
-    errCountry.style.display = "none";
-    errState.style.display = "none";
-    errDistrict.style.display = "flex";
-    errCity.style.display = "none";
-    errStreet.style.display = "none";
-    errLandmark.style.display = "none";
-    errHouseno.style.display = "none";
-    errPincode.style.display = "none";
-    errDistrict.textContent = "Please enter a valid district name.";
-  } else if (!cityInput.value.match(textPattern)) {
-    errCountry.style.display = "none";
-    errState.style.display = "none";
-    errDistrict.style.display = "none";
-    errCity.style.display = "flex";
-    errStreet.style.display = "none";
-    errLandmark.style.display = "none";
-    errHouseno.style.display = "none";
-    errPincode.style.display = "none";
-    errCity.textContent = "Please enter a valid city name.";
-  } else if (!streetInput.value.match(textPattern)) {
-    errCountry.style.display = "none";
-    errState.style.display = "none";
-    errDistrict.style.display = "none";
-    errCity.style.display = "none";
-    errStreet.style.display = "flex";
-    errLandmark.style.display = "none";
-    errHouseno.style.display = "none";
-    errPincode.style.display = "none";
-    errStreet.textContent = "Please enter a valid street name.";
-  } else if (!housenoInput.value) {
-    errCountry.style.display = "none";
-    errState.style.display = "none";
-    errDistrict.style.display = "none";
-    errCity.style.display = "none";
-    errStreet.style.display = "none";
-    errLandmark.style.display = "none";
-    errHouseno.style.display = "flex";
-    errPincode.style.display = "none";
-    errHouseno.textContent = "House number cannot be empty.";
-  } else if (!pincodeInput.value.match(pincodePattern)) {
-    errCountry.style.display = "none";
-    errState.style.display = "none";
-    errDistrict.style.display = "none";
-    errCity.style.display = "none";
-    errStreet.style.display = "none";
-    errLandmark.style.display = "none";
-    errHouseno.style.display = "none";
-    errPincode.style.display = "flex";
-    errPincode.textContent = "Please enter a valid 6-digit pincode.";
-  } else {
-    errCountry.style.display = "none";
-    errState.style.display = "none";
-    errDistrict.style.display = "none";
-    errCity.style.display = "none";
-    errStreet.style.display = "none";
-    errLandmark.style.display = "none";
-    errHouseno.style.display = "none";
-    errPincode.style.display = "none";
-    const addressInfo = {
-      country: countryInput.value,
-      state: stateInput.value,
-      district: districtInput.value,
-      city: cityInput.value,
-      street: streetInput.value,
-      landmark: landmarkInput.value,
-      houseno: housenoInput.value,
-      pincode: pincodeInput.value,
-    };
-    let sendReq = async () => {
-      try {
-        const resData = await fetch("/create-address", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(addressInfo),
-        });
-        const parsedData = await resData.json();
-        if (parsedData.val) {
-          buttonText.style.display = "none";
-          loader.style.display = "flex";
-          fetchAddress();
-          addressShow.style.display = "block";
-          addressFormCreate.style.display = "none";
-        }
-      } catch (err) {
-        console.log("Error in updating profile:", err);
-      }
-    };
-    sendReq();
-  }
-});
-
-// Edit address section
-
-const countryEditInput = document.querySelector(".countryInpEdit");
-const stateEditInput = document.querySelector(".stateInpEdit");
-const districtEditInput = document.querySelector(".districtInpEdit");
-const cityEditInput = document.querySelector(".cityInpEdit");
-const streetEditInput = document.querySelector(".streetInpEdit");
-const landmarkEditInput = document.querySelector(".landmarkInpEdit");
-const housenoEditInput = document.querySelector(".housenoInpEdit");
-const pincodeEditInput = document.querySelector(".pincodeInpEdit");
-const addressIdEdit = document.querySelector(".addressIdEdit");
-
-const errCountryEdit = document.querySelector(".errCountryAddressEdit");
-const errStateEdit = document.querySelector(".errStateAddressEdit");
-const errDistrictEdit = document.querySelector(".errDistrictAddressEdit");
-const errCityEdit = document.querySelector(".errCityAddressEdit");
-const errStreetEdit = document.querySelector(".errStreetAddressEdit");
-const errLandmarkEdit = document.querySelector(".errLandmarkAddressEdit");
-const errHousenoEdit = document.querySelector(".errHousenoAddressEdit");
-const errPincodeEdit = document.querySelector(".errPincodeAddressEdit");
-
-const editButtonText = document.querySelector(".btnEditAddressText");
-const editLoader = document.querySelector(".btnEditAddressLoader");
-
-const editAddressButton = document.querySelector(".btnEditAddress");
-
-editAddressButton.addEventListener("click", (e) => {
-  e.preventDefault();
-  [
-    errCountryEdit,
-    errStateEdit,
-    errDistrictEdit,
-    errCityEdit,
-    errStreetEdit,
-    errLandmarkEdit,
-    errHousenoEdit,
-    errPincodeEdit,
-  ].forEach((error) => (error.style.display = "none"));
-
-  if (!countryEditInput.value.match(textPattern)) {
-    errCountryEdit.style.display = "flex";
-    errCountryEdit.textContent = "Please enter a valid country name.";
-  } else if (!stateEditInput.value.match(textPattern)) {
-    errStateEdit.style.display = "flex";
-    errStateEdit.textContent = "Please enter a valid state name.";
-  } else if (!districtEditInput.value.match(textPattern)) {
-    errDistrictEdit.style.display = "flex";
-    errDistrictEdit.textContent = "Please enter a valid district name.";
-  } else if (!cityEditInput.value.match(textPattern)) {
-    errCityEdit.style.display = "flex";
-    errCityEdit.textContent = "Please enter a valid city name.";
-  } else if (!streetEditInput.value.match(textPattern)) {
-    errStreetEdit.style.display = "flex";
-    errStreetEdit.textContent = "Please enter a valid street name.";
-  } else if (!housenoEditInput.value) {
-    errHousenoEdit.style.display = "flex";
-    errHousenoEdit.textContent = "House number cannot be empty.";
-  } else if (!pincodeEditInput.value.match(pincodePattern)) {
-    errPincodeEdit.style.display = "flex";
-    errPincodeEdit.textContent = "Please enter a valid 6-digit pincode.";
-  } else {
-    editButtonText.style.display = "none";
-    editLoader.style.display = "block";
-    const editedAddressInfo = {
-      id: document.querySelector(".addressIdEdit").value,
-      country: countryEditInput.value,
-      state: stateEditInput.value,
-      district: districtEditInput.value,
-      city: cityEditInput.value,
-      street: streetEditInput.value,
-      landmark: landmarkEditInput.value,
-      houseno: housenoEditInput.value,
-      pincode: pincodeEditInput.value,
-    };
-
-    let updateReq = async () => {
-      try {
-        const res = await fetch("/update-address", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(editedAddressInfo),
-        });
-        const result = await res.json();
-        if (result.val) {
-          fetchAddress();
-          addressFormEdit.style.display = "none";
-          addressShow.style.display = "block";
-          editButtonText.style.display = "block";
-          editLoader.style.display = "none";
-          console.log("Address updated successfully!");
-        }
-      } catch (error) {
-        console.log("Error in updating address:", error);
-      }
-    };
-    updateReq();
-  }
-});
-
-const tabs = document.querySelectorAll(".account__tab");
-const tabsContents = document.querySelectorAll(".tab__content");
-
-// Check if tab elements exist
-if (tabs.length === 0 || tabsContents.length === 0) {
-  console.error("Tab elements not found on page");
-  return;
-}
-
-console.log("Found", tabs.length, "tabs and", tabsContents.length, "tab contents");
-
-// Simple and robust tab handling
-function handleTabClick(clickedTab) {
-  const targetSelector = clickedTab.dataset.target;
-  console.log("Handling tab click for:", targetSelector);
-  
-  if (!targetSelector) {
-    console.error("No target selector found for tab");
-    return;
-  }
-
-  // Handle logout separately
-  if (targetSelector === "#logout") {
-    handleLogout();
-    return;
-  }
-
-  const targetContent = document.querySelector(targetSelector);
-  if (!targetContent) {
-    console.error("Target content not found:", targetSelector);
-    return;
-  }
-
-  // Remove active class from all tabs and contents
-  tabs.forEach(tab => tab.classList.remove("active-tab"));
-  tabsContents.forEach(content => content.classList.remove("active-tab"));
-
-  // Add active class to clicked tab and its content
-  clickedTab.classList.add("active-tab");
-  targetContent.classList.add("active-tab");
-
-  // Load content based on tab
-  loadTabContent(targetSelector);
-}
-
-// Handle logout
-async function handleLogout() {
-  try {
-    const response = await fetch("/logout", { method: "POST" });
-    const data = await response.json();
-    if (!data.val) {
-      showToast(data.msg || 'Logout failed', 'error');
-    } else {
-      showToast('Logged out successfully', 'success');
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1000);
+      };
+      sendReq();
     }
-  } catch (err) {
-    console.log(err);
-    showToast('An error occurred during logout', 'error');
-  }
-}
+  });
 
-// Load content for specific tabs
-async function loadTabContent(targetSelector) {
-  try {
-    switch (targetSelector) {
-      case "#orders":
-        await fetchOrders();
-        break;
-      case "#wallet":
-        await fetchWallet();
-        break;
-      case "#address":
-        await fetchAddress();
-        break;
-      case "#change-password":
-        await showChangePassword();
-        break;
-      default:
-        console.log("No special loading needed for:", targetSelector);
-    }
-  } catch (error) {
-    console.error("Error loading tab content:", error);
-    showToast('Error loading content', 'error');
-  }
-}
+  // ~~~~~~~~~~~~~ My address section ~~~~~~~~~~~~~
 
-// Add click event listeners to all tabs
-tabs.forEach((tab, index) => {
-  console.log(`Setting up tab ${index}:`, tab.textContent.trim(), "target:", tab.dataset.target);
-  
-  tab.addEventListener("click", function(e) {
+  // create address section
+
+  const countryInput = document.querySelector(".countryInp");
+  const stateInput = document.querySelector(".stateInp");
+  const districtInput = document.querySelector(".districtInp");
+  const cityInput = document.querySelector(".cityInp");
+  const streetInput = document.querySelector(".streetInp");
+  const landmarkInput = document.querySelector(".landmarkInp");
+  const housenoInput = document.querySelector(".housenoInp");
+  const pincodeInput = document.querySelector(".pincodeInp");
+
+  const errCountry = document.querySelector(".errCountryAddress");
+  const errState = document.querySelector(".errStateAddress");
+  const errDistrict = document.querySelector(".errDistrictAddress");
+  const errCity = document.querySelector(".errCityAddress");
+  const errStreet = document.querySelector(".errStreetAddress");
+  const errLandmark = document.querySelector(".errLandmarkAddress");
+  const errHouseno = document.querySelector(".errHousenoAddress");
+  const errPincode = document.querySelector(".errPincodeAddress");
+
+  const createButton = document.querySelector(".btnAddAddress");
+  const buttonText = document.querySelector(".btnAddAddressText");
+  const loader = document.querySelector(".btnAddAddressLoader");
+
+  const addressFormCreate = document.querySelector(".address-form-create");
+  const addressFormEdit = document.querySelector(".address-form-edit");
+  const addressShow = document.querySelector(".address");
+  const createAddressText = document.querySelector(".createAddress");
+
+  const textPattern = /^[a-zA-Z\s]+$/;
+  const pincodePattern = /^[0-9]{6}$/;
+
+  const addressDisplaySection = document.querySelector(".addressDisplaySection");
+  const addressCreateSection = document.querySelector(".address-form-create");
+  const addressEditSection = document.querySelector(".address-form-edit");
+
+  createAddressText.addEventListener("click", () => {
+    addressDisplaySection.style.display = "none";
+    addressEditSection.style.display = "none";
+    addressCreateSection.style.display = "block";
+  });
+
+  createButton.addEventListener("click", (e) => {
+    buttonText.style.display = "none";
+    loader.style.display = "flex";
     e.preventDefault();
-    e.stopPropagation();
-    console.log("Tab clicked:", tab.dataset.target);
-    handleTabClick(tab);
-  });
-  
-  // Also add keyboard support
-  tab.addEventListener("keydown", function(e) {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      handleTabClick(tab);
+    if (!countryInput.value.match(textPattern)) {
+      errCountry.style.display = "flex";
+      errState.style.display = "none";
+      errDistrict.style.display = "none";
+      errCity.style.display = "none";
+      errStreet.style.display = "none";
+      errLandmark.style.display = "none";
+      errHouseno.style.display = "none";
+      errPincode.style.display = "none";
+      errCountry.textContent = "Please enter a valid country name.";
+    } else if (!stateInput.value.match(textPattern)) {
+      errCountry.style.display = "none";
+      errState.style.display = "flex";
+      errDistrict.style.display = "none";
+      errCity.style.display = "none";
+      errStreet.style.display = "none";
+      errLandmark.style.display = "none";
+      errHouseno.style.display = "none";
+      errPincode.style.display = "none";
+      errState.textContent = "Please enter a valid state name.";
+    } else if (!districtInput.value.match(textPattern)) {
+      errCountry.style.display = "none";
+      errState.style.display = "none";
+      errDistrict.style.display = "flex";
+      errCity.style.display = "none";
+      errStreet.style.display = "none";
+      errLandmark.style.display = "none";
+      errHouseno.style.display = "none";
+      errPincode.style.display = "none";
+      errDistrict.textContent = "Please enter a valid district name.";
+    } else if (!cityInput.value.match(textPattern)) {
+      errCountry.style.display = "none";
+      errState.style.display = "none";
+      errDistrict.style.display = "none";
+      errCity.style.display = "flex";
+      errStreet.style.display = "none";
+      errLandmark.style.display = "none";
+      errHouseno.style.display = "none";
+      errPincode.style.display = "none";
+      errCity.textContent = "Please enter a valid city name.";
+    } else if (!streetInput.value.match(textPattern)) {
+      errCountry.style.display = "none";
+      errState.style.display = "none";
+      errDistrict.style.display = "none";
+      errCity.style.display = "none";
+      errStreet.style.display = "flex";
+      errLandmark.style.display = "none";
+      errHouseno.style.display = "none";
+      errPincode.style.display = "none";
+      errStreet.textContent = "Please enter a valid street name.";
+    } else if (!housenoInput.value) {
+      errCountry.style.display = "none";
+      errState.style.display = "none";
+      errDistrict.style.display = "none";
+      errCity.style.display = "none";
+      errStreet.style.display = "none";
+      errLandmark.style.display = "none";
+      errHouseno.style.display = "flex";
+      errPincode.style.display = "none";
+      errHouseno.textContent = "House number cannot be empty.";
+    } else if (!pincodeInput.value.match(pincodePattern)) {
+      errCountry.style.display = "none";
+      errState.style.display = "none";
+      errDistrict.style.display = "none";
+      errCity.style.display = "none";
+      errStreet.style.display = "none";
+      errLandmark.style.display = "none";
+      errHouseno.style.display = "none";
+      errPincode.style.display = "flex";
+      errPincode.textContent = "Please enter a valid 6-digit pincode.";
+    } else {
+      errCountry.style.display = "none";
+      errState.style.display = "none";
+      errDistrict.style.display = "none";
+      errCity.style.display = "none";
+      errStreet.style.display = "none";
+      errLandmark.style.display = "none";
+      errHouseno.style.display = "none";
+      errPincode.style.display = "none";
+      const addressInfo = {
+        country: countryInput.value,
+        state: stateInput.value,
+        district: districtInput.value,
+        city: cityInput.value,
+        street: streetInput.value,
+        landmark: landmarkInput.value,
+        houseno: housenoInput.value,
+        pincode: pincodeInput.value,
+      };
+      let sendReq = async () => {
+        try {
+          const resData = await fetch("/create-address", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(addressInfo),
+          });
+          const parsedData = await resData.json();
+          if (parsedData.val) {
+            buttonText.style.display = "none";
+            loader.style.display = "flex";
+            fetchAddress();
+            addressShow.style.display = "block";
+            addressFormCreate.style.display = "none";
+          }
+        } catch (err) {
+          console.log("Error in updating profile:", err);
+        }
+      };
+      sendReq();
     }
   });
-  
-  // Make tabs focusable
-  if (!tab.hasAttribute('tabindex')) {
-    tab.setAttribute('tabindex', '0');
+
+  // Edit address section
+
+  const countryEditInput = document.querySelector(".countryInpEdit");
+  const stateEditInput = document.querySelector(".stateInpEdit");
+  const districtEditInput = document.querySelector(".districtInpEdit");
+  const cityEditInput = document.querySelector(".cityInpEdit");
+  const streetEditInput = document.querySelector(".streetInpEdit");
+  const landmarkEditInput = document.querySelector(".landmarkInpEdit");
+  const housenoEditInput = document.querySelector(".housenoInpEdit");
+  const pincodeEditInput = document.querySelector(".pincodeInpEdit");
+  const addressIdEdit = document.querySelector(".addressIdEdit");
+
+  const errCountryEdit = document.querySelector(".errCountryAddressEdit");
+  const errStateEdit = document.querySelector(".errStateAddressEdit");
+  const errDistrictEdit = document.querySelector(".errDistrictAddressEdit");
+  const errCityEdit = document.querySelector(".errCityAddressEdit");
+  const errStreetEdit = document.querySelector(".errStreetAddressEdit");
+  const errLandmarkEdit = document.querySelector(".errLandmarkAddressEdit");
+  const errHousenoEdit = document.querySelector(".errHousenoAddressEdit");
+  const errPincodeEdit = document.querySelector(".errPincodeAddressEdit");
+
+  const editButtonText = document.querySelector(".btnEditAddressText");
+  const editLoader = document.querySelector(".btnEditAddressLoader");
+
+  const editAddressButton = document.querySelector(".btnEditAddress");
+
+  editAddressButton.addEventListener("click", (e) => {
+    e.preventDefault();
+    [
+      errCountryEdit,
+      errStateEdit,
+      errDistrictEdit,
+      errCityEdit,
+      errStreetEdit,
+      errLandmarkEdit,
+      errHousenoEdit,
+      errPincodeEdit,
+    ].forEach((error) => (error.style.display = "none"));
+
+    if (!countryEditInput.value.match(textPattern)) {
+      errCountryEdit.style.display = "flex";
+      errCountryEdit.textContent = "Please enter a valid country name.";
+    } else if (!stateEditInput.value.match(textPattern)) {
+      errStateEdit.style.display = "flex";
+      errStateEdit.textContent = "Please enter a valid state name.";
+    } else if (!districtEditInput.value.match(textPattern)) {
+      errDistrictEdit.style.display = "flex";
+      errDistrictEdit.textContent = "Please enter a valid district name.";
+    } else if (!cityEditInput.value.match(textPattern)) {
+      errCityEdit.style.display = "flex";
+      errCityEdit.textContent = "Please enter a valid city name.";
+    } else if (!streetEditInput.value.match(textPattern)) {
+      errStreetEdit.style.display = "flex";
+      errStreetEdit.textContent = "Please enter a valid street name.";
+    } else if (!housenoEditInput.value) {
+      errHousenoEdit.style.display = "flex";
+      errHousenoEdit.textContent = "House number cannot be empty.";
+    } else if (!pincodeEditInput.value.match(pincodePattern)) {
+      errPincodeEdit.style.display = "flex";
+      errPincodeEdit.textContent = "Please enter a valid 6-digit pincode.";
+    } else {
+      editButtonText.style.display = "none";
+      editLoader.style.display = "block";
+      const editedAddressInfo = {
+        id: document.querySelector(".addressIdEdit").value,
+        country: countryEditInput.value,
+        state: stateEditInput.value,
+        district: districtEditInput.value,
+        city: cityEditInput.value,
+        street: streetEditInput.value,
+        landmark: landmarkEditInput.value,
+        houseno: housenoEditInput.value,
+        pincode: pincodeEditInput.value,
+      };
+
+      let updateReq = async () => {
+        try {
+          const res = await fetch("/update-address", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(editedAddressInfo),
+          });
+          const result = await res.json();
+          if (result.val) {
+            fetchAddress();
+            addressFormEdit.style.display = "none";
+            addressShow.style.display = "block";
+            editButtonText.style.display = "block";
+            editLoader.style.display = "none";
+            console.log("Address updated successfully!");
+          }
+        } catch (error) {
+          console.log("Error in updating address:", error);
+        }
+      };
+      updateReq();
+    }
+  });
+
+  const tabs = document.querySelectorAll(".account__tab");
+  const tabsContents = document.querySelectorAll(".tab__content");
+
+  // Check if tab elements exist
+  if (tabs.length === 0 || tabsContents.length === 0) {
+    console.error("Tab elements not found on page");
+    return;
   }
-});
 
-let currentPage = 1;
-const limit = 10;
+  console.log("Found", tabs.length, "tabs and", tabsContents.length, "tab contents");
 
-async function fetchWallet(page = 1) {
-  const balanceSection = document.querySelector(".balanceSection");
-  const transactionHistorySection = document.querySelector(".transactionHistorySection");
-  balanceSection.innerHTML = "";
-  transactionHistorySection.innerHTML = "";
+  // Simple and robust tab handling
+  function handleTabClick(clickedTab) {
+    const targetSelector = clickedTab.dataset.target;
+    console.log("Handling tab click for:", targetSelector);
 
-  try {
-    const response = await fetch(`account/wallet?page=${page}&limit=${limit}`);
-    const data = await response.json();
+    if (!targetSelector) {
+      console.error("No target selector found for tab");
+      return;
+    }
 
-    if (data.val) {
-      // Calculate total received and spent amounts
-      const totalReceived = data.wallet.transactionHistory
-        ? data.wallet.transactionHistory
+    // Handle logout separately
+    if (targetSelector === "#logout") {
+      handleLogout();
+      return;
+    }
+
+    const targetContent = document.querySelector(targetSelector);
+    if (!targetContent) {
+      console.error("Target content not found:", targetSelector);
+      return;
+    }
+
+    // Remove active class from all tabs and contents
+    tabs.forEach(tab => tab.classList.remove("active-tab"));
+    tabsContents.forEach(content => content.classList.remove("active-tab"));
+
+    // Add active class to clicked tab and its content
+    clickedTab.classList.add("active-tab");
+    targetContent.classList.add("active-tab");
+
+    // Load content based on tab
+    loadTabContent(targetSelector);
+  }
+
+  // Handle logout
+  async function handleLogout() {
+    try {
+      const response = await fetch("/logout", { method: "POST" });
+      const data = await response.json();
+      if (!data.val) {
+        showToast(data.msg || 'Logout failed', 'error');
+      } else {
+        showToast('Logged out successfully', 'success');
+        setTimeout(() => {
+          window.location.href = "/";
+        }, 1000);
+      }
+    } catch (err) {
+      console.log(err);
+      showToast('An error occurred during logout', 'error');
+    }
+  }
+
+  // Load content for specific tabs
+  async function loadTabContent(targetSelector) {
+    try {
+      switch (targetSelector) {
+        case "#orders":
+          await fetchOrders();
+          break;
+        case "#wallet":
+          await fetchWallet();
+          break;
+        case "#address":
+          await fetchAddress();
+          break;
+        case "#change-password":
+          await showChangePassword();
+          break;
+        default:
+          console.log("No special loading needed for:", targetSelector);
+      }
+    } catch (error) {
+      console.error("Error loading tab content:", error);
+      showToast('Error loading content', 'error');
+    }
+  }
+
+  // Add click event listeners to all tabs
+  tabs.forEach((tab, index) => {
+    console.log(`Setting up tab ${index}:`, tab.textContent.trim(), "target:", tab.dataset.target);
+
+    tab.addEventListener("click", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log("Tab clicked:", tab.dataset.target);
+      handleTabClick(tab);
+    });
+
+    // Also add keyboard support
+    tab.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleTabClick(tab);
+      }
+    });
+
+    // Make tabs focusable
+    if (!tab.hasAttribute('tabindex')) {
+      tab.setAttribute('tabindex', '0');
+    }
+  });
+
+  let currentPage = 1;
+  const limit = 10;
+
+  async function fetchWallet(page = 1) {
+    const balanceSection = document.querySelector(".balanceSection");
+    const transactionHistorySection = document.querySelector(".transactionHistorySection");
+    balanceSection.innerHTML = "";
+    transactionHistorySection.innerHTML = "";
+
+    try {
+      const response = await fetch(`account/wallet?page=${page}&limit=${limit}`);
+      const data = await response.json();
+
+      if (data.val) {
+        // Calculate total received and spent amounts
+        const totalReceived = data.wallet.transactionHistory
+          ? data.wallet.transactionHistory
             .filter(t => t.transactionType === "refund")
             .reduce((sum, t) => sum + (t.transactionAmount || 0), 0)
-        : 0;
-      
-      const totalSpent = data.wallet.transactionHistory
-        ? data.wallet.transactionHistory
+          : 0;
+
+        const totalSpent = data.wallet.transactionHistory
+          ? data.wallet.transactionHistory
             .filter(t => t.transactionType === "purchase")
             .reduce((sum, t) => sum + (t.transactionAmount || 0), 0)
-        : 0;
+          : 0;
 
-      balanceSection.innerHTML = `
+        balanceSection.innerHTML = `
         <div class="card">
           <div class="balance-header">
             <span>Wallet Balance</span>
@@ -550,17 +550,16 @@ async function fetchWallet(page = 1) {
         </div>
       `;
 
-      // Handle transaction history
-      if (data.wallet.transactionHistory && data.wallet.transactionHistory.length > 0) {
-        data.wallet.transactionHistory.forEach((x) => {
-          const div = document.createElement("div");
-          div.classList.add("transactionItem");
-          div.innerHTML = `
+        // Handle transaction history
+        if (data.wallet.transactionHistory && data.wallet.transactionHistory.length > 0) {
+          data.wallet.transactionHistory.forEach((x) => {
+            const div = document.createElement("div");
+            div.classList.add("transactionItem");
+            div.innerHTML = `
             <div class="transaction-item">
               <div class="transaction-info">
-                <div class="transaction-icon ${
-                  x.transactionType === "refund" ? "icon-receive" : "icon-send"
-                }">${x.transactionType === "refund" ? "↓" : "↑"}</div>
+                <div class="transaction-icon ${x.transactionType === "refund" ? "icon-receive" : "icon-send"
+              }">${x.transactionType === "refund" ? "↓" : "↑"}</div>
                 <div class="transaction-details">
                   <span class="transaction-title">${x.transactionType.charAt(0).toUpperCase() + x.transactionType.slice(1)}</span>
                   <span class="transaction-date">${new Date(x.transactionDate).toLocaleDateString('en-IN')}</span>
@@ -568,18 +567,17 @@ async function fetchWallet(page = 1) {
                 </div>
               </div>
               <div class="transaction-details" style="text-align: right">
-                <span class="transaction-amount ${x.transactionType === "refund" ? "amount-received" : "amount-sent"}">${
-                  x.transactionType === "refund" ? "+" : "-"
-                }₹${x.transactionAmount}</span>
+                <span class="transaction-amount ${x.transactionType === "refund" ? "amount-received" : "amount-sent"}">${x.transactionType === "refund" ? "+" : "-"
+              }₹${x.transactionAmount}</span>
                 <span class="transaction-status status-completed">Completed</span>
               </div>
             </div>
           `;
-          transactionHistorySection.append(div);
-        });
-      } else {
-        // Show empty state for transactions
-        transactionHistorySection.innerHTML = `
+            transactionHistorySection.append(div);
+          });
+        } else {
+          // Show empty state for transactions
+          transactionHistorySection.innerHTML = `
           <div style="text-align: center; padding: 3rem 1rem; color: #6c757d;">
             <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">
               <i class="fas fa-wallet"></i>
@@ -588,33 +586,33 @@ async function fetchWallet(page = 1) {
             <p style="margin-bottom: 0;">Your transaction history will appear here once you make your first purchase or receive a refund.</p>
           </div>
         `;
+        }
+
+        // Update pagination
+        document.getElementById("pageNumber").innerText = `Page ${page}`;
+        document.getElementById("prevPage").disabled = page === 1;
+        document.getElementById("nextPage").disabled = page === data.totalPages;
+      } else {
+        // Handle error case
+        showToast(data.msg || 'Failed to load wallet information', 'error');
       }
-
-      // Update pagination
-      document.getElementById("pageNumber").innerText = `Page ${page}`;
-      document.getElementById("prevPage").disabled = page === 1;
-      document.getElementById("nextPage").disabled = page === data.totalPages;
-    } else {
-      // Handle error case
-      showToast(data.msg || 'Failed to load wallet information', 'error');
+    } catch (err) {
+      console.error(err);
+      showToast('An error occurred while loading wallet information', 'error');
     }
-  } catch (err) {
-    console.error(err);
-    showToast('An error occurred while loading wallet information', 'error');
   }
-}
 
 
-async function fetchAddress() {
-  try {
-    const response = await fetch("/account/address");
-    const data = await response.json();
-    const addressContainer = document.querySelector(".address-display");
-    addressContainer.innerHTML = "";
-    data.user.forEach((val) => {
-      const addressDiv = document.createElement("div");
-      addressDiv.classList.add("address-item");
-      addressDiv.innerHTML = `
+  async function fetchAddress() {
+    try {
+      const response = await fetch("/account/address");
+      const data = await response.json();
+      const addressContainer = document.querySelector(".address-display");
+      addressContainer.innerHTML = "";
+      data.user.forEach((val) => {
+        const addressDiv = document.createElement("div");
+        addressDiv.classList.add("address-item");
+        addressDiv.innerHTML = `
         <p><strong>House Number:</strong> <span class="houseno-value">${val.houseNumber}</span></p>
         <p><strong>Street:</strong> <span class="street-value">${val.street}</span></p>
         <p><strong>Landmark:</strong> <span class="landmark-value">${val.landMark}</span></p>
@@ -629,219 +627,216 @@ async function fetchAddress() {
                   </div>
         <hr style="margin:10px;">
       `;
-      addressContainer.appendChild(addressDiv);
-    });
-    addressDisplaySection.style.display = "block";
-    addressEditSection.style.display = "none";
-    addressCreateSection.style.display = "none";
-  } catch (err) {
-    console.log(err);
-  }
-}
-
-async function showChangePassword() {
-  console.log("Showing change password form...");
-}
-
-const addressContainer = document.querySelector(".address-display");
-
-addressContainer.addEventListener("click", (event) => {
-  event.preventDefault();
-
-  if (event.target.classList.contains("editAddress")) {
-    handleEdit(event);
+        addressContainer.appendChild(addressDiv);
+      });
+      addressDisplaySection.style.display = "block";
+      addressEditSection.style.display = "none";
+      addressCreateSection.style.display = "none";
+    } catch (err) {
+      console.log(err);
+    }
   }
 
-  if (event.target.classList.contains("removeAddress")) {
-    handleRemove(event);
+  async function showChangePassword() {
+    console.log("Showing change password form...");
   }
-});
 
-async function handleEdit(event) {
-  const addressId = event.target.getAttribute("data-id");
-  console.log("edit click : - " + addressId);
-  const response = await fetch(`/update-address/${addressId}`);
-  const addressData = await response.json();
-  if (addressData.val) {
-    addressData.address.address.forEach((a) => {
-      console.log(a);
-      if (addressId === a._id) {
-        countryEditInput.value = a.country;
-        addressIdEdit.value = a._id;
-        stateEditInput.value = a.state;
-        districtEditInput.value = a.district;
-        cityEditInput.value = a.city;
-        streetEditInput.value = a.street;
-        landmarkEditInput.value = a.landMark;
-        housenoEditInput.value = a.houseNumber;
-        pincodeEditInput.value = a.pinCode;
-      }
-    });
-    addressDisplaySection.style.display = "none";
-    addressEditSection.style.display = "block";
-    addressCreateSection.style.display = "none";
-  }
-}
+  const addressContainer = document.querySelector(".address-display");
 
-async function handleRemove(event) {
-  const addressId = event.target.getAttribute("data-id");
-  console.log("remove click : - " + addressId);
-  const response = await fetch(`/delete-address/${addressId}`, {
-    method: "DELETE",
+  addressContainer.addEventListener("click", (event) => {
+    event.preventDefault();
+
+    if (event.target.classList.contains("editAddress")) {
+      handleEdit(event);
+    }
+
+    if (event.target.classList.contains("removeAddress")) {
+      handleRemove(event);
+    }
   });
-  const data = await response.json();
-  if (data.val) {
-    console.log("Address deleted successfully");
-    fetchAddress();
-  } else {
-    console.error("Failed to delete address");
-  }
-}
 
-// ~~~~~~~~~~~~~~~~  change password section ~~~~~~~~~~~~~~~~~~~~~
-
-document.querySelector(".btn-saveChangePass").addEventListener("click", (e) => {
-  e.preventDefault();
-  const currentPasswordInput = document.querySelector(".current-pass");
-  const newPasswordInput = document.querySelector(".new-pass");
-  const confirmPasswordInput = document.querySelector(".confirm-pass");
-  const errCurrentPass = document.querySelector(".err-current-pass");
-  const errNewPass = document.querySelector(".err-new-pass");
-  const errConfirmPass = document.querySelector(".err-confirm-pass");
-  const changePassSaveText = document.querySelector(".btn-saveChangePassText");
-  const changePassSaveLoader = document.querySelector(
-    ".btn-saveChangePassLoader"
-  );
-  [errCurrentPass, errNewPass, errConfirmPass].forEach((error) => {
-    error.style.display = "none";
-    error.textContent = "";
-  });
-  let isValid = true;
-  if (!currentPasswordInput.value) {
-    errCurrentPass.style.display = "flex";
-    errCurrentPass.textContent = "Current Password cannot be empty.";
-    isValid = false;
-  } else if (!passwordPattern.test(newPasswordInput.value)) {
-    errNewPass.style.display = "flex";
-    errNewPass.textContent =
-      "New Password must be at least 8 characters long, with uppercase, lowercase, a number, and a special character.";
-    isValid = false;
-  } else if (confirmPasswordInput.value.length === 0) {
-    errConfirmPass.style.display = "flex";
-    errConfirmPass.textContent = "Confirm Password cannot be empty.";
-    isValid = false;
-  } else if (confirmPasswordInput.value !== newPasswordInput.value) {
-    errConfirmPass.style.display = "flex";
-    errConfirmPass.textContent = "Passwords do not match.";
-    isValid = false;
-  }
-
-  if (isValid) {
-    changePassSaveText.style.display = "flex";
-    changePassSaveLoader.style.display = "none";
-    errCurrentPass.style.display = "none";
-    errNewPass.style.display = "none";
-    errConfirmPass.style.display = "none";
-    let changePassRequest = async () => {
-      try {
-        const response = await fetch("/change-password", {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            currentPass: currentPasswordInput.value,
-            newPass: newPasswordInput.value,
-          }),
-        });
-        const data = await response.json();
-        if (!data.val) {
-          changePassSaveText.style.display = "flex";
-          changePassSaveLoader.style.display = "none";
-          errCurrentPass.style.display = "flex";
-          errCurrentPass.textContent = data.msg;
-        } else {
-          errCurrentPass.style.display = "none";
-          changePassSaveText.style.display = "flex";
-          changePassSaveLoader.style.display = "none";
-          changePassSaveText.textContent = "Password Changed";
-          setTimeout(() => {
-            changePassSaveText.textContent = "Save Changes";
-          }, 3000);
-          currentPasswordInput.value = "";
-          newPasswordInput.value = "";
-          confirmPasswordInput.value = "";
-          console.log("Pass changed");
+  async function handleEdit(event) {
+    const addressId = event.target.getAttribute("data-id");
+    console.log("edit click : - " + addressId);
+    const response = await fetch(`/update-address/${addressId}`);
+    const addressData = await response.json();
+    if (addressData.val) {
+      addressData.address.address.forEach((a) => {
+        console.log(a);
+        if (addressId === a._id) {
+          countryEditInput.value = a.country;
+          addressIdEdit.value = a._id;
+          stateEditInput.value = a.state;
+          districtEditInput.value = a.district;
+          cityEditInput.value = a.city;
+          streetEditInput.value = a.street;
+          landmarkEditInput.value = a.landMark;
+          housenoEditInput.value = a.houseNumber;
+          pincodeEditInput.value = a.pinCode;
         }
-      } catch (err) {
-        console.log("Error fetching:-" + err);
-      }
-    };
-    changePassRequest();
+      });
+      addressDisplaySection.style.display = "none";
+      addressEditSection.style.display = "block";
+      addressCreateSection.style.display = "none";
+    }
   }
-});
 
-
-async function fetchOrders(page = 1) {
-  document.querySelector(".ordersInfo").style.display = "block";
-  document.querySelector(".detailsOfOrders").style.display = "none";
-  document.querySelector(".orderedAddrressInfo").style.display = "none";
-  document.querySelector(".pagination").style.display = "flex";
-
-  try {
-    const response = await fetch(`/account/orders?page=${page}&limit=4`);
+  async function handleRemove(event) {
+    const addressId = event.target.getAttribute("data-id");
+    console.log("remove click : - " + addressId);
+    const response = await fetch(`/delete-address/${addressId}`, {
+      method: "DELETE",
+    });
     const data = await response.json();
-
-    const orderContainer = document.querySelector(".ordersParant");
-    orderContainer.innerHTML = "";
-
-    if (!data.orders || data.orders.length === 0) {
-      const orderNullTr = document.createElement("tr");
-      orderNullTr.classList.add("order-null-item");
-      orderNullTr.innerHTML = `<td colspan="7">No orders yet!</td>`;
-      orderContainer.appendChild(orderNullTr);
+    if (data.val) {
+      console.log("Address deleted successfully");
+      fetchAddress();
     } else {
-      data.orders.forEach((order, index) => {
-        const orderDate = new Date(order.orderedAt);
-        const formattedDate = orderDate.toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
+      console.error("Failed to delete address");
+    }
+  }
 
-        const orderRow = document.createElement("tr");
-        orderRow.classList.add("order-item");
-        orderRow.innerHTML = `
+  // ~~~~~~~~~~~~~~~~  change password section ~~~~~~~~~~~~~~~~~~~~~
+
+  document.querySelector(".btn-saveChangePass").addEventListener("click", (e) => {
+    e.preventDefault();
+    const currentPasswordInput = document.querySelector(".current-pass");
+    const newPasswordInput = document.querySelector(".new-pass");
+    const confirmPasswordInput = document.querySelector(".confirm-pass");
+    const errCurrentPass = document.querySelector(".err-current-pass");
+    const errNewPass = document.querySelector(".err-new-pass");
+    const errConfirmPass = document.querySelector(".err-confirm-pass");
+    const changePassSaveText = document.querySelector(".btn-saveChangePassText");
+    const changePassSaveLoader = document.querySelector(
+      ".btn-saveChangePassLoader"
+    );
+    [errCurrentPass, errNewPass, errConfirmPass].forEach((error) => {
+      error.style.display = "none";
+      error.textContent = "";
+    });
+    let isValid = true;
+    if (!currentPasswordInput.value) {
+      errCurrentPass.style.display = "flex";
+      errCurrentPass.textContent = "Current Password cannot be empty.";
+      isValid = false;
+    } else if (!passwordPattern.test(newPasswordInput.value)) {
+      errNewPass.style.display = "flex";
+      errNewPass.textContent =
+        "New Password must be at least 8 characters long, with uppercase, lowercase, a number, and a special character.";
+      isValid = false;
+    } else if (confirmPasswordInput.value.length === 0) {
+      errConfirmPass.style.display = "flex";
+      errConfirmPass.textContent = "Confirm Password cannot be empty.";
+      isValid = false;
+    } else if (confirmPasswordInput.value !== newPasswordInput.value) {
+      errConfirmPass.style.display = "flex";
+      errConfirmPass.textContent = "Passwords do not match.";
+      isValid = false;
+    }
+
+    if (isValid) {
+      changePassSaveText.style.display = "flex";
+      changePassSaveLoader.style.display = "none";
+      errCurrentPass.style.display = "none";
+      errNewPass.style.display = "none";
+      errConfirmPass.style.display = "none";
+      let changePassRequest = async () => {
+        try {
+          const response = await fetch("/change-password", {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              currentPass: currentPasswordInput.value,
+              newPass: newPasswordInput.value,
+            }),
+          });
+          const data = await response.json();
+          if (!data.val) {
+            changePassSaveText.style.display = "flex";
+            changePassSaveLoader.style.display = "none";
+            errCurrentPass.style.display = "flex";
+            errCurrentPass.textContent = data.msg;
+          } else {
+            errCurrentPass.style.display = "none";
+            changePassSaveText.style.display = "flex";
+            changePassSaveLoader.style.display = "none";
+            changePassSaveText.textContent = "Password Changed";
+            setTimeout(() => {
+              changePassSaveText.textContent = "Save Changes";
+            }, 3000);
+            currentPasswordInput.value = "";
+            newPasswordInput.value = "";
+            confirmPasswordInput.value = "";
+            console.log("Pass changed");
+          }
+        } catch (err) {
+          console.log("Error fetching:-" + err);
+        }
+      };
+      changePassRequest();
+    }
+  });
+
+
+  async function fetchOrders(page = 1) {
+    document.querySelector(".ordersInfo").style.display = "block";
+    document.querySelector(".detailsOfOrders").style.display = "none";
+    document.querySelector(".orderedAddrressInfo").style.display = "none";
+    document.querySelector(".pagination").style.display = "flex";
+
+    try {
+      const response = await fetch(`/account/orders?page=${page}&limit=4`);
+      const data = await response.json();
+
+      const orderContainer = document.querySelector(".ordersParant");
+      orderContainer.innerHTML = "";
+
+      if (!data.orders || data.orders.length === 0) {
+        const orderNullTr = document.createElement("tr");
+        orderNullTr.classList.add("order-null-item");
+        orderNullTr.innerHTML = `<td colspan="7">No orders yet!</td>`;
+        orderContainer.appendChild(orderNullTr);
+      } else {
+        data.orders.forEach((order, index) => {
+          const orderDate = new Date(order.orderedAt);
+          const formattedDate = orderDate.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
+
+          const orderRow = document.createElement("tr");
+          orderRow.classList.add("order-item");
+          orderRow.innerHTML = `
           <td>#${order.orderId}</td> 
           <td>${formattedDate}</td>
           <td>${order.orderStatus.replace('_', ' ').toUpperCase()}</td>
           <td>
             ${order.paymentStatus}
-            ${
-              order.paymentStatus === "pending" &&
+            ${order.paymentStatus === "pending" &&
               order.paymentMethod &&
               order.paymentMethod.trim().toLowerCase() === "razorpay"
-                ? `<a class="btnRetryPayment" data-id="${order._id}"><i class="fa fa-sync-alt"></i></a>`
-                : ""
+              ? `<a class="btnRetryPayment" data-id="${order._id}"><i class="fa fa-sync-alt"></i></a>`
+              : ""
             }
           </td>
           <td>&#8377;${order.totalAmount}</td>
           <td>
-            <a onclick="viewOrderedProduct(event)" class="view__order btnViewOrder" data-id="${
-              order._id
+            <a onclick="viewOrderedProduct(event)" class="view__order btnViewOrder" data-id="${order._id
             }">View</a>
           </td>
           <td>
             <a class="view__order btnCancelOrder" data-id="${order._id}">
-      ${
-        order.orderStatus === "delivered"
-          ? "Request Return"
-          : order.orderStatus === "returned"
-          ? "Order Returned"
-          : order.orderStatus === "cancelled"
-          ? "Order Canceled"
-          : "Cancel Order"
-      }
+      ${order.orderStatus === "delivered"
+              ? "Request Return"
+              : order.orderStatus === "returned"
+                ? "Order Returned"
+                : order.orderStatus === "cancelled"
+                  ? "Order Canceled"
+                  : "Cancel Order"
+            }
             </a>
           </td>
           <td>
@@ -849,82 +844,81 @@ async function fetchOrders(page = 1) {
                <i class="fas fa-truck"></i> Track Order
             </a>
             <br>
-            <a onclick="downloadInvoice(event)" class="view__order btnDownloadInvoice" data-id="${
-              order._id
+            <a onclick="downloadInvoice(event)" class="view__order btnDownloadInvoice" data-id="${order._id
             }" style="font-size: 0.9rem; color: #6c757d;">
                <i class="fas fa-download"></i> Invoice
             </a>
           </td>
         `;
 
-        orderContainer.append(orderRow);
-        orderRow
-          .querySelector(".btnCancelOrder")
-          .addEventListener("click", (event) => {
-            if (order.orderStatus === "delivered") {
-              requestReturn(event);
-            } else if (order.orderStatus === "returned") {
-              showToast('This order has already been returned', 'info');
-            } else if (order.orderStatus === "cancelled") {
-              showToast('This order has already been cancelled', 'info');
-            } else {
-              cancelOrders(event);
-            }
-          });
-
-        if (order.paymentStatus === "pending") {
-          const retryBtn = orderRow.querySelector(".btnRetryPayment");
-          if (retryBtn) {
-            retryBtn.addEventListener("click", (event) => {
-              retryPayment(event);
+          orderContainer.append(orderRow);
+          orderRow
+            .querySelector(".btnCancelOrder")
+            .addEventListener("click", (event) => {
+              if (order.orderStatus === "delivered") {
+                requestReturn(event);
+              } else if (order.orderStatus === "returned") {
+                showToast('This order has already been returned', 'info');
+              } else if (order.orderStatus === "cancelled") {
+                showToast('This order has already been cancelled', 'info');
+              } else {
+                cancelOrders(event);
+              }
             });
+
+          if (order.paymentStatus === "pending") {
+            const retryBtn = orderRow.querySelector(".btnRetryPayment");
+            if (retryBtn) {
+              retryBtn.addEventListener("click", (event) => {
+                retryPayment(event);
+              });
+            }
           }
-        }
-      });
+        });
 
-      renderPagination(data.currentPage, data.totalPages);
+        renderPagination(data.currentPage, data.totalPages);
+      }
+    } catch (err) {
+      console.error("Error fetching orders:", err);
     }
-  } catch (err) {
-    console.error("Error fetching orders:", err);
-  }
-}
-
-function renderPagination(currentPage, totalPages) {
-  const paginationContainer = document.querySelector(".pagination");
-  paginationContainer.innerHTML = "";
-
-  if (currentPage > 1) {
-    const prevButton = document.createElement("button");
-    prevButton.classList.add("pagination-btn");
-    prevButton.innerText = "<";
-    prevButton.addEventListener("click", () => fetchOrders(currentPage - 1));
-    paginationContainer.appendChild(prevButton);
   }
 
-  for (let i = 1; i <= totalPages; i++) {
-    const pageButton = document.createElement("button");
-    pageButton.classList.add("pagination-btn");
-    pageButton.innerText = i;
-    if (i === currentPage) pageButton.classList.add("active");
-    pageButton.addEventListener("click", () => fetchOrders(i));
-    paginationContainer.appendChild(pageButton);
-  }
-  if (currentPage < totalPages) {
-    const nextButton = document.createElement("button");
-    nextButton.classList.add("pagination-btn");
-    nextButton.innerText = ">";
-    nextButton.addEventListener("click", () => fetchOrders(currentPage + 1));
-    paginationContainer.appendChild(nextButton);
-  }
-}
+  function renderPagination(currentPage, totalPages) {
+    const paginationContainer = document.querySelector(".pagination");
+    paginationContainer.innerHTML = "";
 
-function cancelOrders(event) {
-  const orderId = event.target.getAttribute("data-id");
-  
-  // Create a simple confirmation dialog that works without Bootstrap
-  const confirmModal = document.createElement('div');
-  confirmModal.className = 'custom-modal-overlay';
-  confirmModal.style.cssText = `
+    if (currentPage > 1) {
+      const prevButton = document.createElement("button");
+      prevButton.classList.add("pagination-btn");
+      prevButton.innerText = "<";
+      prevButton.addEventListener("click", () => fetchOrders(currentPage - 1));
+      paginationContainer.appendChild(prevButton);
+    }
+
+    for (let i = 1; i <= totalPages; i++) {
+      const pageButton = document.createElement("button");
+      pageButton.classList.add("pagination-btn");
+      pageButton.innerText = i;
+      if (i === currentPage) pageButton.classList.add("active");
+      pageButton.addEventListener("click", () => fetchOrders(i));
+      paginationContainer.appendChild(pageButton);
+    }
+    if (currentPage < totalPages) {
+      const nextButton = document.createElement("button");
+      nextButton.classList.add("pagination-btn");
+      nextButton.innerText = ">";
+      nextButton.addEventListener("click", () => fetchOrders(currentPage + 1));
+      paginationContainer.appendChild(nextButton);
+    }
+  }
+
+  function cancelOrders(event) {
+    const orderId = event.target.getAttribute("data-id");
+
+    // Create a simple confirmation dialog that works without Bootstrap
+    const confirmModal = document.createElement('div');
+    confirmModal.className = 'custom-modal-overlay';
+    confirmModal.style.cssText = `
     position: fixed;
     top: 0;
     left: 0;
@@ -936,8 +930,8 @@ function cancelOrders(event) {
     align-items: center;
     z-index: 10000;
   `;
-  
-  confirmModal.innerHTML = `
+
+    confirmModal.innerHTML = `
     <div class="custom-modal-content" style="
       background: white;
       border-radius: 15px;
@@ -1005,10 +999,10 @@ function cancelOrders(event) {
       </div>
     </div>
   `;
-  
-  // Add animation styles
-  const style = document.createElement('style');
-  style.textContent = `
+
+    // Add animation styles
+    const style = document.createElement('style');
+    style.textContent = `
     @keyframes modalSlideIn {
       from {
         opacity: 0;
@@ -1026,52 +1020,52 @@ function cancelOrders(event) {
       transform: scale(1.05);
     }
   `;
-  document.head.appendChild(style);
-  
-  document.body.appendChild(confirmModal);
-  
-  // Handle keep order
-  confirmModal.querySelector('.btn-keep-order').addEventListener('click', () => {
-    document.body.removeChild(confirmModal);
-    document.head.removeChild(style);
-  });
-  
-  // Handle confirm cancel
-  confirmModal.querySelector('.btn-confirm-cancel').addEventListener('click', async () => {
-    try {
-      const response = await fetch(`/cancel-order/${orderId}`, {
-        method: "DELETE",
-      });
-      const data = await response.json();
-      if (data.val) {
-        showToast('Order cancelled successfully! Refund will be processed to your wallet.', 'success');
-        fetchOrders();
-      } else {
-        showToast(data.msg || 'Failed to cancel order', 'error');
-      }
-    } catch (err) {
-      console.log(err);
-      showToast('An error occurred while cancelling the order', 'error');
-    }
-    document.body.removeChild(confirmModal);
-    document.head.removeChild(style);
-  });
-  
-  // Handle click outside modal
-  confirmModal.addEventListener('click', (e) => {
-    if (e.target === confirmModal) {
+    document.head.appendChild(style);
+
+    document.body.appendChild(confirmModal);
+
+    // Handle keep order
+    confirmModal.querySelector('.btn-keep-order').addEventListener('click', () => {
       document.body.removeChild(confirmModal);
       document.head.removeChild(style);
-    }
-  });
-}
-function requestReturn(event) {
-  const orderId = event.target.getAttribute("data-id");
-  
-  // Create a custom modal for return request
-  const returnModal = document.createElement('div');
-  returnModal.className = 'custom-modal-overlay';
-  returnModal.style.cssText = `
+    });
+
+    // Handle confirm cancel
+    confirmModal.querySelector('.btn-confirm-cancel').addEventListener('click', async () => {
+      try {
+        const response = await fetch(`/cancel-order/${orderId}`, {
+          method: "DELETE",
+        });
+        const data = await response.json();
+        if (data.val) {
+          showToast('Order cancelled successfully! Refund will be processed to your wallet.', 'success');
+          fetchOrders();
+        } else {
+          showToast(data.msg || 'Failed to cancel order', 'error');
+        }
+      } catch (err) {
+        console.log(err);
+        showToast('An error occurred while cancelling the order', 'error');
+      }
+      document.body.removeChild(confirmModal);
+      document.head.removeChild(style);
+    });
+
+    // Handle click outside modal
+    confirmModal.addEventListener('click', (e) => {
+      if (e.target === confirmModal) {
+        document.body.removeChild(confirmModal);
+        document.head.removeChild(style);
+      }
+    });
+  }
+  function requestReturn(event) {
+    const orderId = event.target.getAttribute("data-id");
+
+    // Create a custom modal for return request
+    const returnModal = document.createElement('div');
+    returnModal.className = 'custom-modal-overlay';
+    returnModal.style.cssText = `
     position: fixed;
     top: 0;
     left: 0;
@@ -1083,8 +1077,8 @@ function requestReturn(event) {
     align-items: center;
     z-index: 10000;
   `;
-  
-  returnModal.innerHTML = `
+
+    returnModal.innerHTML = `
     <div class="custom-modal-content" style="
       background: white;
       border-radius: 15px;
@@ -1181,69 +1175,69 @@ function requestReturn(event) {
       </div>
     </div>
   `;
-  
-  document.body.appendChild(returnModal);
-  
-  // Handle cancel
-  returnModal.querySelector('.btn-cancel-return').addEventListener('click', () => {
-    document.body.removeChild(returnModal);
-  });
-  
-  // Handle submit
-  returnModal.querySelector('.btn-submit-return').addEventListener('click', async () => {
-    const reason = returnModal.querySelector('#returnReason').value.trim();
-    const reasonError = returnModal.querySelector('#reasonError');
-    const reasonInput = returnModal.querySelector('#returnReason');
-    
-    if (!reason) {
-      reasonInput.style.borderColor = '#dc3545';
-      reasonError.style.display = 'block';
-      return;
-    }
-    
-    reasonInput.style.borderColor = '#e9ecef';
-    reasonError.style.display = 'none';
-    
-    try {
-      const response = await fetch(`/orders/request-return/${orderId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          reasonMsg: reason,
-        }),
-      });
-      const data = await response.json();
-      if (data.val) {
-        showToast('Return request submitted successfully! We will review your request and get back to you soon.', 'success');
-        fetchOrders();
-      } else {
-        showToast(data.msg || 'Failed to submit return request', 'error');
-      }
-    } catch (err) {
-      console.log(err);
-      showToast('An error occurred while submitting the request', 'error');
-    }
-    
-    document.body.removeChild(returnModal);
-  });
-  
-  // Handle click outside modal
-  returnModal.addEventListener('click', (e) => {
-    if (e.target === returnModal) {
-      document.body.removeChild(returnModal);
-    }
-  });
-}
 
-async function retryPayment(event) {
-  const orderId = event.target.getAttribute("data-id");
-  
-  // Create a custom modal for retry payment confirmation
-  const retryModal = document.createElement('div');
-  retryModal.className = 'custom-modal-overlay';
-  retryModal.style.cssText = `
+    document.body.appendChild(returnModal);
+
+    // Handle cancel
+    returnModal.querySelector('.btn-cancel-return').addEventListener('click', () => {
+      document.body.removeChild(returnModal);
+    });
+
+    // Handle submit
+    returnModal.querySelector('.btn-submit-return').addEventListener('click', async () => {
+      const reason = returnModal.querySelector('#returnReason').value.trim();
+      const reasonError = returnModal.querySelector('#reasonError');
+      const reasonInput = returnModal.querySelector('#returnReason');
+
+      if (!reason) {
+        reasonInput.style.borderColor = '#dc3545';
+        reasonError.style.display = 'block';
+        return;
+      }
+
+      reasonInput.style.borderColor = '#e9ecef';
+      reasonError.style.display = 'none';
+
+      try {
+        const response = await fetch(`/orders/request-return/${orderId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reasonMsg: reason,
+          }),
+        });
+        const data = await response.json();
+        if (data.val) {
+          showToast('Return request submitted successfully! We will review your request and get back to you soon.', 'success');
+          fetchOrders();
+        } else {
+          showToast(data.msg || 'Failed to submit return request', 'error');
+        }
+      } catch (err) {
+        console.log(err);
+        showToast('An error occurred while submitting the request', 'error');
+      }
+
+      document.body.removeChild(returnModal);
+    });
+
+    // Handle click outside modal
+    returnModal.addEventListener('click', (e) => {
+      if (e.target === returnModal) {
+        document.body.removeChild(returnModal);
+      }
+    });
+  }
+
+  async function retryPayment(event) {
+    const orderId = event.target.getAttribute("data-id");
+
+    // Create a custom modal for retry payment confirmation
+    const retryModal = document.createElement('div');
+    retryModal.className = 'custom-modal-overlay';
+    retryModal.style.cssText = `
     position: fixed;
     top: 0;
     left: 0;
@@ -1255,8 +1249,8 @@ async function retryPayment(event) {
     align-items: center;
     z-index: 10000;
   `;
-  
-  retryModal.innerHTML = `
+
+    retryModal.innerHTML = `
     <div class="custom-modal-content" style="
       background: white;
       border-radius: 15px;
@@ -1324,98 +1318,98 @@ async function retryPayment(event) {
       </div>
     </div>
   `;
-  
-  document.body.appendChild(retryModal);
-  
-  // Handle cancel
-  retryModal.querySelector('.btn-cancel-retry').addEventListener('click', () => {
-    document.body.removeChild(retryModal);
-  });
-  
-  // Handle confirm retry
-  retryModal.querySelector('.btn-confirm-retry').addEventListener('click', async () => {
-    try {
-      const response = await fetch(`/retry-payment`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ orderId }),
-      });
 
-      const data = await response.json();
+    document.body.appendChild(retryModal);
 
-      if (data.val) {
-        const options = {
-          key: data.key,
-          amount: data.amount,
-          currency: "INR",
-          order_id: data.orderId,
-          handler: async function (paymentResponse) {
-            try {
-              const verifyResponse = await fetch(`/verify-payment`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  paymentId: paymentResponse.razorpay_payment_id,
-                  orderId: paymentResponse.razorpay_order_id,
-                  signature: paymentResponse.razorpay_signature,
-                  retryOrderId: orderId,
-                }),
-              });
-
-              const verifyData = await verifyResponse.json();
-              if (verifyData.val) {
-                showToast('Payment successful and verified', 'success');
-                fetchOrders();
-              } else {
-                showToast(verifyData.msg || 'Payment could not be verified', 'error');
-              }
-            } catch (err) {
-              console.error("Error verifying payment:", err);
-              showToast('An error occurred during verification', 'error');
-            }
-          },
-          prefill: {
-            name: "User Name",
-            email: "user@example.com",
-            contact: "1234567890",
-          },
-          theme: {
-            color: "#3399cc",
-          },
-        };
-
-        const rzp = new Razorpay(options);
-        rzp.open();
-      } else {
-        showToast(data.msg || 'Payment retry failed', 'error');
-      }
-    } catch (err) {
-      console.error("Error retrying payment:", err);
-      showToast('Error retrying the payment', 'error');
-    }
-    
-    document.body.removeChild(retryModal);
-  });
-  
-  // Handle click outside modal
-  retryModal.addEventListener('click', (e) => {
-    if (e.target === retryModal) {
+    // Handle cancel
+    retryModal.querySelector('.btn-cancel-retry').addEventListener('click', () => {
       document.body.removeChild(retryModal);
-    }
-  });
-}
+    });
 
-async function downloadInvoice(event) {
-  const orderId = event.target.getAttribute("data-id");
-  
-  // Create a custom modal for download confirmation
-  const downloadModal = document.createElement('div');
-  downloadModal.className = 'custom-modal-overlay';
-  downloadModal.style.cssText = `
+    // Handle confirm retry
+    retryModal.querySelector('.btn-confirm-retry').addEventListener('click', async () => {
+      try {
+        const response = await fetch(`/retry-payment`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ orderId }),
+        });
+
+        const data = await response.json();
+
+        if (data.val) {
+          const options = {
+            key: data.key,
+            amount: data.amount,
+            currency: "INR",
+            order_id: data.orderId,
+            handler: async function (paymentResponse) {
+              try {
+                const verifyResponse = await fetch(`/verify-payment`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    paymentId: paymentResponse.razorpay_payment_id,
+                    orderId: paymentResponse.razorpay_order_id,
+                    signature: paymentResponse.razorpay_signature,
+                    retryOrderId: orderId,
+                  }),
+                });
+
+                const verifyData = await verifyResponse.json();
+                if (verifyData.val) {
+                  showToast('Payment successful and verified', 'success');
+                  fetchOrders();
+                } else {
+                  showToast(verifyData.msg || 'Payment could not be verified', 'error');
+                }
+              } catch (err) {
+                console.error("Error verifying payment:", err);
+                showToast('An error occurred during verification', 'error');
+              }
+            },
+            prefill: {
+              name: "User Name",
+              email: "user@example.com",
+              contact: "1234567890",
+            },
+            theme: {
+              color: "#3399cc",
+            },
+          };
+
+          const rzp = new Razorpay(options);
+          rzp.open();
+        } else {
+          showToast(data.msg || 'Payment retry failed', 'error');
+        }
+      } catch (err) {
+        console.error("Error retrying payment:", err);
+        showToast('Error retrying the payment', 'error');
+      }
+
+      document.body.removeChild(retryModal);
+    });
+
+    // Handle click outside modal
+    retryModal.addEventListener('click', (e) => {
+      if (e.target === retryModal) {
+        document.body.removeChild(retryModal);
+      }
+    });
+  }
+
+  async function downloadInvoice(event) {
+    const orderId = event.target.getAttribute("data-id");
+
+    // Create a custom modal for download confirmation
+    const downloadModal = document.createElement('div');
+    downloadModal.className = 'custom-modal-overlay';
+    downloadModal.style.cssText = `
     position: fixed;
     top: 0;
     left: 0;
@@ -1427,8 +1421,8 @@ async function downloadInvoice(event) {
     align-items: center;
     z-index: 10000;
   `;
-  
-  downloadModal.innerHTML = `
+
+    downloadModal.innerHTML = `
     <div class="custom-modal-content" style="
       background: white;
       border-radius: 15px;
@@ -1496,98 +1490,97 @@ async function downloadInvoice(event) {
       </div>
     </div>
   `;
-  
-  document.body.appendChild(downloadModal);
-  
-  // Handle cancel
-  downloadModal.querySelector('.btn-cancel-download').addEventListener('click', () => {
-    document.body.removeChild(downloadModal);
-  });
-  
-  // Handle confirm download
-  downloadModal.querySelector('.btn-confirm-download').addEventListener('click', async () => {
-    try {
-      window.location.href = `/orders/download/invoice/${orderId}`;
-      showToast('Invoice download started', 'success');
-    } catch (err) {
-      console.log(err);
-      showToast('Failed to download invoice', 'error');
-    }
-    
-    document.body.removeChild(downloadModal);
-  });
-  
-  downloadModal.addEventListener('click', (e) => {
-    if (e.target === downloadModal) {
+
+    document.body.appendChild(downloadModal);
+
+    // Handle cancel
+    downloadModal.querySelector('.btn-cancel-download').addEventListener('click', () => {
       document.body.removeChild(downloadModal);
-    }
-  });
-}
+    });
 
-const btnViewOrder = document.querySelectorAll(".btnViewOrder");
+    // Handle confirm download
+    downloadModal.querySelector('.btn-confirm-download').addEventListener('click', async () => {
+      try {
+        window.location.href = `/orders/download/invoice/${orderId}`;
+        showToast('Invoice download started', 'success');
+      } catch (err) {
+        console.log(err);
+        showToast('Failed to download invoice', 'error');
+      }
 
-async function viewOrderedProduct(e) {
-  document.querySelector(".ordersInfo").style.display = "none";
-  document.querySelector(".pagination").style.display = "none";
-  document.querySelector(".detailsOfOrders").style.display = "block";
-  document.querySelector(".orderedAddrressInfo").style.display = "block";
+      document.body.removeChild(downloadModal);
+    });
 
-  const orderId = e.target.getAttribute("data-id");
-  try {
-    const response = await fetch(`/view-order-details/${orderId}`);
-    const data = await response.json();
-    if (data.val) {
-      const addressContainer = document.querySelector(
-        ".orderedAddress-display"
-      );
-      const productDetailsTbody = document.querySelector(".orderedProductInfo");
-      addressContainer.innerHTML = "";
+    downloadModal.addEventListener('click', (e) => {
+      if (e.target === downloadModal) {
+        document.body.removeChild(downloadModal);
+      }
+    });
+  }
 
-      const addressDiv = document.createElement("div");
-      addressDiv.classList.add("address-item");
-      addressDiv.innerHTML = `
-        <p><strong>House Number:</strong> <span class="houseno-value">${data.shippingAddress.houseNumber}</span></p>
-        <p><strong>Street:</strong> <span class="street-value">${data.shippingAddress.street}</span></p>
-        <p><strong>Landmark:</strong> <span class="landmark-value">${data.shippingAddress.landMark}</span></p>
-        <p><strong>City:</strong> <span class="city-value">${data.shippingAddress.city}</span></p>
-        <p><strong>District:</strong> <span class="district-value">${data.shippingAddress.district}</span></p>
-        <p><strong>State:</strong> <span class="state-value">${data.shippingAddress.state}</span></p>
-        <p><strong>Country:</strong> <span class="country-value">${data.shippingAddress.country}</span></p>
-        <p><strong>Pin Code:</strong> <span class="pincode-value">${data.shippingAddress.pinCode}</span></p>
-      `;
-      addressContainer.appendChild(addressDiv);
+  const btnViewOrder = document.querySelectorAll(".btnViewOrder");
 
-      data.items.forEach((x, index) => {
-        const orderDetailTr = document.createElement("tr");
-        orderDetailTr.classList.add("order-item");
-        orderDetailTr.innerHTML = `
-          <td>${index + 1}</td>
-          <td>${x.product.name}</td>
-          <td>${x.product.price}</td>
-          <td>${x.quantity}</td>
-          <td>&#8377;${x.offerPrice * x.quantity}</td>
-          <td><a href="/details/${
-            x.product._id
-          }" class="view__order">View</a></td>
-          <td>
-            <a class="view__order btnAction" data-orderId="${orderId}" data-itemId="${
-          x._id
-        }">
-                ${
-                  x.itemStatus === "delivered"
-                    ? "Request Return"
-                    : x.itemStatus === "returned"
-                    ? "Order Returned"
-                    : x.itemStatus === "cancelled"
-                    ? "Order Canceled"
-                    : "Cancel Order"
-                }
-            </a>
-          </td>
+  async function viewOrderedProduct(e) {
+    document.querySelector(".ordersInfo").style.display = "none";
+    document.querySelector(".pagination").style.display = "none";
+    document.querySelector(".detailsOfOrders").style.display = "block";
+    document.querySelector(".orderedAddrressInfo").style.display = "block";
+
+    const orderId = e.target.getAttribute("data-id");
+    try {
+      const response = await fetch(`/view-order-details/${orderId}`);
+      const data = await response.json();
+      if (data.val) {
+        const order = data.order;
+        const addressContainer = document.querySelector(".orderedAddress-display");
+        const productDetailsTbody = document.querySelector(".orderedProductInfo");
+        addressContainer.innerHTML = "";
+        productDetailsTbody.innerHTML = "";
+
+        const addressDiv = document.createElement("div");
+        addressDiv.classList.add("address-item");
+        addressDiv.innerHTML = `
+          <div class="card p-3 shadow-sm border-0 mb-3" style="background: #f8f9fa; border-radius: 12px;">
+            <h6 class="mb-3" style="color: #2c3e50; font-weight: 700;">Shipping Address</h6>
+            <div style="font-size: 0.9rem; color: #555;">
+              <p class="mb-1"><strong>${data.shippingAddress.city}, ${data.shippingAddress.district}</strong></p>
+              <p class="mb-1">${data.shippingAddress.houseNumber}, ${data.shippingAddress.street}</p>
+              <p class="mb-1">${data.shippingAddress.landMark ? 'Landmark: ' + data.shippingAddress.landMark : ''}</p>
+              <p class="mb-1">${data.shippingAddress.state}, ${data.shippingAddress.country} - ${data.shippingAddress.pinCode}</p>
+            </div>
+          </div>
         `;
-        productDetailsTbody.appendChild(orderDetailTr);
+        addressContainer.appendChild(addressDiv);
 
-        orderDetailTr.querySelector(".btnAction").addEventListener("click", (event) => {
+        data.items.forEach((x, index) => {
+          const itemTotal = x.offerPrice * x.quantity;
+          let finalItemTotal = itemTotal;
+
+          if (order.coupon && order.coupon.discountApplied > 0 && order.subtotal > 0) {
+            const proportionalDiscount = (itemTotal / order.subtotal) * order.coupon.discountApplied;
+            finalItemTotal = Math.round((itemTotal - proportionalDiscount) * 100) / 100;
+          }
+
+          const orderDetailTr = document.createElement("tr");
+          orderDetailTr.classList.add("order-item");
+          orderDetailTr.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${x.product.name}</td>
+            <td>₹${x.offerPrice}</td>
+            <td>${x.quantity}</td>
+            <td><strong>₹${finalItemTotal}</strong></td>
+            <td><a href="/details/${x.product._id}" class="view__order">View</a></td>
+            <td>
+              <a class="view__order btnAction" data-orderId="${orderId}" data-itemId="${x._id}">
+                ${x.itemStatus === "delivered" ? "Request Return" :
+              x.itemStatus === "returned" ? "Item Returned" :
+                x.itemStatus === "cancelled" ? "Item Canceled" : "Cancel Item"}
+              </a>
+            </td>
+          `;
+          productDetailsTbody.appendChild(orderDetailTr);
+
+          orderDetailTr.querySelector(".btnAction").addEventListener("click", (event) => {
             if (x.itemStatus === "delivered") {
               requestIndividualReturn(event);
             } else if (x.itemStatus === "returned") {
@@ -1598,21 +1591,66 @@ async function viewOrderedProduct(e) {
               cancelIndividualOrders(event);
             }
           });
-      }); // Close the data.items.forEach loop
-    }
-  } catch (err) {
-    console.log(err);
-  }
-}
+        });
 
-async function cancelIndividualOrders(event) {
-  const orderId = event.target.getAttribute("data-orderId");
-  const itemId = event.target.getAttribute("data-itemId");
-  
-  // Create a simple confirmation dialog
-  const confirmModal = document.createElement('div');
-  confirmModal.className = 'custom-modal-overlay';
-  confirmModal.style.cssText = `
+        // Add Order Summary Row
+        const summaryTr = document.createElement("tr");
+        const totalSavings = (order.totalDiscount || 0) + (order.coupon?.discountApplied || 0);
+
+        summaryTr.innerHTML = `
+          <td colspan="7" style="padding: 0;">
+            <div class="p-3" style="background: #f8f9fa;">
+              <div class="row justify-content-end">
+                <div class="col-md-5">
+                  <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Subtotal:</span>
+                    <span>₹${order.subtotal}</span>
+                  </div>
+                  ${order.coupon?.discountApplied ? `
+                  <div class="d-flex justify-content-between mb-2 text-success">
+                    <span>Coupon Discount (${order.coupon.code}):</span>
+                    <span>-₹${order.coupon.discountApplied}</span>
+                  </div>` : ''}
+                  <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Shipping:</span>
+                    <span>${order.shippingCost === 0 ? '<span class="text-success">FREE</span>' : '₹' + order.shippingCost}</span>
+                  </div>
+                  <hr>
+                  <div class="d-flex justify-content-between align-items-center mb-0">
+                    <h5 class="mb-0" style="font-weight: 700;">Total Paid:</h5>
+                    <h4 class="mb-0 text-primary" style="font-weight: 800;">₹${order.totalAmount}</h4>
+                  </div>
+                  ${totalSavings > 0 ? `
+                  <div class="mt-2 text-center">
+                    <span class="badge bg-success-light text-success p-2" style="font-size: 0.85rem; border: 1px dashed #28a745;">
+                      <i class="fas fa-tags me-1"></i> You saved ₹${totalSavings} on this order!
+                    </span>
+                  </div>` : ''}
+                  <div class="mt-3 text-end">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="fetchOrders()">
+                      <i class="fas fa-arrow-left me-1"></i> Back to Orders
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+        `;
+        productDetailsTbody.appendChild(summaryTr);
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async function cancelIndividualOrders(event) {
+    const orderId = event.target.getAttribute("data-orderId");
+    const itemId = event.target.getAttribute("data-itemId");
+
+    // Create a simple confirmation dialog
+    const confirmModal = document.createElement('div');
+    confirmModal.className = 'custom-modal-overlay';
+    confirmModal.style.cssText = `
     position: fixed;
     top: 0;
     left: 0;
@@ -1624,8 +1662,8 @@ async function cancelIndividualOrders(event) {
     align-items: center;
     z-index: 10000;
   `;
-  
-  confirmModal.innerHTML = `
+
+    confirmModal.innerHTML = `
     <div class="custom-modal-content" style="
       background: white;
       border-radius: 15px;
@@ -1693,53 +1731,53 @@ async function cancelIndividualOrders(event) {
       </div>
     </div>
   `;
-  
-  document.body.appendChild(confirmModal);
-  
-  // Handle keep item
-  confirmModal.querySelector('.btn-keep-item').addEventListener('click', () => {
-    document.body.removeChild(confirmModal);
-  });
-  
-  // Handle confirm cancel
-  confirmModal.querySelector('.btn-confirm-cancel-item').addEventListener('click', async () => {
-    try {
-      const response = await fetch(`/item/cancel-order/${orderId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ itemId }),
-      });
-      const data = await response.json();
-      if (data.val) {
-        showToast('Item cancelled successfully! Refund will be processed to your wallet.', 'success');
-        fetchOrders();
-      } else {
-        showToast(data.msg || 'Failed to cancel item', 'error');
-      }
-    } catch (err) {
-      console.log(err);
-      showToast('An error occurred while cancelling the item', 'error');
-    }
-    document.body.removeChild(confirmModal);
-  });
-  
-  // Handle click outside modal
-  confirmModal.addEventListener('click', (e) => {
-    if (e.target === confirmModal) {
+
+    document.body.appendChild(confirmModal);
+
+    // Handle keep item
+    confirmModal.querySelector('.btn-keep-item').addEventListener('click', () => {
       document.body.removeChild(confirmModal);
-    }
-  });
-}
-async function requestIndividualReturn(event) {
-  const orderId = event.target.getAttribute("data-orderId");
-  const itemId = event.target.getAttribute("data-itemId");
-  
-  // Create a custom modal for individual return request
-  const returnModal = document.createElement('div');
-  returnModal.className = 'custom-modal-overlay';
-  returnModal.style.cssText = `
+    });
+
+    // Handle confirm cancel
+    confirmModal.querySelector('.btn-confirm-cancel-item').addEventListener('click', async () => {
+      try {
+        const response = await fetch(`/item/cancel-order/${orderId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ itemId }),
+        });
+        const data = await response.json();
+        if (data.val) {
+          showToast('Item cancelled successfully! Refund will be processed to your wallet.', 'success');
+          fetchOrders();
+        } else {
+          showToast(data.msg || 'Failed to cancel item', 'error');
+        }
+      } catch (err) {
+        console.log(err);
+        showToast('An error occurred while cancelling the item', 'error');
+      }
+      document.body.removeChild(confirmModal);
+    });
+
+    // Handle click outside modal
+    confirmModal.addEventListener('click', (e) => {
+      if (e.target === confirmModal) {
+        document.body.removeChild(confirmModal);
+      }
+    });
+  }
+  async function requestIndividualReturn(event) {
+    const orderId = event.target.getAttribute("data-orderId");
+    const itemId = event.target.getAttribute("data-itemId");
+
+    // Create a custom modal for individual return request
+    const returnModal = document.createElement('div');
+    returnModal.className = 'custom-modal-overlay';
+    returnModal.style.cssText = `
     position: fixed;
     top: 0;
     left: 0;
@@ -1751,8 +1789,8 @@ async function requestIndividualReturn(event) {
     align-items: center;
     z-index: 10000;
   `;
-  
-  returnModal.innerHTML = `
+
+    returnModal.innerHTML = `
     <div class="custom-modal-content" style="
       background: white;
       border-radius: 15px;
@@ -1833,81 +1871,81 @@ async function requestIndividualReturn(event) {
       </div>
     </div>
   `;
-  
-  document.body.appendChild(returnModal);
-  
-  // Handle cancel
-  returnModal.querySelector('.btn-cancel-return').addEventListener('click', () => {
-    document.body.removeChild(returnModal);
-  });
-  
-  // Handle submit
-  returnModal.querySelector('.btn-submit-return').addEventListener('click', async () => {
-    const reason = returnModal.querySelector('#returnReason').value.trim();
-    const reasonError = returnModal.querySelector('#reasonError');
-    const reasonInput = returnModal.querySelector('#returnReason');
-    
-    if (!reason) {
-      reasonInput.style.borderColor = '#dc3545';
-      reasonError.style.display = 'block';
-      return;
-    }
-    
-    reasonInput.style.borderColor = '#e9ecef';
-    reasonError.style.display = 'none';
-    
-    try {
-      const response = await fetch(`/item/return-order/${orderId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ itemId, reason }),
-      });
-      const data = await response.json();
-      if (data.val) {
-        showToast('Return request submitted successfully', 'success');
-        fetchOrders();
-      } else {
-        showToast(data.msg || 'Failed to submit return request', 'error');
-      }
-    } catch (err) {
-      console.log(err);
-      showToast('An error occurred while submitting the request', 'error');
-    }
-    
-    document.body.removeChild(returnModal);
-  });
-  
-  // Handle click outside modal
-  returnModal.addEventListener('click', (e) => {
-    if (e.target === returnModal) {
+
+    document.body.appendChild(returnModal);
+
+    // Handle cancel
+    returnModal.querySelector('.btn-cancel-return').addEventListener('click', () => {
       document.body.removeChild(returnModal);
-    }
-  });
-}
+    });
 
-function toggleEye(inputId, iconElement) {
-  const passwordInput = document.getElementById(inputId);
-  const isPassword = passwordInput.getAttribute("type") === "password";
-  passwordInput.setAttribute("type", isPassword ? "text" : "password");
-  iconElement.classList.toggle("fa-eye");
-  iconElement.classList.toggle("fa-eye-slash");
-}
+    // Handle submit
+    returnModal.querySelector('.btn-submit-return').addEventListener('click', async () => {
+      const reason = returnModal.querySelector('#returnReason').value.trim();
+      const reasonError = returnModal.querySelector('#reasonError');
+      const reasonInput = returnModal.querySelector('#returnReason');
 
-// Toast function for user notifications
-function showToast(message, type = 'info') {
-  // Remove any existing toasts first
-  const existingToasts = document.querySelectorAll('.custom-toast');
-  existingToasts.forEach(toast => {
-    if (toast.parentNode) {
-      toast.parentNode.removeChild(toast);
-    }
-  });
+      if (!reason) {
+        reasonInput.style.borderColor = '#dc3545';
+        reasonError.style.display = 'block';
+        return;
+      }
 
-  const toast = document.createElement('div');
-  toast.className = `custom-toast toast-${type}`;
-  toast.style.cssText = `
+      reasonInput.style.borderColor = '#e9ecef';
+      reasonError.style.display = 'none';
+
+      try {
+        const response = await fetch(`/item/return-order/${orderId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ itemId, reason }),
+        });
+        const data = await response.json();
+        if (data.val) {
+          showToast('Return request submitted successfully', 'success');
+          fetchOrders();
+        } else {
+          showToast(data.msg || 'Failed to submit return request', 'error');
+        }
+      } catch (err) {
+        console.log(err);
+        showToast('An error occurred while submitting the request', 'error');
+      }
+
+      document.body.removeChild(returnModal);
+    });
+
+    // Handle click outside modal
+    returnModal.addEventListener('click', (e) => {
+      if (e.target === returnModal) {
+        document.body.removeChild(returnModal);
+      }
+    });
+  }
+
+  function toggleEye(inputId, iconElement) {
+    const passwordInput = document.getElementById(inputId);
+    const isPassword = passwordInput.getAttribute("type") === "password";
+    passwordInput.setAttribute("type", isPassword ? "text" : "password");
+    iconElement.classList.toggle("fa-eye");
+    iconElement.classList.toggle("fa-eye-slash");
+  }
+
+  // Toast function for user notifications
+  function showToast(message, type = 'info') {
+    // Remove any existing toasts first
+    const existingToasts = document.querySelectorAll('.custom-toast');
+    existingToasts.forEach(toast => {
+      if (toast.parentNode) {
+        toast.parentNode.removeChild(toast);
+      }
+    });
+
+    const toast = document.createElement('div');
+    toast.className = `custom-toast toast-${type}`;
+    toast.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
@@ -1924,21 +1962,21 @@ function showToast(message, type = 'info') {
     align-items: center;
     gap: 10px;
   `;
-  
-  const colors = {
-    success: { bg: '#28a745', icon: 'fas fa-check-circle' },
-    error: { bg: '#dc3545', icon: 'fas fa-exclamation-circle' },
-    info: { bg: '#17a2b8', icon: 'fas fa-info-circle' },
-    warning: { bg: '#ffc107', icon: 'fas fa-exclamation-triangle', textColor: '#212529' }
-  };
-  
-  const config = colors[type] || colors.info;
-  toast.style.backgroundColor = config.bg;
-  if (config.textColor) {
-    toast.style.color = config.textColor;
-  }
-  
-  toast.innerHTML = `
+
+    const colors = {
+      success: { bg: '#28a745', icon: 'fas fa-check-circle' },
+      error: { bg: '#dc3545', icon: 'fas fa-exclamation-circle' },
+      info: { bg: '#17a2b8', icon: 'fas fa-info-circle' },
+      warning: { bg: '#ffc107', icon: 'fas fa-exclamation-triangle', textColor: '#212529' }
+    };
+
+    const config = colors[type] || colors.info;
+    toast.style.backgroundColor = config.bg;
+    if (config.textColor) {
+      toast.style.color = config.textColor;
+    }
+
+    toast.innerHTML = `
     <i class="${config.icon}"></i>
     <span>${message}</span>
     <button onclick="this.parentElement.remove()" style="
@@ -1952,42 +1990,42 @@ function showToast(message, type = 'info') {
       opacity: 0.7;
     ">×</button>
   `;
-  
-  document.body.appendChild(toast);
-  
-  // Animate in
-  setTimeout(() => {
-    toast.style.opacity = '1';
-    toast.style.transform = 'translateX(0)';
-  }, 100);
-  
-  // Auto remove after 4 seconds
-  setTimeout(() => {
-    if (toast.parentNode) {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateX(100%)';
-      setTimeout(() => {
-        if (toast.parentNode) {
-          toast.parentNode.removeChild(toast);
-        }
-      }, 300);
-    }
-  }, 4000);
-}
 
-// Utility function to create and manage custom modals
-function createCustomModal(config) {
-  // Close any existing modals first
-  const existingModals = document.querySelectorAll('.custom-modal-overlay');
-  existingModals.forEach(modal => {
-    if (modal.parentNode) {
-      modal.parentNode.removeChild(modal);
-    }
-  });
+    document.body.appendChild(toast);
 
-  const modal = document.createElement('div');
-  modal.className = 'custom-modal-overlay';
-  modal.style.cssText = `
+    // Animate in
+    setTimeout(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateX(0)';
+    }, 100);
+
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+          }
+        }, 300);
+      }
+    }, 4000);
+  }
+
+  // Utility function to create and manage custom modals
+  function createCustomModal(config) {
+    // Close any existing modals first
+    const existingModals = document.querySelectorAll('.custom-modal-overlay');
+    existingModals.forEach(modal => {
+      if (modal.parentNode) {
+        modal.parentNode.removeChild(modal);
+      }
+    });
+
+    const modal = document.createElement('div');
+    modal.className = 'custom-modal-overlay';
+    modal.style.cssText = `
     position: fixed;
     top: 0;
     left: 0;
@@ -1999,35 +2037,40 @@ function createCustomModal(config) {
     align-items: center;
     z-index: 10000;
   `;
-  
-  modal.innerHTML = config.content;
-  document.body.appendChild(modal);
-  
-  // Handle ESC key
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      closeModal();
+
+    modal.innerHTML = config.content;
+    document.body.appendChild(modal);
+
+    // Handle ESC key
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        closeModal();
+      }
+    };
+
+    // Handle click outside modal
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        closeModal();
+      }
+    });
+
+    function closeModal() {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (modal.parentNode) {
+        modal.parentNode.removeChild(modal);
+      }
     }
-  };
-  
-  // Handle click outside modal
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      closeModal();
-    }
-  });
-  
-  function closeModal() {
-    document.removeEventListener('keydown', handleKeyDown);
-    if (modal.parentNode) {
-      modal.parentNode.removeChild(modal);
-    }
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return { modal, closeModal };
   }
-  
-  document.addEventListener('keydown', handleKeyDown);
-  
-  return { modal, closeModal };
+
+  // Expose necessary functions to global scope for onclick listeners
+  window.viewOrderedProduct = viewOrderedProduct;
+  window.downloadInvoice = downloadInvoice;
+  window.toggleEye = toggleEye;
+  window.showToast = showToast;
 }
 
-// Close the DOMContentLoaded event listener
-};

@@ -431,6 +431,7 @@ module.exports = {
       console.log(order);
       res.status(200).json({
         val: true,
+        order,
         shippingAddress: order.shippingAddress,
         items: order.items,
         msg: null,
@@ -1088,10 +1089,18 @@ module.exports = {
       }
 
       item.itemStatus = "cancelled";
-      const refundAmount = Math.round(item.offerPrice * item.quantity * 100) / 100;
+      let refundAmount = item.offerPrice * item.quantity;
+      if (order.coupon && order.coupon.discountApplied > 0 && order.subtotal > 0) {
+        const proportionalDiscount = (refundAmount / order.subtotal) * order.coupon.discountApplied;
+        refundAmount = Math.round((refundAmount - proportionalDiscount) * 100) / 100;
+      }
       order.totalAmount = Math.round((order.totalAmount - refundAmount) * 100) / 100;
 
-      if (order.paymentMethod !== "COD") {
+      if (
+        (order.paymentMethod === "razorpay" ||
+          order.paymentMethod === "wallet") &&
+        order.paymentStatus !== "pending"
+      ) {
         let wallet = await walletModel.findOne({ userId: currentId });
         if (!wallet) {
           wallet = await walletModel.create({
@@ -1203,7 +1212,11 @@ module.exports = {
       if (status === "approved") {
         item.returnRequest.adminStatus = "approved";
         item.itemStatus = "returned";
-        const refundAmount = item.offerPrice * item.quantity;
+        let refundAmount = item.offerPrice * item.quantity;
+        if (order.coupon && order.coupon.discountApplied > 0 && order.subtotal > 0) {
+          const proportionalDiscount = (refundAmount / order.subtotal) * order.coupon.discountApplied;
+          refundAmount = Math.round((refundAmount - proportionalDiscount) * 100) / 100;
+        }
         const userId = order.user;
 
         let wallet = await walletModel.findOne({ userId });
