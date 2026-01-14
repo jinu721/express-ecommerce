@@ -20,20 +20,24 @@ module.exports = {
         });
       }
 
-      cart.items = cart.items.filter((item) => item.productId && !item.productId.isDeleted);
+      // Check for unlisted categories as well
+      const itemsWithAvailability = await Promise.all(cart.items.map(async item => {
+        if (!item.productId) return { ...item.toObject(), isAvailable: false };
 
-      if (cart.items.length === 0) {
-        return res.status(200).render("cart", {
-          isCartEmpty: true,
-          msg: "No valid items in cart",
-          products: null,
-          cart: null,
-        });
-      }
+        const product = await productModel.findById(item.productId._id).populate('category');
+        const isAvailable = product && !product.isDeleted && product.category && !product.category.isDeleted;
 
-      const populatedItems = await Promise.all(cart.items.map(async item => {
+        return {
+          ...item.toObject(),
+          isAvailable
+        };
+      }));
+
+      const hasUnavailableItems = itemsWithAvailability.some(item => !item.isAvailable);
+
+      const populatedItems = await Promise.all(itemsWithAvailability.filter(item => item.productId).map(async item => {
+        const product = await productModel.findById(item.productId._id);
         const variant = item.variantId ? await Variant.findById(item.variantId) : null;
-        const product = await productModel.findById(item.productId);
 
         const pricing = await pricingService.calculateBestOffer(product, item.quantity, req.session.currentId, variant);
 
@@ -116,8 +120,12 @@ module.exports = {
         msg: null,
         cart: {
           ...cart.toObject(),
-          items: cartItemsWithOffers
+          items: cartItemsWithOffers.map((item, idx) => ({
+            ...item,
+            isAvailable: itemsWithAvailability[idx].isAvailable
+          }))
         },
+        hasUnavailableItems,
         deliveryCharge,
         shippingDetails,
       });
@@ -136,9 +144,14 @@ module.exports = {
         return res.status(401).json({ val: false, msg: "Please login first" });
       }
 
-      const product = await productModel.findById(productId);
+      const product = await productModel.findById(productId).populate('category');
       if (!product) {
         return res.status(404).json({ val: false, msg: "Product not found" });
+      }
+
+      const isAvailable = !product.isDeleted && product.category && !product.category.isDeleted;
+      if (!isAvailable) {
+        return res.status(400).json({ val: false, msg: "This product is currently unavailable" });
       }
 
       let variant = null;
@@ -314,7 +327,14 @@ module.exports = {
       if (itemIndex === -1) return res.status(404).json({ val: false, msg: "Item not found in cart" });
 
       const item = cart.items[itemIndex];
-      const product = await productModel.findById(item.productId);
+      const product = await productModel.findById(item.productId).populate('category');
+      if (!product) return res.status(404).json({ val: false, msg: "Product not found" });
+
+      const isAvailable = !product.isDeleted && product.category && !product.category.isDeleted;
+      if (!isAvailable) {
+        return res.status(400).json({ val: false, msg: "This product is currently unavailable" });
+      }
+
       const variant = item.variantId ? await Variant.findById(item.variantId) : null;
 
       const attributes = {};

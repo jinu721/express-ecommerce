@@ -98,6 +98,9 @@
                         <p class="table__description">
                           <%= item.productId.description.slice(0, 40) %>...
                         </p>
+                        <% if (!item.isAvailable) { %>
+                          <span class="badge badge-danger" style="color: #ff4d4d; font-weight: bold; font-size: 0.8rem;">[Unavailable]</span>
+                        <% } %>
                       </td>
                       <td>
                         <% if (item.hasOffer) { %>
@@ -217,7 +220,12 @@
                       <td><span class="cart__total-price">&#8377; <span id="cartFinalTotal"><%= isNaN(cart.cartTotal + deliveryCharge) ? '0' : Math.round(cart.cartTotal + deliveryCharge) %></span></span></td>
                     </tr>
                 </table>
-                <a href="/checkout" class="btn flex btn--md btnProceedToCheckout">
+                <% if (hasUnavailableItems) { %>
+                  <p style="color: #ff4d4d; font-size: 0.85rem; margin-bottom: 0.5rem;">Please remove unavailable items before checkout.</p>
+                <% } %>
+                <a href="<%= hasUnavailableItems ? 'javascript:void(0)' : '/checkout' %>" 
+                   class="btn flex btn--md btnProceedToCheckout <%= hasUnavailableItems ? 'disabled' : '' %>"
+                   <%= hasUnavailableItems ? 'style=background-color:#ccc;cursor:not-allowed;' : '' %>>
                   <i class="fi fi-rs-box-alt"></i> Proceed To Checkout
                 </a>
               </div>

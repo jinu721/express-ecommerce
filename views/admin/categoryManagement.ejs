@@ -8,6 +8,8 @@
     <link href="https://unpkg.com/cropperjs@1.5.12/dist/cropper.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="/css/modern-admin.css">
+    <link rel="stylesheet" href="/css/ios-toast.css" />
+    <link rel="stylesheet" href="/css/image-selector.css" />
     <style>
       .category-image-thumb {
         width: 60px;
@@ -96,12 +98,20 @@
                         </td>
                         <td>
                           <div style="display: flex; gap: 0.5rem;">
-                            <a href="/admin/category/update/<%= data._id %>">
-                              <span class="badge badge-outline-warning">
-                                <i class="fas fa-edit"></i> Update
-                              </span>
-                            </a>
-
+                            <span 
+                              class="badge badge-outline-warning" 
+                              style="cursor: pointer;"
+                              onclick="openUpdateModal('<%= data._id %>')"
+                            >
+                              <i class="fas fa-edit"></i> Update
+                            </span>
+                            <span 
+                              class="badge badge-outline-danger" 
+                              style="cursor: pointer;"
+                              onclick="deleteCategory('<%= data._id %>', '<%= data.name %>')"
+                            >
+                              <i class="fas fa-trash"></i> Delete
+                            </span>
                           </div>
                         </td>
                       </tr>
@@ -160,8 +170,6 @@
           </div>
           <div class="modal-body">
             <form class="forms-sample" id="categoryForm" enctype="multipart/form-data" novalidate>
-              <input style="display: none;" type="file" class="category-image" required />
-              
               <div class="form-group">
                 <label for="categoryName" class="form-label">Name</label>
                 <input
@@ -174,30 +182,54 @@
                 />
                 <p class="error-message" id="categoryNameError"></p>
               </div>
-              
+
               <div class="form-group">
-                <label for="categoryImage" class="form-label">Image</label>
-                <input 
-                  type="file" 
-                  class="form-control category-image" 
-                  id="categoryImage" 
-                  accept="image/*" 
-                  onchange="previewAndCrop(event)"
-                />
+                <label class="form-label">Category Image</label>
+                <div id="imageSelector"></div>
                 <p class="error-message" id="categoryImageError"></p>
-              </div>
-              
-              <div class="form-group previewSection">
-                <img id="cropPreview" style="max-width: 100%; display: none;" />
-                <button type="button" class="btn btn-sm btn-primary mt-2" id="cropButton" style="display: none;" onclick="startCropping()">
-                  Crop Image
-                </button>
               </div>
               
               <button type="submit" class="btn btn-primary mt-3">Create Category</button>
             </form>
           </div>
         </div>
+
+    <!-- Update Category Modal -->
+    <div class="modal fade" id="categoryUpdateModal" tabindex="-1" aria-labelledby="categoryUpdateModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="categoryUpdateModalLabel">Update Category</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form class="forms-sample" id="categoryUpdateForm" enctype="multipart/form-data" novalidate>
+              <input type="hidden" id="updateCategoryId">
+              <div class="form-group">
+                <label for="updateCategoryName" class="form-label">Name</label>
+                <input
+                  type="text"
+                  class="form-control category-name"
+                  id="updateCategoryName" 
+                  name="name"
+                  placeholder="Category Name"
+                  required
+                />
+                <p class="error-message" id="updateCategoryNameError"></p>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Category Image</label>
+                <div id="updateImageSelector"></div>
+                <p class="error-message" id="updateCategoryImageError"></p>
+              </div>
+              
+              <button type="submit" class="btn btn-warning mt-3">Update Category</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
       </div>
     </div>
 
@@ -205,6 +237,8 @@
 
     <script src="https://unpkg.com/cropperjs@1.5.12/dist/cropper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/ios-toast.js"></script>
+    <script src="/js/image-selector.js"></script>
     <script src="/js/admin/category.js"></script>
   </body>
 </html>

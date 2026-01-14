@@ -24,6 +24,24 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
   });
 });
 
+// Date validation handling
+const startDateInput = document.getElementById('startDate');
+const endDateInput = document.getElementById('endDate');
+
+if (startDateInput && endDateInput) {
+  startDateInput.addEventListener('change', function () {
+    if (this.value) {
+      endDateInput.min = this.value;
+    }
+  });
+
+  endDateInput.addEventListener('change', function () {
+    if (this.value) {
+      startDateInput.max = this.value;
+    }
+  });
+}
+
 // Load dashboard data
 async function loadDashboard() {
   try {
@@ -35,6 +53,14 @@ async function loadDashboard() {
 
       if (!startDate || !endDate) {
         Toast.error('Error', 'Please select both start and end dates');
+        return;
+      }
+
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (start > end) {
+        Toast.error('Invalid Date Range', 'Start date cannot be after end date');
         return;
       }
 
@@ -485,9 +511,19 @@ async function downloadReport(format) {
 
     if (!currentRange) currentRange = 'daily';
 
-    if (currentRange === 'custom' && (!startDate || !endDate)) {
-      Toast.error('Error', 'Please select both start and end dates for custom range');
-      return;
+    if (currentRange === 'custom') {
+      if (!startDate || !endDate) {
+        Toast.error('Error', 'Please select both start and end dates for custom range');
+        return;
+      }
+
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (start > end) {
+        Toast.error('Invalid Date Range', 'Start date cannot be after end date');
+        return;
+      }
     }
 
     const requestData = {

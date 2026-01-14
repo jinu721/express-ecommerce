@@ -101,16 +101,22 @@
                   <% } else { %>
                     <% isInStock = true; // Default to in stock if no size info %>
                   <% } %>
-                  <span class="table__stock <%= isInStock ? 'in-stock' : 'out-of-stock' %>">
-                    <%= isInStock ? 'In Stock' : 'Out of Stock' %>
-                  </span>
+                  <% if (data.isAvailable) { %>
+                    <span class="table__stock <%= isInStock ? 'in-stock' : 'out-of-stock' %>">
+                      <%= isInStock ? 'In Stock' : 'Out of Stock' %>
+                    </span>
+                  <% } else { %>
+                    <span class="table__stock out-of-stock">Currently Unavailable</span>
+                  <% } %>
                 </td>
                 <td>
                   <a
                      data-price="<%= data.price %>"
                       data-productId="<%= data._id  %>" 
                       data-wishlistItemId="<%= wishlistItem ? wishlistItem._id : '' %>"
-                      class="btn btn--sm btnAddToCart">
+                      data-available="<%= data.isAvailable %>"
+                      class="btn btn--sm btnAddToCart <%= !data.isAvailable ? 'disabled' : '' %>"
+                      <%= !data.isAvailable ? 'style=background-color:#ccc;cursor:not-allowed;' : '' %>>
                     Add to Cart
                   </a>
                 </td>

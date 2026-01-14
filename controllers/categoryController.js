@@ -141,6 +141,18 @@ module.exports = {
       return res.status(500).json({ val: false, msg: "Server error" });
     }
   },
+  async getCategoryData(req, res) {
+    try {
+      const { id } = req.params;
+      const category = await categoryModel.findById(id);
+      if (!category) {
+        return res.status(404).json({ val: false, msg: "Category not found" });
+      }
+      res.status(200).json({ val: true, category });
+    } catch (err) {
+      res.status(500).json({ val: false, msg: "Server error" });
+    }
+  },
   async categoryUpdate(req, res) {
     const { categoryId } = req.params;
     const { categoryName } = req.body;
@@ -201,10 +213,9 @@ module.exports = {
       }
       for (const product of products) {
         if (isPercentage) {
-          product.offerPrice =
-            product.price - (product.price * offerAmount) / 100;
+          product.offerPrice = Math.round(product.price - (product.price * offerAmount) / 100);
         } else {
-          product.offerPrice = product.price - offerAmount;
+          product.offerPrice = Math.round(product.price - offerAmount);
         }
 
         product.offerPrice = Math.max(product.offerPrice, 0);
@@ -220,6 +231,21 @@ module.exports = {
     } catch (error) {
       console.error(error);
       res.status(500).json({ val: false, msg: "Server error." });
+    }
+  },
+  async categoryDelete(req, res) {
+    const { id } = req.params;
+    try {
+      // Check if any products are using this category
+      const productCount = await productModel.countDocuments({ category: id });
+      if (productCount > 0) {
+        return res.status(400).json({ val: false, msg: "Cannot delete category as it has associated products. Unlist it instead." });
+      }
+      await categoryModel.deleteOne({ _id: id });
+      res.status(200).json({ val: true, msg: "Category deleted permanently" });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ val: false, msg: "Server error" });
     }
   },
 };

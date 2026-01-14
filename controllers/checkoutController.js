@@ -27,7 +27,7 @@ module.exports = {
 
       if (isBuyNow) {
         const { productId, quantity, size, color } = req.session.tempCart;
-        const product = await productModel.findById(productId);
+        const product = await productModel.findById(productId).populate('category');
 
         const attributeQuery = {};
         if (size) attributeQuery['attributes.SIZE'] = size.toUpperCase();
@@ -41,6 +41,11 @@ module.exports = {
 
         if (!product) {
           return res.redirect('/shop');
+        }
+
+        const isAvailable = !product.isDeleted && product.category && !product.category.isDeleted;
+        if (!isAvailable) {
+          return res.redirect('/cart');
         }
 
         const pricing = await pricingService.calculateBestOffer(product, Number(quantity), req.session.currentId, variant);
@@ -78,8 +83,13 @@ module.exports = {
         const itemsToCalculate = [];
 
         for (const item of cart.items) {
-          const product = await productModel.findById(item.productId);
+          const product = await productModel.findById(item.productId).populate('category');
           if (!product) continue;
+
+          const isAvailable = !product.isDeleted && product.category && !product.category.isDeleted;
+          if (!isAvailable) {
+            return res.redirect('/cart');
+          }
 
           const attributeQuery = {};
           if (item.size) attributeQuery['attributes.SIZE'] = item.size.toUpperCase();

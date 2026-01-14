@@ -3,9 +3,18 @@ const btnAddToCart = document.querySelectorAll('.btnAddToCart');
 btnAddToCart.forEach(elem => {
     elem.addEventListener('click', async (e) => {
         e.preventDefault();
-        const productId = e.target.getAttribute('data-productId'); 
-        const wishlistItemId = e.target.getAttribute('data-wishlistItemId'); 
-        
+        const productId = e.target.getAttribute('data-productId');
+        const wishlistItemId = e.target.getAttribute('data-wishlistItemId');
+        const isAvailable = e.target.getAttribute('data-available') === 'true';
+
+        if (!isAvailable) {
+            if (typeof Toast !== 'undefined') {
+                Toast.error('Unavailable', 'This product is currently unavailable and cannot be added to cart.');
+            } else {
+                alert('This product is currently unavailable.');
+            }
+            return;
+        }
         // Check if Toast is available
         if (typeof Toast === 'undefined') {
             console.error('Toast is not defined');
@@ -13,7 +22,7 @@ btnAddToCart.forEach(elem => {
             directAddToCart(productId, wishlistItemId);
             return;
         }
-        
+
         // Open variant selection popup
         if (window.variantPopup) {
             window.variantPopup.open(productId, {
@@ -30,7 +39,7 @@ btnAddToCart.forEach(elem => {
                                 attributes: selection.attributes
                             })
                         });
-                        
+
                         const data = await response.json();
                         if (data.val) {
                             Toast.success('Added to Cart', 'Item moved to cart successfully');
@@ -82,7 +91,7 @@ async function directAddToCart(productId, wishlistItemId) {
                                     attributes: selection.attributes
                                 })
                             });
-                            
+
                             const data = await response.json();
                             if (data.val) {
                                 Toast.success('Added to Cart', 'Item moved to cart successfully');
@@ -100,7 +109,7 @@ async function directAddToCart(productId, wishlistItemId) {
                 });
                 return; // Don't show error toast, popup is handling it
             }
-            
+
             if (typeof Toast !== 'undefined') {
                 Toast.error('Error', data.msg);
             } else {
@@ -155,12 +164,12 @@ btnDeleteWishlist.forEach(elem => {
 
 async function deleteWishlistItem(e) {
     const cartItemId = e.target.getAttribute('data-id');
-    const wishlistItemId = e.target.getAttribute('data-wishlistItemId'); 
+    const wishlistItemId = e.target.getAttribute('data-wishlistItemId');
     console.log(cartItemId);
     console.log(wishlistItemId);
-    try{
-        const response = await fetch(`/remove-from-wishlist/${wishlistItemId}`,{
-            method:'DELETE',
+    try {
+        const response = await fetch(`/remove-from-wishlist/${wishlistItemId}`, {
+            method: 'DELETE',
         });
         console.log(response);
         const data = await response.json();
@@ -179,7 +188,7 @@ async function deleteWishlistItem(e) {
                 alert('Error: ' + data.msg);
             }
         }
-    }catch(err){
+    } catch (err) {
         console.log(err);
         if (typeof Toast !== 'undefined') {
             Toast.error('Error', 'Something went wrong');

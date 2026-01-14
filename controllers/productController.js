@@ -13,7 +13,13 @@ const path = require("path");
 module.exports = {
   async homeLoad(req, res) {
     try {
-      const productsRaw = await productModel.find({ isDeleted: false });
+      const activeCategories = await categoryModel.find({ isDeleted: false });
+      const activeCategoryIds = activeCategories.map(cat => cat._id);
+
+      const productsRaw = await productModel.find({
+        isDeleted: false,
+        category: { $in: activeCategoryIds }
+      });
 
       const products = await Promise.all(productsRaw.map(async (product) => {
         const offerResult = await pricingService.calculateBestOffer(product, 1, req.session.currentId);
@@ -30,7 +36,7 @@ module.exports = {
         };
       }));
 
-      const category = await categoryModel.find();
+      const category = activeCategories;
       const topSellingProducts = await orderModel.aggregate([
         { $match: { orderStatus: "delivered" } },
         { $unwind: "$items" },
@@ -394,7 +400,7 @@ module.exports = {
         returnPolicy,
       } = req.body;
 
-      const basePrice = Number(price);
+      const basePrice = Math.round(Number(price));
       cashOnDelivery = cashOnDelivery === "true";
 
       let brandId = null;
@@ -607,10 +613,10 @@ module.exports = {
 
     const { productId } = req.params;
     try {
-      const basePrice = Number(price);
+      const basePrice = Math.round(Number(price));
       cashOnDelivery = cashOnDelivery === true || cashOnDelivery === "true";
       hasCustomShipping = hasCustomShipping === true || hasCustomShipping === "true";
-      const customShippingPrice = hasCustomShipping && shippingPrice ? Number(shippingPrice) : null;
+      const customShippingPrice = hasCustomShipping && shippingPrice ? Math.round(Number(shippingPrice)) : null;
 
       const parsedTags = typeof tags === 'string' ? tags.split("#").filter((tag) => tag.trim() !== "") : tags;
 

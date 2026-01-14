@@ -17,6 +17,8 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/css/modern-admin.css" />
+    <link rel="stylesheet" href="/css/ios-toast.css" />
+    <link rel="stylesheet" href="/css/image-selector.css" />
     <style>
       .image-container {
         position: relative;
@@ -73,45 +75,20 @@
           enctype="multipart/form-data"
           novalidate
         >
-          <div
-            style="display: flex; justify-content: center"
-            class="image-container"
-          >
-            <label
-              style="display: flex; justify-content: center"
-              for="categoryUpdateImage"
-            >
-              <img class="cateImg" src="/<%= category.image %>" alt="ghhg" />
-              <div class="overlay">
-                <span class="add-icon">+</span>
-              </div>
-            </label>
+          <div class="form-group mb-4">
+            <label class="form-label">Category Image</label>
+            <div id="editImageSelector"></div>
+            <p class="error-message" id="categoryUpdateImageError"></p>
           </div>
           <div class="form-group">
-            <input
-              type="file"
-              id="categoryUpdateImage"
-              style="display: none"
-              accept="image/*"
-              onchange="previewAndCrop(event)"
-            />
-            <div id="cropPreviewUpdateSection" style="display: none">
-              <img id="cropPreviewUpdate" style="max-width: 100%" />
-              <button type="button" onclick="startCroppingUpdate()">
-                Crop Image
-              </button>
-            </div>
-          </div>
-          <p class="error-message" id="categoryUpdateImageError"></p>
-          <div class="form-group">
-            <label for="productUpdateName">Name</label>
+            <label for="categoryUpdateName">Name</label>
             <input
               type="text"
               class="form-control product-update-name"
               id="categoryUpdateName"
               name="name"
               value="<%= category.name %>"
-              placeholder="Product Name"
+              placeholder="Category Name"
               required
             />
             <p class="error-message" id="categoryUpdateNameError"></p>
@@ -133,124 +110,95 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/cropperjs@1.5.12/dist/cropper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
+    <script src="/js/ios-toast.js"></script>
+    <script src="/js/image-selector.js"></script>
     <script>
-      let cropper;
-      let croppedImage = null;
-      function previewAndCrop(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        if (!["image/png", "image/jpg", "image/jpeg"].includes(file.type)) {
-          const categoryUpdateImageError = document.querySelector(
-            "#categoryUpdateImageError"
-          );
-          categoryUpdateImageError.style.display = "block";
-          categoryUpdateImageError.textContent =
-            "Only jpg, png, and jpeg allowed";
-          return;
-        }
-
-        const cropPreview = document.getElementById("cropPreviewUpdate");
-        const cropPreviewSection = document.getElementById(
-          "cropPreviewUpdateSection"
-        );
-
-        cropPreview.src = URL.createObjectURL(file);
-        cropPreviewSection.style.display = "block";
-        if (cropper) {
-          cropper.destroy();
-        }
-
-        cropper = new Cropper(cropPreview, {
-          aspectRatio: NaN,
-          viewMode: 1,
-          autoCropArea: 1,
-          scalable: true,
-          zoomable: true,
-          movable: true,
-        });
-      }
-
-      function startCroppingUpdate() {
-        if (!cropper) return;
-
-        cropper.getCroppedCanvas().toBlob((blob) => {
-          croppedImage = blob;
-          document.getElementById("cropPreviewUpdateSection").style.display =
-            "none";
-          console.log("Cropped image stored for upload or further use.");
-          console.log(croppedImage);
-          changeImage();
-        });
-      }
-
+      let editImageSelector;
       const categoryId = document.querySelector("#categoryId").value;
-      console.log(categoryId);
+      const existingImage = "<%= category.image %>";
 
-      async function changeImage() {
-        const categoryUpdateName = document.querySelector(
-          "#categoryUpdateName"
-        );
-        const formData = new FormData();
-        formData.append("categoryImage", croppedImage);
-        formData.append("categoryName", categoryUpdateName.value);
+      document.addEventListener('DOMContentLoaded', function() {
+        editImageSelector = new ImageSelector('editImageSelector', {
+          maxImages: 1,
+          minImages: 1,
+          allowCrop: true,
+          aspectRatio: 1
+        });
+        window.editImageSelector = editImageSelector;
 
-        try {
-          const response = await fetch(`/update-category-image/${categoryId}`, {
-            method: "POST",
-            body: formData,
-          });
-
-          const data = await response.json();
-          if (data.val) {
-            window.location.href = `/admin/category/update/${categoryId}`;
-          }
-        } catch (err) {
-          console.log(err);
+        if (existingImage) {
+          editImageSelector.loadImages([existingImage.startsWith('/') ? existingImage : '/' + existingImage]);
         }
-      }
+      });
 
       document
         .querySelector("#updateCategoryBtn")
         .addEventListener("click", async (e) => {
           e.preventDefault();
-          console.log("clicked");
+          
+          const categoryUpdateName = document.querySelector("#categoryUpdateName");
+          const categoryUpdateNameError = document.querySelector("#categoryUpdateNameError");
 
-          const categoryUpdateNameError = document.querySelector(
-            "#categoryUpdateNameError"
-          );
-          const categoryUpdateName = document.querySelector(
-            "#categoryUpdateName"
-          ); 
-
-          if (categoryUpdateName.value === "") {
+          if (categoryUpdateName.value.trim() === "") {
             categoryUpdateNameError.style.display = "block";
-            categoryUpdateNameError.textContent =
-              "Category name should not be empty";
-          } else {
-            categoryUpdateNameError.style.display = "none";
-            try {
-              const response = await fetch(
-                `/admin/category/update/${categoryId}`,
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    categoryName: categoryUpdateName.value,
-                  }),
-                }
-              );
+            categoryUpdateNameError.textContent = "Category name should not be empty";
+            return;
+          }
 
-              const data = await response.json();
-              if (data.val) {
-                window.location.href = `/admin/category/update/${categoryId}`;
-              } else {
-                categoryUpdateNameError.style.display = "block";
-                categoryUpdateNameError.textContent = data.msg;
-              }
-            } catch (err) {
-              console.log(err);
+          categoryUpdateNameError.style.display = "none";
+          
+          const formData = new FormData();
+          formData.append("categoryName", categoryUpdateName.value.trim());
+
+          // Handle Image
+          const images = editImageSelector.images.filter(img => img !== null);
+          if (images.length > 0) {
+            if (images[0].file) {
+              // New image uploaded
+              formData.append("categoryImage", images[0].file);
             }
+            // If it's the existing image, we don't need to append anything special 
+            // unless the backend needs to know it stayed the same.
+            // But the backend route `/admin/category/update/:categoryId` only updates name.
+            // The image update is separate in `/update-category-image/:categoryId`.
+            // Wait, I should probably merge them or trigger accordingly.
+          }
+
+          try {
+            const loadingToast = Toast.info("Updating", "Saving changes...", { duration: 0 });
+            
+            // First update name
+            const nameResponse = await fetch(`/admin/category/update/${categoryId}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ categoryName: categoryUpdateName.value.trim() }),
+            });
+
+            const nameData = await nameResponse.json();
+            
+            // If image changed, update image
+            if (images.length > 0 && images[0].file) {
+                const imageFormData = new FormData();
+                imageFormData.append("categoryImage", images[0].file);
+                
+                await fetch(`/update-category-image/${categoryId}`, {
+                    method: "POST",
+                    body: imageFormData
+                });
+            }
+
+            Toast.hide(loadingToast);
+            if (nameData.val) {
+              Toast.success("Success", "Category updated successfully");
+              setTimeout(() => {
+                window.location.href = `/admin/categories`;
+              }, 1500);
+            } else {
+              Toast.error("Error", nameData.msg);
+            }
+          } catch (err) {
+            console.log(err);
+            Toast.error("Error", "Failed to update category");
           }
         });
     </script>
